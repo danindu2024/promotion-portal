@@ -14,22 +14,32 @@ return new class extends Migration
         // MAIN REGISTRY (The "Clean" Data)
         Schema::create('main_registry', function (Blueprint $table) {
             $table->id();
-            $table->enum('category', ['Self-Employed', 'Trade'])->index(); // Index for filtering
+            $table->enum('category', ['Self-Employed', 'Trade']);
             
             // Common Fields
             $table->string('full_name');
             $table->text('address');
             $table->string('district')->index(); // Index for filtering
-            $table->string('dv_division');
+            $table->string('ds_division');
             $table->string('gn_division');
             $table->string('contact_number');
             $table->string('whatsapp_number')->nullable();
             $table->string('email')->nullable();
 
             // Self-Employed Specific (Nullable)
-            $table->integer('age')->nullable();
-            // Storing Enums as strings is often safer for future changes, or use a constrained set
-            $table->string('field_of_work')->nullable(); 
+            $table->integer('age')->nullable()->index('idx_age');
+            $table->enum('field_of_work', [
+                'Agriculture & Fishing',
+                'Textile & Garments',
+                'Construction',
+                'IT & Modern Services',
+                'Food & Beverages',
+                'Manufacturing',
+                'Tourism & Hospitality',
+                'Transportation',
+                'Retail & Wholesale',
+                'Other Services'
+            ])->nullable();
             $table->integer('employees_count')->nullable();
 
             // Trade Specific (Nullable)
@@ -46,8 +56,16 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Foreign Key Constraint
+            // Foreign Key Constraints
             $table->foreign('approved_by')->references('user_id')->on('users');
+            $table->foreign('deleted_by')->references('user_id')->on('users');
+
+            // Composite Indexes (from SDD optimization strategy)
+            // Database indexes follow the "Leftmost Prefix" rule. Covers queries for:
+            // - WHERE category = ?
+            // - WHERE category = ? AND district = ?
+            // - WHERE category = ? AND district = ? AND field_of_work = ?
+            $table->index(['category', 'district', 'field_of_work'], 'idx_category_district_field');
         });
 
         // STAGING DATA (The "Pending" Bucket)
@@ -55,7 +73,7 @@ return new class extends Migration
             $table->id();
             $table->string('batch_id')->index(); // To group Excel uploads
             $table->json('data_payload'); // Stores raw row data
-            $table->enum('validation_status', ['Pending', 'Valid', 'Error', 'Rejected'])->default('Pending');
+            $table->enum('validation_status', ['Pending', 'Valid', 'Error', 'Rejected', 'Approved'])->default('Pending');
             $table->enum('submission_type', ['NEW', 'UPDATE']);
             
             $table->unsignedBigInteger('target_record_id')->nullable(); // For Updates
@@ -85,6 +103,9 @@ return new class extends Migration
             $table->json('metadata')->nullable(); // Search filters, record counts
             $table->string('user_agent')->nullable();
             $table->timestamp('created_at')->useCurrent();
+
+            // Foreign Key Constraint
+            $table->foreign('user_id')->references('user_id')->on('users');
         });
     }
 
@@ -96,6 +117,6 @@ return new class extends Migration
         Schema::dropIfExists('audit_logs');
         Schema::dropIfExists('staging_data');
         Schema::dropIfExists('main_registry');
-        Schema::dropIfExists('users');
+
     }
 };
