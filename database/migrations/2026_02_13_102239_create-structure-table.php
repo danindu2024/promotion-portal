@@ -11,16 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // USERS (Mocking Legacy Integration)
-        Schema::create('users', function (Blueprint $table) {
-            $table->id('user_id'); // Custom PK
-            $table->string('username')->unique();
-            $table->string('password_hash');
-            $table->enum('role', ['Agent', 'Validator', 'Admin']);
-            $table->timestamps(); // created_at, updated_at
-        });
-
-        // 2. MAIN REGISTRY (The "Clean" Data)
+        // MAIN REGISTRY (The "Clean" Data)
         Schema::create('main_registry', function (Blueprint $table) {
             $table->id();
             $table->enum('category', ['Self-Employed', 'Trade'])->index(); // Index for filtering
