@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // MAIN REGISTRY (The "Clean" Data)
+        // MAIN REGISTRY
         Schema::create('main_registry', function (Blueprint $table) {
             $table->id();
             $table->enum('category', ['Self-Employed', 'Trade']);
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('district')->index(); // Index for filtering
             $table->string('ds_division');
             $table->string('gn_division');
-            $table->string('contact_number');
+            $table->string('contact_number')->nullable();
             $table->string('whatsapp_number')->nullable();
             $table->string('email')->nullable();
 
@@ -39,7 +39,7 @@ return new class extends Migration
                 'Transportation',
                 'Retail & Wholesale',
                 'Other Services'
-            ])->nullable();
+            ]);
             $table->integer('employees_count')->nullable();
 
             // Trade Specific (Nullable)
@@ -48,8 +48,8 @@ return new class extends Migration
 
             // Soft Deletes & Approval Audit
             $table->boolean('is_deleted')->default(false);
-            $table->unsignedBigInteger('approved_by')->nullable();
-            $table->timestamp('approved_at')->nullable();
+            $table->unsignedBigInteger('approved_by');
+            $table->timestamp('approved_at');
             $table->timestamp('deleted_at')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->text('deletion_reason')->nullable();
@@ -68,15 +68,15 @@ return new class extends Migration
             $table->index(['category', 'district', 'field_of_work'], 'idx_category_district_field');
         });
 
-        // STAGING DATA (The "Pending" Bucket)
+        // STAGING DATA
         Schema::create('staging_data', function (Blueprint $table) {
             $table->id();
             $table->string('batch_id')->index(); // To group Excel uploads
-            $table->json('data_payload'); // Stores raw row data
+            $table->json('data_payload'); // Stores raw data
             $table->enum('validation_status', ['Pending', 'Valid', 'Error', 'Rejected', 'Approved'])->default('Pending');
             $table->enum('submission_type', ['NEW', 'UPDATE']);
             
-            $table->unsignedBigInteger('target_record_id')->nullable(); // For Updates
+            $table->unsignedBigInteger('target_record_id')->nullable(); // Only for Updates
             $table->text('error_message')->nullable();
             $table->text('rejection_reason')->nullable();
 
