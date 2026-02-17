@@ -18,27 +18,30 @@ return new class extends Migration
             
             // Common Fields
             $table->string('full_name');
-            $table->text('address');
+            $table->string('address');
+            $table->string('province')->index();
             $table->string('district')->index(); // Index for filtering
             $table->string('ds_division');
-            $table->string('gn_division');
-            $table->string('contact_number')->nullable();
+            
+            // Unique Key: One phone number = one person
+            $table->string('contact_number')->unique();
+
             $table->string('whatsapp_number')->nullable();
             $table->string('email')->nullable();
 
             // Self-Employed Specific (Nullable)
             $table->integer('age')->nullable()->index('idx_age');
             $table->enum('field_of_work', [
-                'Agriculture & Fishing',
-                'Textile & Garments',
-                'Construction',
-                'IT & Modern Services',
-                'Food & Beverages',
-                'Manufacturing',
-                'Tourism & Hospitality',
-                'Transportation',
-                'Retail & Wholesale',
-                'Other Services'
+                'Agriculture and Fisheries Entrepreneurs',
+                'Cottage Industries / Small Industries',
+                'Transport and Technical Services',
+                'Construction Services',
+                'Trade and Service Enterprises',
+                'Tourism Industry',
+                'Arts, Cultural, and Beauty Services',
+                'Information Technology and Modern Services',
+                'Educational Services',
+                'Small-scale Trading'
             ]);
             $table->integer('employees_count')->nullable();
 
