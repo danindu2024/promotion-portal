@@ -25,37 +25,38 @@ class RegistryValidator
      */
     protected static function getRules(?string $category): array
     {
-        // 1. Common Rules (Apply to everyone)
+        // Common Rules (Apply to everyone)
         $rules = [
             'category' => ['required', Rule::in(['Self-Employed', 'Trade'])],
             'full_name' => 'required|string|max:255',
-            'address' => 'required|string',
-            'district' => 'required|string', // TODO: Add Rule::in([...districts...])
-            'ds_division' => 'required|string',
-            'gn_division' => 'required|string',
+            'address' => 'nullable|string|max:1000',
+            'province' => ['required', Rule::in(config('srilanka.provinces'))],
+            'district' => ['required', Rule::in(config('srilanka.districts'))],
+            'ds_division' => ['required', Rule::in(config('srilanka.ds_divisions'))],
+
             'contact_number' => 'required|digits:10',
             'whatsapp_number' => 'nullable|digits:10',
             'email' => 'nullable|email',
         ];
 
-        // 2. Category-Specific Rules
+        // Category-Specific Rules
         if ($category === 'Self-Employed') {
-            $rules['age'] = 'required|integer|min:18|max:100';
+            $rules['age'] = 'nullable|integer|min:16|max:110';
             $rules['field_of_work'] = ['required', Rule::in([
-                'Agriculture & Fishing', 'Textile & Garments', 'Construction',
-                'IT & Modern Services', 'Food & Beverages', 'Manufacturing',
-                'Tourism & Hospitality', 'Transportation', 'Retail & Wholesale',
-                'Other Services'
+                'Agriculture and Fisheries Entrepreneurs', 'Cottage Industries / Small Industries',
+                'Transport and Technical Services', 'Construction Services', 'Trade and Service Enterprises',
+                'Tourism Industry', 'Arts, Cultural, and Beauty Services', 'Information Technology and Modern Services',
+                'Educational Services', 'Small-scale Trading'
             ])];
-            $rules['employees_count'] = 'required|integer|min:0';
+            $rules['employees_count'] = 'nullable|integer|min:0';
             
             // Forbidden fields for Self-Employed (must be null/empty)
             $rules['contact_person'] = 'prohibited';
             $rules['members_count'] = 'prohibited';
 
         } elseif ($category === 'Trade') {
-            $rules['contact_person'] = 'required|string|max:255';
-            $rules['members_count'] = 'required|integer|min:0';
+            $rules['contact_person'] = 'nullable|string|max:255';
+            $rules['members_count'] = 'nullable|integer|min:0';
 
             // Forbidden fields for Trade
             $rules['age'] = 'prohibited';

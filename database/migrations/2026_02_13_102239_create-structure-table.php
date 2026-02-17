@@ -11,35 +11,38 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // MAIN REGISTRY (The "Clean" Data)
+        // MAIN REGISTRY
         Schema::create('main_registry', function (Blueprint $table) {
             $table->id();
             $table->enum('category', ['Self-Employed', 'Trade']);
             
             // Common Fields
             $table->string('full_name');
-            $table->text('address');
+            $table->string('address');
+            $table->string('province')->index();
             $table->string('district')->index(); // Index for filtering
             $table->string('ds_division');
-            $table->string('gn_division');
-            $table->string('contact_number');
+            
+            // Unique Key: One phone number = one person
+            $table->string('contact_number')->unique();
+
             $table->string('whatsapp_number')->nullable();
             $table->string('email')->nullable();
 
             // Self-Employed Specific (Nullable)
             $table->integer('age')->nullable()->index('idx_age');
             $table->enum('field_of_work', [
-                'Agriculture & Fishing',
-                'Textile & Garments',
-                'Construction',
-                'IT & Modern Services',
-                'Food & Beverages',
-                'Manufacturing',
-                'Tourism & Hospitality',
-                'Transportation',
-                'Retail & Wholesale',
-                'Other Services'
-            ])->nullable();
+                'Agriculture and Fisheries Entrepreneurs',
+                'Cottage Industries / Small Industries',
+                'Transport and Technical Services',
+                'Construction Services',
+                'Trade and Service Enterprises',
+                'Tourism Industry',
+                'Arts, Cultural, and Beauty Services',
+                'Information Technology and Modern Services',
+                'Educational Services',
+                'Small-scale Trading'
+            ]);
             $table->integer('employees_count')->nullable();
 
             // Trade Specific (Nullable)
@@ -48,8 +51,8 @@ return new class extends Migration
 
             // Soft Deletes & Approval Audit
             $table->boolean('is_deleted')->default(false);
-            $table->unsignedBigInteger('approved_by')->nullable();
-            $table->timestamp('approved_at')->nullable();
+            $table->unsignedBigInteger('approved_by');
+            $table->timestamp('approved_at');
             $table->timestamp('deleted_at')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->text('deletion_reason')->nullable();
@@ -68,15 +71,15 @@ return new class extends Migration
             $table->index(['category', 'district', 'field_of_work'], 'idx_category_district_field');
         });
 
-        // STAGING DATA (The "Pending" Bucket)
+        // STAGING DATA
         Schema::create('staging_data', function (Blueprint $table) {
             $table->id();
             $table->string('batch_id')->index(); // To group Excel uploads
-            $table->json('data_payload'); // Stores raw row data
+            $table->json('data_payload'); // Stores raw data
             $table->enum('validation_status', ['Pending', 'Valid', 'Error', 'Rejected', 'Approved'])->default('Pending');
             $table->enum('submission_type', ['NEW', 'UPDATE']);
             
-            $table->unsignedBigInteger('target_record_id')->nullable(); // For Updates
+            $table->unsignedBigInteger('target_record_id')->nullable(); // Only for Updates
             $table->text('error_message')->nullable();
             $table->text('rejection_reason')->nullable();
 

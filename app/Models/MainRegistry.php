@@ -16,9 +16,10 @@ class MainRegistry extends Model
         'category',
         'full_name',
         'address',
+        'province',
         'district',
         'ds_division',
-        'gn_division',
+
         'contact_number',
         'whatsapp_number',
         'email',
