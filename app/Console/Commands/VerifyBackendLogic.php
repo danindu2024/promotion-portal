@@ -34,11 +34,14 @@ class VerifyBackendLogic extends Command
             'full_name' => 'John Doe',
             'address' => '123 Farm Rd',
             'district' => 'Gampaha',
+            'address' => '123 Farm Rd',
+            'province' => 'Western',
+            'district' => 'Gampaha',
             'ds_division' => 'Minuwangoda',
-            'gn_division' => '123A',
+
             'contact_number' => '0771234567',
-            'age' => 45,
-            'field_of_work' => 'Agriculture & Fishing',
+            
+            'field_of_work' => 'Agriculture and Fisheries Entrepreneurs',
             'employees_count' => 2,
         ];
         
@@ -90,5 +93,26 @@ class VerifyBackendLogic extends Command
         } else {
             $this->error("   ❌ Workflow failed.");
         }
+
+        // 5. Test Duplicate Entry (Unique Constraint)
+        $this->info('5. Testing Duplicate Entry...');
+        try {
+            // Attempt to create a duplicate record using the Model directly
+            $record = array_merge($validData, [
+                'approved_by' => Current::id(),
+                'approved_at' => now(),
+            ]);
+            \App\Models\MainRegistry::create($record);
+            \App\Models\MainRegistry::create($record); // Should fail here
+            $this->error("   ❌ Duplicate entry allowed!");
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->errorInfo[1] == 1062) { // MySQL Duplicate Entry Error Code
+                $this->info("   ✅ Duplicate entry correctly rejected (DB Constraint).");
+            } else {
+                $this->error("   ❌ Unexpected DB Error: " . $e->getMessage());
+            }
+        }
+
+        $this->info('Backend Verification Complete!');
     }
 }
