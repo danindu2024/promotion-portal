@@ -72,17 +72,49 @@ This breaks the "Black Box" into the actual processes. It explicitly visualizes 
 
 The central table storing all beneficiary data.
 
-| Column            | Type      | Nullable | Description                                            |
-| :---------------- | :-------- | :------- | :----------------------------------------------------- |
-| `id`              | BigInt    | No       | Primary Key                                            |
-| `category`        | Enum      | No       | 'Self-Employed' or 'Trade'                             |
-| `district`        | String    | No       | Application District (Indexed)                         |
-| `approved_by`     | BigInt    | **No**   | ID of the Validator (Foreign Key -> users.user_id)     |
-| `approved_at`     | Timestamp | **No**   | Time of approval                                       |
-| `is_deleted`      | Boolean   | No       | Soft delete flag (Default: false)                      |
-| `deleted_by`      | BigInt    | **Yes**  | ID of the user who deleted the record (NULL if active) |
-| `deleted_at`      | Timestamp | **Yes**  | Time of deletion (NULL if active)                      |
-| `deletion_reason` | Text      | Yes      | Reason for deletion                                    |
+| Column            | Type      | Nullable | Description                                                 |
+| :---------------- | :-------- | :------- | :---------------------------------------------------------- |
+| `id`              | BigInt    | No       | Primary Key                                                 |
+| `category`        | Enum      | No       | 'Self-Employed' or 'Trade'                                  |
+| `full_name`       | String    | No       | Beneficiary / organization name                             |
+| `address`         | String    | No       | Physical address                                            |
+| `province`        | String    | No       | Province (Indexed). Cascading dropdown — parent of District |
+| `district`        | String    | No       | District (Indexed). Must belong to the selected Province    |
+| `ds_division`     | String    | No       | DS Division. Must belong to the selected District           |
+| `contact_number`  | String    | No       | Primary phone (Unique key — one number = one person)        |
+| `whatsapp_number` | String    | Yes      | WhatsApp contact                                            |
+| `email`           | String    | Yes      | Email address                                               |
+| `age`             | Integer   | Yes      | Age (Self-Employed only)                                    |
+| `field_of_work`   | Enum      | No       | Business sector — 10 categories (Self-Employed only)        |
+| `employees_count` | Integer   | Yes      | Number of employees (Self-Employed only)                    |
+| `contact_person`  | String    | Yes      | Contact person name (Trade only)                            |
+| `members_count`   | Integer   | Yes      | Number of members (Trade only)                              |
+| `approved_by`     | BigInt    | **No**   | ID of the Validator (Foreign Key -> users.user_id)          |
+| `approved_at`     | Timestamp | **No**   | Time of approval                                            |
+| `is_deleted`      | Boolean   | No       | Soft delete flag (Default: false)                           |
+| `deleted_by`      | BigInt    | **Yes**  | ID of the user who deleted the record (NULL if active)      |
+| `deleted_at`      | Timestamp | **Yes**  | Time of deletion (NULL if active)                           |
+| `deletion_reason` | Text      | Yes      | Reason for deletion                                         |
+
+**Indexes:**
+
+- `INDEX(province)` — For province-level filtering
+- `INDEX(district)` — For district-level filtering
+- `INDEX(category, district, field_of_work)` — Composite index for primary filters
+- `INDEX(age)` — For demographic pyramid
+- `UNIQUE(contact_number)` — One phone number = one person
+
+### 5.1.1 Location API (Cascading Dropdowns)
+
+The system provides a hierarchical location data API backed by `config/srilanka.php`, which stores a Province → District → DS Division mapping. Three read-only endpoints serve this data:
+
+| Endpoint                      | Method | Parameters            | Response                                    |
+| :---------------------------- | :----- | :-------------------- | :------------------------------------------ |
+| `/api/locations/provinces`    | GET    | —                     | JSON array of 9 provinces                   |
+| `/api/locations/districts`    | GET    | `province` (required) | JSON array of districts in that province    |
+| `/api/locations/ds-divisions` | GET    | `district` (required) | JSON array of DS divisions in that district |
+
+**Validation:** The `RegistryValidator` enforces hierarchical consistency — a district must belong to the selected province, and a DS division must belong to the selected district. Invalid combinations are rejected with descriptive error messages.
 
 ### 5.2 Staging Data (`staging_data`)
 
