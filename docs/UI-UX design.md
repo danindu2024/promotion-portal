@@ -80,9 +80,9 @@ Before building individual screens, we define the common elements to ensure cons
 
     - **Right Column (Geography):**
         - Address: Text Area (2 rows height).
-        - Province: Dropdown (Pre-filled list of 9 provinces).
-        - District: Dropdown (Pre-filled list of 25 districts).
-        - DV Division: Text Input / Autosuggest.
+        - Province: Dropdown (9 provinces). Selecting a province triggers a fetch to `/api/locations/districts?province={name}` and populates the District dropdown.
+        - District: **Dependent Dropdown** (disabled until Province is selected). Populated dynamically with districts belonging to the selected province. Selecting a district triggers a fetch to `/api/locations/ds-divisions?district={name}`.
+        - DS Division: **Dependent Dropdown** (disabled until District is selected). Populated dynamically with DS divisions belonging to the selected district.
 
 - **Section 3: Contact Details (Split Columns)**
     - Contact Number: Tel Input (Validation: 10 digits).
@@ -121,7 +121,7 @@ Before building individual screens, we define the common elements to ensure cons
 
 **Layout:**
 
-- _Geography:_ Province > District > DS Division.
+- _Geography:_ Province > District > DS Division (cascading dropdowns — each selection filters the next level).
 - _Demographics:_ Gender.
 - _Sector:_ Business Sector (e.g., "Agriculture", "Textile").
 - _Admin Option:_ A checkbox \[ \] Show Archived/Deleted Records (Visible to Admins only).
@@ -183,6 +183,6 @@ Before building individual screens, we define the common elements to ensure cons
 
 **5.0 Analytics & Reporting (Management Role)**
 
-- 5.1 **Advanced Search:** Filter by District, Trade.
+- 5.1 **Advanced Search:** Filter by Province → District → DS Division (cascading), Trade/Self-Employed.
 - 5.2 **Export:** Generate Excel for specific filtered lists.
 - 5.3 **Soft Delete Management:** View/Restore deleted records (Admin only).

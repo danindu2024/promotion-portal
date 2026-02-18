@@ -47,7 +47,12 @@ Reviewing pending data, approving/rejecting entries, managing master data, viewi
 
 **Data Entry Logic** The system shall support two distinct categories of data entry with the following specific requirements:
 
-- **Common Fields (Mandatory for All):** Name, Address, District, Contact Number, whatsapp_number, Email
+- **Common Fields (Mandatory for All):** Name, Address, Province, District, DS Division, Contact Number, whatsapp_number, Email
+- **Geography Fields (Cascading Dropdowns):** Province → District → DS Division. The user must first select a Province, which populates the District dropdown with only districts belonging to that province. Selecting a District then populates the DS Division dropdown with only divisions within that district. The system enforces hierarchical consistency during validation.
+- **Location API Endpoints:**
+    - `GET /api/locations/provinces` — Returns all 9 provinces.
+    - `GET /api/locations/districts?province={name}` — Returns districts for the selected province.
+    - `GET /api/locations/ds-divisions?district={name}` — Returns DS divisions for the selected district.
 - **Category A: Self-Employed:**
     - **Mandatory:** Age, Business field, Number of employees
     - **Not Applicable:** Contact Person Name, Number of Members.
@@ -98,7 +103,7 @@ Reviewing pending data, approving/rejecting entries, managing master data, viewi
 
 - **R-TGT-01 Dynamic Filtering:** Users must be able to filter the dataset to create "Target Groups" based on:
     - **Category:** Self-Employed vs. Trade.
-    - **Location:** Province → District → DS Division.
+    - **Location:** Province → District → DS Division (cascading dropdowns — each level filters the next).
     - **Demographics:** Age range, Field of work.
 
 - **R-TGT-02 Result Export:** The system shall allow users to export these filtered lists to Excel for promotional use.
@@ -137,6 +142,13 @@ Excel uploads and single-form entry are used **exclusively for adding NEW record
 - **R-DATA-03:** Users can download the Error Sheet, correct rejected rows offline, and re-upload the corrected file.
 
 #### **3.2.4 Category-Aware Validation**
+
+**Geography (Hierarchical) Validation:**
+
+- Province must be one of the 9 valid Sri Lankan provinces.
+- District must belong to the selected province.
+- DS Division must belong to the selected district.
+- The hierarchical mapping is defined in `config/srilanka.php` under the `hierarchy` key.
 
 **Logic If Category = "Self-Employed":**
 

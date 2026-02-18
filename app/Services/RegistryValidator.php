@@ -31,8 +31,32 @@ class RegistryValidator
             'full_name' => 'required|string|max:255',
             'address' => 'nullable|string|max:1000',
             'province' => ['required', Rule::in(config('srilanka.provinces'))],
-            'district' => ['required', Rule::in(config('srilanka.districts'))],
-            'ds_division' => ['required', Rule::in(config('srilanka.ds_divisions'))],
+            'district' => ['required', Rule::in(config('srilanka.districts')), function ($attribute, $value, $fail) use ($data) {
+                $province = $data['province'] ?? null;
+                if ($province) {
+                    $hierarchy = config('srilanka.hierarchy');
+                    $validDistricts = isset($hierarchy[$province]) ? array_keys($hierarchy[$province]) : [];
+                    if (!in_array($value, $validDistricts)) {
+                        $fail("The selected district does not belong to the province {$province}.");
+                    }
+                }
+            }],
+            'ds_division' => ['required', Rule::in(config('srilanka.ds_divisions')), function ($attribute, $value, $fail) use ($data) {
+                $district = $data['district'] ?? null;
+                if ($district) {
+                    $hierarchy = config('srilanka.hierarchy');
+                    $validDivisions = [];
+                    foreach ($hierarchy as $districts) {
+                        if (isset($districts[$district])) {
+                            $validDivisions = $districts[$district];
+                            break;
+                        }
+                    }
+                    if (!in_array($value, $validDivisions)) {
+                        $fail("The selected DS division does not belong to the district {$district}.");
+                    }
+                }
+            }],
 
             'contact_number' => 'required|digits:10',
             'whatsapp_number' => 'nullable|digits:10',
