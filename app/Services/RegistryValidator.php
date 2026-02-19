@@ -29,7 +29,7 @@ class RegistryValidator
         $rules = [
             'category' => ['required', Rule::in(['Self-Employed', 'Trade'])],
             'full_name' => 'required|string|max:255',
-            'address' => 'nullable|string|max:1000',
+            'address' => 'nullable|string|max:255',
             'province' => ['required', Rule::in(config('srilanka.provinces'))],
             'district' => ['required', Rule::in(config('srilanka.districts')), function ($attribute, $value, $fail) use ($data) {
                 $province = $data['province'] ?? null;

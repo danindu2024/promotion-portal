@@ -13,6 +13,7 @@ class MainRegistry extends Model
     protected $table = 'main_registry';
 
     protected $fillable = [
+        // common fields
         'category',
         'full_name',
         'address',
@@ -48,35 +49,36 @@ class MainRegistry extends Model
     /**
      * Scope to only include active (non-deleted) records.
      */
-    public function scopeActive(Builder $query): void
+    public function scopeActive(Builder $query): Builder
     {
-        $query->where('is_deleted', false);
+        return $query->where('is_deleted', false);
     }
 
     /**
      * Scope to filter by category.
      */
-    public function scopeByCategory(Builder $query, string $category): void
+    public function scopeByCategory(Builder $query, string $category): Builder
     {
-        $query->where('category', $category);
+        return $query->where('category', $category);
     }
 
     /**
      * Scope to filter by district.
      */
-    public function scopeByDistrict(Builder $query, string $district): void
+    public function scopeByDistrict(Builder $query, string $district): Builder
     {
-        $query->where('district', $district);
+        return $query->where('district', $district);
     }
 
-    // Relationships
-
-    public function approver()
+    /**
+    * Relationships
+    */
+    public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by', 'user_id');
     }
 
-    public function deleter()
+    public function deleter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'deleted_by', 'user_id');
     }

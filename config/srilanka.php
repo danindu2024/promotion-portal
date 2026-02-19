@@ -429,10 +429,14 @@ $hierarchy = [
 // ─── AUTO-GENERATED FLAT LISTS (for backward compatibility) ─────
 // These are derived from the hierarchy above.
 
+// get provinces from hierarchy
 $provinces  = array_keys($hierarchy);
+
+// initialize districts and dsDivisions
 $districts  = [];
 $dsDivisions = [];
 
+// get districts and dsDivisions from hierarchy
 foreach ($hierarchy as $province => $districtMap) {
     foreach ($districtMap as $district => $divisions) {
         $districts[]  = $district;
