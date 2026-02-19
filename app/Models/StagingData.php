@@ -15,7 +15,7 @@ class StagingData extends Model
     protected $fillable = [
         'batch_id',
         'data_payload',
-        'validation_status', // Pending, Valid, Error, Rejected, Approved
+        'validation_status', // Pending, Valid, Error, , Duplicate,Rejected, Approved
         'submission_type',   // NEW, UPDATE
         'target_record_id',
         'error_message',
