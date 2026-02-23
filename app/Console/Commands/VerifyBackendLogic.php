@@ -33,8 +33,6 @@ class VerifyBackendLogic extends Command
             'category' => 'Self-Employed',
             'full_name' => 'John Doe',
             'address' => '123 Farm Rd',
-            'district' => 'Gampaha',
-            'address' => '123 Farm Rd',
             'province' => 'Western',
             'district' => 'Gampaha',
             'ds_division' => 'Minuwangoda',
@@ -81,9 +79,6 @@ class VerifyBackendLogic extends Command
         
         $this->info("   Created Staging Record ID: {$staging->id}");
         $this->info("   Initial Status: {$staging->validation_status}");
-
-        $staging->markAsValid();
-        $this->info("   After markAsValid: {$staging->validation_status}");
 
         $staging->approve();
         $this->info("   After approve: {$staging->validation_status} (Reviewer: {$staging->reviewed_by})");

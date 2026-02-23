@@ -141,7 +141,7 @@ The following tables are already implemented and ready:
 ```
 users              → user_id, username, password_hash, role (Agent/Validator/Admin)
 main_registry      → Core beneficiary data (Self-Employed / Trade categories)
-staging_data       → Maker-Checker workflow (Pending → Valid → Approved)
+staging_data       → Maker-Checker workflow (Pending → Approved / Rejected)
 audit_logs         → Security tracking (AUTH_FAILURE, SEARCH_QUERY, DATA_EXPORT)
 sessions           → Laravel session storage
 ```

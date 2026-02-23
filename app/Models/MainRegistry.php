@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MainRegistry extends Model
 {
@@ -63,11 +64,35 @@ class MainRegistry extends Model
     }
 
     /**
+     * Scope to filter by province.
+     */
+    public function scopeByProvince(Builder $query, string $province): Builder
+    {
+        return $query->where('province', $province);
+    }
+
+    /**
      * Scope to filter by district.
      */
     public function scopeByDistrict(Builder $query, string $district): Builder
     {
         return $query->where('district', $district);
+    }
+
+    /**
+     * Scope to filter by ds division.
+     */
+    public function scopeByDSDivision(Builder $query, string $ds_division): Builder
+    {
+        return $query->where('ds_division', $ds_division);
+    }
+
+    /**
+     * Scope to filter by field of work.
+     */
+    public function scopeByFieldOfWork(Builder $query, string $field_of_work): Builder
+    {
+        return $query->where('field_of_work', $field_of_work);
     }
 
     /**

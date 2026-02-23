@@ -77,7 +77,7 @@ The central table storing all beneficiary data.
 | `id`              | BigInt    | No       | Primary Key                                                 |
 | `category`        | Enum      | No       | 'Self-Employed' or 'Trade'                                  |
 | `full_name`       | String    | No       | Beneficiary / organization name                             |
-| `address`         | String    | No       | Physical address                                            |
+| `address`         | String    | Yes      | Physical address                                            |
 | `province`        | String    | No       | Province (Indexed). Cascading dropdown — parent of District |
 | `district`        | String    | No       | District (Indexed). Must belong to the selected Province    |
 | `ds_division`     | String    | No       | DS Division. Must belong to the selected District           |
@@ -98,10 +98,9 @@ The central table storing all beneficiary data.
 
 **Indexes:**
 
-- `INDEX(province)` — For province-level filtering
-- `INDEX(district)` — For district-level filtering
-- `INDEX(category, district, field_of_work)` — Composite index for primary filters
-- `INDEX(age)` — For demographic pyramid
+- `idx_search_ds_field(category, province, district, ds_division, field_of_work)` — Composite index for full search path down to field of work
+- `idx_search_district_field(category, province, district, field_of_work)` — Composite index for district-level field of work queries
+- `idx_location_hierarchy(province, district, ds_division)` — Location cascade hierarchy
 - `UNIQUE(contact_number)` — One phone number = one person
 
 ### 5.1.1 Location API (Cascading Dropdowns)
@@ -118,28 +117,33 @@ The system provides a hierarchical location data API backed by `config/srilanka.
 
 ### 5.2 Staging Data (`staging_data`)
 
-Holding area for raw Excel uploads before validation.
+Holding area for raw uploads before approval.
 
-| Column              | Type   | Nullable | Description                                                            |
-| :------------------ | :----- | :------- | :--------------------------------------------------------------------- |
-| `id`                | BigInt | No       | Primary Key                                                            |
-| `batch_id`          | String | No       | Group ID for the uploaded file                                         |
-| `data_payload`      | JSON   | No       | Raw row data from Excel                                                |
-| `validation_status` | Enum   | No       | 'Pending', 'Valid', 'Error', 'Rejected', 'Approved' (Default: Pending) |
-| `submission_type`   | Enum   | No       | 'NEW' or 'UPDATE'                                                      |
-| `target_record_id`  | BigInt | Yes      | FK to `main_registry.id` (Only for Updates)                            |
-| `error_message`     | Text   | Yes      | Validation failure reason                                              |
-| `uploaded_by`       | BigInt | No       | ID of the contents uploader                                            |
+| Column              | Type   | Nullable | Description                                          |
+| :------------------ | :----- | :------- | :--------------------------------------------------- |
+| `id`                | BigInt | No       | Primary Key                                          |
+| `batch_id`          | String | No       | Group ID for the uploaded file (Indexed)             |
+| `data_payload`      | JSON   | No       | Raw row data from Excel                              |
+| `validation_status` | Enum   | No       | 'Pending', 'Rejected', 'Approved' (Default: Pending) |
+| `submission_type`   | Enum   | No       | 'NEW' or 'UPDATE'                                    |
+| `target_record_id`  | BigInt | Yes      | FK to `main_registry.id` (Only for Updates)          |
+| `rejection_reason`  | Text   | Yes      | Reason for rejection                                 |
+| `uploaded_by`       | BigInt | No       | ID of the contents uploader (FK → users.user_id)     |
+| `reviewed_by`       | BigInt | Yes      | ID of the reviewer (FK → users.user_id)              |
 
 ### 5.3 Audit Logs (`audit_logs`)
 
 Security and compliance tracking.
 
-| Column       | Type   | Nullable | Description                           |
-| :----------- | :----- | :------- | :------------------------------------ |
-| `id`         | BigInt | No       | Primary Key                           |
-| `user_id`    | BigInt | Yes      | Actor ID (Nullable for failed logins) |
-| `event_type` | String | No       | e.g. 'AUTH_FAILURE', 'SEARCH_QUERY'   |
-| `action`     | String | No       | specific action name                  |
-| `details`    | Text   | Yes      | Snapshot of old vs new values         |
-| `metadata`   | JSON   | Yes      | Context (IP, browser, search terms)   |
+| Column          | Type      | Nullable | Description                           |
+| :-------------- | :-------- | :------- | :------------------------------------ |
+| `id`            | BigInt    | No       | Primary Key                           |
+| `user_id`       | BigInt    | Yes      | Actor ID (Nullable for failed logins) |
+| `event_type`    | String    | No       | e.g. 'AUTH_FAILURE', 'SEARCH_QUERY'   |
+| `action`        | String    | No       | Specific action name                  |
+| `target_module` | String    | Yes      | Module targeted by the action         |
+| `ip_address`    | String    | No       | Request IP address                    |
+| `details`       | Text      | Yes      | Snapshot of old vs new values         |
+| `metadata`      | JSON      | Yes      | Context (search terms, record counts) |
+| `user_agent`    | String    | Yes      | Browser user agent string             |
+| `created_at`    | Timestamp | No       | Timestamp (auto-set, no `updated_at`) |

@@ -15,10 +15,9 @@ class StagingData extends Model
     protected $fillable = [
         'batch_id',
         'data_payload',
-        'validation_status', // Pending, Valid, Error, , Duplicate,Rejected, Approved
+        'validation_status', // Pending, Rejected, Approved
         'submission_type',   // NEW, UPDATE
         'target_record_id',
-        'error_message',
         'rejection_reason',
         'uploaded_by',
         'reviewed_by',
@@ -31,8 +30,6 @@ class StagingData extends Model
 
     // Status Constants
     const STATUS_PENDING = 'Pending';
-    const STATUS_VALID = 'Valid';
-    const STATUS_ERROR = 'Error';
     const STATUS_REJECTED = 'Rejected';
     const STATUS_APPROVED = 'Approved';
 
@@ -48,28 +45,13 @@ class StagingData extends Model
         return $this->belongsTo(User::class, 'reviewed_by', 'user_id');
     }
 
+    // only for update
     public function targetRecord()
     {
         return $this->belongsTo(MainRegistry::class, 'target_record_id');
     }
 
     // Helper Methods
-
-    public function markAsValid()
-    {
-        $this->update([
-            'validation_status' => self::STATUS_VALID,
-            'error_message' => null
-        ]);
-    }
-
-    public function markAsError(string $message)
-    {
-        $this->update([
-            'validation_status' => self::STATUS_ERROR,
-            'error_message' => $message
-        ]);
-    }
 
     public function reject(string $reason)
     {

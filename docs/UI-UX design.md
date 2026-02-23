@@ -76,7 +76,7 @@ Before building individual screens, we define the common elements to ensure cons
 - **Section 2: Identity & Location (Split Columns)**
     - **Left Column (Identity):**
         - Full Name: Text Input.
-        - Age: Number Input (Min: 18, Max: 100).
+        - Age: Number Input (Min: 16, Max: 110).
 
     - **Right Column (Geography):**
         - Address: Text Area (2 rows height).
