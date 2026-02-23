@@ -18,10 +18,10 @@ return new class extends Migration
             
             // Common Fields
             $table->string('full_name');
-            $table->string('address');
-            $table->string('province')->index(); // Index for filtering
-            $table->string('district')->index(); // Index for filtering
-            $table->string('ds_division')->index(); // Index for filtering
+            $table->string('address')->nullable();
+            $table->string('province');
+            $table->string('district');
+            $table->string('ds_division');
             
             // Unique Key: One phone number = one person
             $table->string('contact_number')->unique();
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('email')->nullable();
 
             // Self-Employed Specific (Nullable)
-            $table->integer('age')->nullable()->index('idx_age');
+            $table->integer('age')->nullable();
             $table->enum('field_of_work', [
                 'Agriculture and Fisheries Entrepreneurs',
                 'Cottage Industries / Small Industries',
@@ -42,7 +42,8 @@ return new class extends Migration
                 'Information Technology and Modern Services',
                 'Educational Services',
                 'Small-scale Trading'
-            ]);$table->integer('employees_count')->nullable();
+            ])->nullable();
+            $table->integer('employees_count')->nullable();
 
             // Trade Specific (Nullable)
             $table->string('contact_person')->nullable();
@@ -65,14 +66,16 @@ return new class extends Migration
             // Composite Indexes
             // Database indexes follow the "Leftmost Prefix" rule. Covers queries for:
             // - WHERE category = ?
-            // - WHERE category = ? AND district = ?
-            // - WHERE category = ? AND district = ? AND field_of_work = ?
-            $table->index(['category', 'district', 'field_of_work'], 'idx_category_district_field');
+            // - WHERE category = ? AND province = ?
+            // - WHERE category = ? AND province = ? AND district = ?
+            // - WHERE category = ? AND province = ? AND district = ? AND ds_division = ?
+            // - WHERE category = ? AND province = ? AND district = ? AND ds_division = ? AND field_of_work = ?
+            $table->index(['category', 'province', 'district', 'ds_division', 'field_of_work'], 'idx_search_ds_field');
 
-            // Location cascade hierarchy index. Covers queries for:
-            // - WHERE province = ?
-            // - WHERE province = ? AND district = ?
-            // - WHERE province = ? AND district = ? AND ds_division = ?
+            // find field of work by district wise
+            $table->index(['category', 'province', 'district', 'field_of_work'], 'idx_search_district_field');
+
+            // Location cascade hierarchy index
             $table->index(['province', 'district', 'ds_division'], 'idx_location_hierarchy');
         });
 
@@ -81,11 +84,10 @@ return new class extends Migration
             $table->id();
             $table->string('batch_id')->index(); // To group Excel uploads
             $table->json('data_payload'); // Stores raw data
-            $table->enum('validation_status', ['Pending', 'Valid', 'Error', 'Duplicate','Rejected', 'Approved'])->default('Pending');
+            $table->enum('validation_status', ['Pending', 'Rejected', 'Approved'])->default('Pending');
             $table->enum('submission_type', ['NEW', 'UPDATE']);
             
             $table->unsignedBigInteger('target_record_id')->nullable(); // Only for Updates
-            $table->text('error_message')->nullable();
             $table->text('rejection_reason')->nullable();
 
             $table->unsignedBigInteger('uploaded_by');
