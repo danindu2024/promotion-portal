@@ -10,10 +10,15 @@ All notable changes to this project will be documented in this file.
 - **Single Form Data Entry:** Implemented the UI (`DataEntry.vue`) and backend logic for manual record creation.
     - Cascading dropdowns for Province → District → DS Division.
     - Dynamic fields based on "Self-Employed" vs "Trade" categories.
-    - Comprehensive client-side formulation validation with inline error feedback.
+    - Comprehensive client-side validation with inline error feedback.
+- **Excel Bulk Upload:** Implemented a full-featured bulk data entry pipeline:
+    - **Frontend (`DataEntry.vue`):** Drag-and-drop file zone; displays selected file name and size (in KB/MB). Upload & Process button with spinner. Post-processing 3-card results summary (Total, Valid, Invalid). Client-side CSV "Error Sheet" generation appending exact backend error messages to rejected rows.
+    - **Backend (`RegistryController@uploadExcel`):** Extension-based file validation (accepts `.csv`, `.xls`, `.xlsx`) bypassing unreliable MIME type detection. Phone Number Smart Normalizer (`normalizePhoneNumber()`) silently fixes Excel-stripped leading zeros, `+94` and `94` country codes before validation. In-batch deduplication (0 DB calls). DB duplicate check against `main_registry` AND `staging_data` (2 DB calls). Full `RegistryValidator` category-aware validation per row. Bulk insert of valid rows in a single DB call.
+    - **Template Download (`GET /api/registry/template`):** Streams a CSV with all 14 required column headers and two commented example rows (one Self-Employed, one Trade) for Agent reference.
 - **Backend APIs:** Created supporting endpoints for form submissions (`POST /api/registry/single`) and location fetching.
     - Enforced robust dual-layer duplicate checking against `main_registry` and `staging_data`.
     - Automatically routes valid submissions to the Staging area for Maker-Checker review.
+- **User Manual (`docs/user-manual.md`):** Renamed and consolidated the stakeholder user manual, adding a comprehensive Section 6 covering the complete Excel Bulk Upload workflow (template, normalizer, upload, results, and error sheet).
 
 ### Fixed
 
