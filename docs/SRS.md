@@ -152,13 +152,15 @@ Excel uploads and single-form entry are used **exclusively for adding NEW record
 
 **Logic If Category = "Self-Employed":**
 
-- **Mandatory Checks:** full_name, field_of_work, employees_count.
-- **Null Checks:** Ensure contact_person and members_count are ignored or blank.
+- **Mandatory Checks:** full_name, contact_number, province, district, ds_division, field_of_work.
+- **Optional:** age (`min:16, max:110`), employees_count.
+- **Prohibited:** contact_person and members_count (actively rejected if present).
 
 **Logic If Category = "Trade":**
 
-- **Mandatory Checks:** full_name, contact_person, members_count.
-- **Null Checks:** Ensure field_of_work and employees_count are ignored or blank.
+- **Mandatory Checks:** full_name, contact_number, province, district, ds_division.
+- **Optional:** contact_person, members_count.
+- **Prohibited:** age, field_of_work, and employees_count (actively rejected if present).
 
 All valid records enter the Staging table with `submission_type = 'NEW'` and proceed to the Maker-Checker workflow (Section 3.4).
 
