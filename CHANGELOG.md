@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2026-02-23
 
+### Added
+
+- **Frontend Architecture:** Replaced Vanilla JS strategy with a **Vue.js 3 + Inertia.js + Tailwind CSS v4** stack to handle complex interactive UI while keeping a monolithic deployment.
+- **Single Form Data Entry:** Implemented the UI (`DataEntry.vue`) and backend logic for manual record creation.
+    - Cascading dropdowns for Province → District → DS Division.
+    - Dynamic fields based on "Self-Employed" vs "Trade" categories.
+    - Comprehensive client-side formulation validation with inline error feedback.
+- **Backend APIs:** Created supporting endpoints for form submissions (`POST /api/registry/single`) and location fetching.
+    - Enforced robust dual-layer duplicate checking against `main_registry` and `staging_data`.
+    - Automatically routes valid submissions to the Staging area for Maker-Checker review.
+
 ### Fixed
 
 - **RegistryValidator:** Fixed critical bug where `getRules()` closures couldn't access `$data`. Now passes full `$data` array to `getRules()` and extracts `$category` internally.
