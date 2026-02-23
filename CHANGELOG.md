@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2026-02-23
+
+### Fixed
+
+- **RegistryValidator:** Fixed critical bug where `getRules()` closures couldn't access `$data`. Now passes full `$data` array to `getRules()` and extracts `$category` internally.
+- **MainRegistry Model:** Added missing `BelongsTo` import for `approver()` and `deleter()` relationships.
+- **VerifyBackendLogic:** Removed dead `markAsValid()` call (method no longer exists in `StagingData`). Removed duplicate `address` and `district` keys in test data array.
+
+### Changed
+
+- **Documentation Sync:** Updated `SDD.md`, `SRS.md`, `authentication-strategy.md`, and `UI-UX design.md` to match actual implementation:
+    - Corrected `staging_data` statuses from 5 to 3 (`Pending`, `Rejected`, `Approved`).
+    - Updated indexes to match actual composite indexes in migration.
+    - Fixed `address` nullability, `audit_logs` missing columns, validation rules, and age range.
+
 ## [Unreleased] - 2026-02-17
 
 ### Added
