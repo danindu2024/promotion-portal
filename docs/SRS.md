@@ -47,7 +47,8 @@ Reviewing pending data, approving/rejecting entries, managing master data, viewi
 
 **Data Entry Logic** The system shall support two distinct categories of data entry with the following specific requirements:
 
-- **Common Fields (Mandatory for All):** Name, Address, Province, District, DS Division, Contact Number, whatsapp_number, Email
+- **Common Fields (Mandatory for All):** Name, Address, Province, District, DS Division, Contact Number
+- **Optional Common Fields:** `whatsapp_number` (nullable, must match `^0\d{9}$` if provided), `email` (nullable, must be valid email if provided)
 - **Geography Fields (Cascading Dropdowns):** Province → District → DS Division. The user must first select a Province, which populates the District dropdown with only districts belonging to that province. Selecting a District then populates the DS Division dropdown with only divisions within that district. The system enforces hierarchical consistency during validation.
 - **Location API Endpoints:**
     - `GET /api/locations/provinces` — Returns all 9 provinces.
@@ -115,21 +116,27 @@ Excel uploads and single-form entry are used **exclusively for adding NEW record
 
 #### **3.2.1 Excel Bulk Upload**
 
-- **R-DATA-01 Bulk Upload:** The system accepts Excel files for bulk data entry of new records only.
+- **R-DATA-01 Bulk Upload:** The system accepts `.csv`, `.xls`, and `.xlsx` files for bulk data entry of new records only. File size limit: 10MB.
 
 **Processing Pipeline (executed automatically after upload):**
 
-1. **In-Batch Duplicate Check** (in-memory, 0 DB calls): Scan all rows for duplicate `contact_number` values within the same file. Keep the first occurrence; flag subsequent duplicates.
-2. **Database Duplicate Check** (1 DB call): Collect all remaining `contact_number` values and run a single `WHERE IN` query against `main_registry`. Flag any matches as "Already exists in registry."
-3. **Field Validation** (in-memory): Validate each remaining row using category-aware rules (see Section 3.2.4). Flag invalid rows with specific error messages.
+1. **Empty Row Filtering** (in-memory, 0 DB calls): All completely empty rows are silently skipped.
+2. **Phone Number Normalization** (in-memory, 0 DB calls): For each row, `contact_number` and `whatsapp_number` are passed through a `normalizePhoneNumber()` sanitizer that:
+    - Strips spaces/dashes (e.g., `077 123-4567` → `0771234567`).
+    - Restores leading zeros stripped by Excel (e.g., `771234567` → `0771234567`).
+    - Converts country codes (`+94771234567` or `94771234567` → `0771234567`).
+3. **In-Batch Duplicate Check** (in-memory, 0 DB calls): Scan all rows for duplicate `contact_number` values within the same file. Keep the first occurrence; flag subsequent duplicates.
+4. **Database Duplicate Check** (2 DB calls): Collect all remaining `contact_number` values and run single `WHERE IN` queries against both `main_registry` and `staging_data` (pending records only). Flag any matches.
+5. **Field Validation** (in-memory): Validate each remaining row using category-aware rules (see Section 3.2.4). Flag invalid rows with specific error messages.
+6. **Bulk Insert to Staging** (1 DB call): All valid rows are inserted in a single batch query with a shared `batch_id = 'BATCH-{timestamp}'`.
 
 **Results Summary Screen:**
 
-- Display counts: **Valid Rows (Green)**, **Duplicate Rows (Orange)**, **Error Rows (Red)**.
-- **Submit Valid Records** button: Sends all valid rows to `staging_data` with `submission_type = 'NEW'`.
-- **Download Error Sheet** button: Downloads an Excel file containing all rejected rows (duplicates + validation errors) with an "Error Message" column explaining each rejection.
+- Display counts: **Total Processed**, **Valid Rows (Green)**, **Invalid Rows (Orange)**.
+- **Batch ID:** Displayed on success so Validators can locate the batch in the queue.
+- **Download Error Sheet** button: Downloads a client-generated CSV file containing all rejected rows with an appended "Error Message" column explaining each specific rejection reason.
 
-**Performance:** The entire pipeline uses only **2 DB calls** regardless of file size (1 for duplicate check, 1 for bulk insert to staging).
+**Performance:** The entire pipeline uses only **3 DB calls** regardless of file size (1 for `main_registry` check, 1 for `staging_data` check, 1 for bulk insert).
 
 #### **3.2.2 Single Form Entry**
 

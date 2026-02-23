@@ -1,4 +1,4 @@
-# Single Form Data Entry: Stakeholder User Manual
+# Data Entry: Stakeholder User Manual
 
 **Version:** 1.0  
 **Module:** Agent Dashboard > Data Entry > Single Entry  
@@ -98,3 +98,40 @@ Even if a form is filled out perfectly, the system must enforce business rulesâ€
 
 - **Form Reset:** At any time during data entry, the Agent can click the grey **"Reset"** button next to "Save Registry". This instantly clears all typed data, resets category selections, un-selects dropdowns, and clears any red validation errors on the screen, providing a clean slate.
 - **Loading Indicators:** If internet connectivity is slow during the cascading dropdown process (e.g., selecting a Province), the subsequent dropdown will physically display "Loading..." to assure the Agent that the system is processing the request. This prevents frustration and premature clicking.
+
+---
+
+## 6. Excel Bulk Upload
+
+The Excel Bulk Upload feature significantly speeds up data entry by allowing Agents to upload hundreds of records simultaneously via a `.csv`, `.xls`, or `.xlsx` file.
+
+### 6.1 Preparing the Data
+
+1.  **Download Template:** Navigate to the "Bulk Upload" tab and click the **"Download Template"** button in the top right.
+2.  **Fill Data:** Open the downloaded `registry_upload_template.csv`. Do **NOT** change the header column names.
+3.  **Smart Phone Number Handling:**
+    - Excel aggressively strips leading zeros (e.g., an agent types `0771234567` but Excel saves it as `771234567`).
+    - **You do not need to fix this.** The portal features a Smart Normalizer that automatically detects 9-digit numbers, `+94` prefixes, or `94` prefixes and silently converts them back to the pristine 10-digit Sri Lankan format (`07...`) during upload!
+
+### 6.2 The Upload Process
+
+1.  **Select File:** Drag and drop your file into the dashed drop zone, or click to browse your computer. The system supports files up to 10MB.
+2.  **Verify File:** The UI will display the selected file's name and size in KB/MB.
+3.  **Process:** Click the blue **"Upload & Process"** button. A spinner indicates the system is working.
+
+### 6.3 Understanding the Results
+
+Once processed, the system provides a three-card summary:
+
+- **Total Processed:** The absolute number of non-empty rows found in the Excel sheet.
+- **Valid Rows (Green):** How many rows passed all validations and duplicate checks. These are immediately sent to the `staging_data` queue with a unique `BATCH-` ID for the Validator to review.
+- **Invalid Rows (Orange):** How many rows contained errors (e.g., missing required fields, invalid text formats, or duplicate phone numbers). **These rows are safely rejected and do not enter the system.**
+
+### 6.4 The Error Sheet Workflow
+
+If there are any "Invalid Rows" (even just one), you must correct them. The system makes this effortless:
+
+1.  **Download the Error Sheet:** Click the orange **"Download Error Sheet"** button below the results.
+2.  **Locate the Errors:** Open the downloaded file. It looks exactly like your original upload, but includes only the rejected rows. Crucially, a new column called **"Error Message"** is appended to the far right.
+3.  **Fix:** Read the exact reason the row failed (e.g., _"Contact number already exists in the system"_ or _"Field 'Age' must be a number"_). Correct the data directly in this sheet.
+4.  **Re-upload:** Save the Error Sheet and upload it back into the portal. The successfully fixed rows will now go into the Staging queue!

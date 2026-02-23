@@ -85,7 +85,7 @@ The central table storing all beneficiary data.
 | `whatsapp_number` | String    | Yes      | WhatsApp contact                                            |
 | `email`           | String    | Yes      | Email address                                               |
 | `age`             | Integer   | Yes      | Age (Self-Employed only)                                    |
-| `field_of_work`   | Enum      | No       | Business sector — 10 categories (Self-Employed only)        |
+| `field_of_work`   | Enum      | **Yes**  | Business sector — 10 categories (Self-Employed only)        |
 | `employees_count` | Integer   | Yes      | Number of employees (Self-Employed only)                    |
 | `contact_person`  | String    | Yes      | Contact person name (Trade only)                            |
 | `members_count`   | Integer   | Yes      | Number of members (Trade only)                              |
@@ -202,3 +202,26 @@ resources/
 | ----------------- | ------------------------------ | ------------------------------------ |
 | `GET /`           | —                              | Redirects to `/data-entry`           |
 | `GET /data-entry` | `Pages/Registry/DataEntry.vue` | Single Form Entry + Bulk Upload tabs |
+
+### 6.6 API Routes (JSON Endpoints)
+
+| Route                         | Method | Controller Method                     | Description                                                                             |
+| ----------------------------- | ------ | ------------------------------------- | --------------------------------------------------------------------------------------- |
+| `/api/locations/provinces`    | GET    | `LocationController@provinces`        | Returns all 9 Sri Lankan provinces                                                      |
+| `/api/locations/districts`    | GET    | `LocationController@districts`        | Returns districts for a given `province` query param                                    |
+| `/api/locations/ds-divisions` | GET    | `LocationController@dsDivisions`      | Returns DS divisions for a given `district` query param                                 |
+| `/api/registry/single`        | POST   | `RegistryController@storeSingle`      | Validates and stages a single manually-entered record                                   |
+| `/api/registry/upload`        | POST   | `RegistryController@uploadExcel`      | Parses, normalizes, deduplicates, validates, and bulk-stages rows from an uploaded file |
+| `/api/registry/template`      | GET    | `RegistryController@downloadTemplate` | Streams a pre-formatted CSV template with headers + example rows for Agent download     |
+
+### 6.7 Key Backend Service: Phone Number Normalizer
+
+The `RegistryController::normalizePhoneNumber()` private method is applied to `contact_number` and `whatsapp_number` during every bulk Excel upload. It handles the common "Excel strips leading zeros" problem by detecting and correcting these patterns:
+
+| Raw Input (from Excel) | Normalized Output | Transformation Applied      |
+| ---------------------- | ----------------- | --------------------------- |
+| `771234567`            | `0771234567`      | Prepended `0` (9-digit)     |
+| `+94771234567`         | `0771234567`      | Replaced `+94` with `0`     |
+| `94771234567`          | `0771234567`      | Replaced `94` with `0`      |
+| `077 123-4567`         | `0771234567`      | Stripped spaces/dashes      |
+| `0771234567`           | `0771234567`      | No change (already correct) |

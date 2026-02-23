@@ -107,3 +107,37 @@ The following describes the complete data flow for the Single Form Entry feature
 10. **Response:** Returns `201 Created` with `staging_id`. Frontend shows green success banner, resets form and dropdown option lists, auto-scrolls to banner.
 
 **Total DB Calls Per Submission:** 3 (main_registry check + staging check + insert).
+
+#### **Excel Bulk Upload Flow (Frontend → Backend)**
+
+The following describes the complete data flow for the Excel Bulk Upload feature as implemented.
+
+**Frontend (Vue.js — `DataEntry.vue`, Bulk Upload tab):**
+
+1. **Template Download:** Agent clicks the "Download Template" button. Frontend navigates to `GET /api/registry/template` which streams a CSV file with all 14 required column headers and two example rows.
+2. **File Selection:** Agent drags-and-drops a file onto the drop zone or uses the file browser. The frontend validates the extension (`.csv`, `.xls`, `.xlsx`) and size (≤10MB) before allowing submission. The file name and size (in KB or MB) are displayed.
+3. **Submit:** Agent clicks "Upload & Process". Frontend constructs a `FormData` object appending the file and sends it via `POST /api/registry/upload`. A loading spinner is displayed.
+
+**Backend (Laravel — `RegistryController@uploadExcel`):**
+
+4. **File Validation:** Extension-based validation rejects files that are not `.csv`, `.xls`, or `.xlsx`. Size limit enforced at 10MB.
+5. **Parsing:** `Maatwebsite\Excel::toArray()` reads the first sheet. The header row is discarded.
+6. **Empty Row Filtering:** Completely empty rows are skipped and not counted toward `total_processed`.
+7. **Phone Normalization (per row):** `normalizePhoneNumber()` is applied to `contact_number` and `whatsapp_number`:
+    - Strips non-digit characters.
+    - `771234567` (9 digits, no leading `0`) → `0771234567`
+    - `+94771234567` → `0771234567`
+    - `94771234567` → `0771234567`
+8. **In-Batch Duplicate Check (0 DB calls):** All `contact_number` values in the file are tracked. Subsequent duplicates within the same file are immediately flagged with `error = 'Duplicate contact number found within this Excel file.'`.
+9. **DB Duplicate Check — Main Registry (1 DB call):** `MainRegistry::whereIn('contact_number', $uniqueNumbers)->pluck('contact_number')`.
+10. **DB Duplicate Check — Staging (1 DB call):** `StagingData::where('validation_status', 'Pending')->get()->pluck('data_payload.contact_number')`. Both result sets are merged.
+11. **Category-Aware Validation (per row, 0 DB calls):** `RegistryValidator::validate($data)` enforces all field rules. Failing rows are flagged with concatenated error messages.
+12. **Bulk Insert (1 DB call):** All valid rows are batch-inserted into `staging_data` with `batch_id = 'BATCH-{timestamp}'` and `submission_type = 'NEW'`.
+13. **Response:** Returns JSON with `summary` (total_processed, valid_count, invalid_count), `invalid_rows` array (with error messages), and `batch_id`.
+
+**Frontend (Post-Processing):**
+
+14. **Results UI:** Displays the 3-card summary. A success banner shows the `batch_id` for Validator reference.
+15. **Error Sheet Generation (client-side, 0 network calls):** If `invalid_count > 0`, the "Download Error Sheet" button is shown. Clicking it builds a CSV in-browser from `invalid_rows`, appends an "Error Message" column, and triggers a download via a temporary object URL.
+
+**Total DB Calls Per Upload:** 3 (main_registry check + staging_data check + bulk insert).

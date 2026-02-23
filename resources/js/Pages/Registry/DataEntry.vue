@@ -576,17 +576,321 @@
                 </form>
             </div>
 
-            <!-- Bulk Upload Tab Shell for later -->
+            <!-- Bulk Upload Tab -->
             <div
                 v-show="activeTab === 'bulk'"
                 class="bg-white rounded-lg shadow border border-gray-200 p-8"
             >
-                <h2 class="text-xl font-bold text-gray-700 mb-4 pb-2 border-b">
-                    Excel Bulk Upload
-                </h2>
-                <p class="text-gray-500 italic">
-                    Bulk upload interface goes here...
-                </p>
+                <div
+                    class="flex justify-between items-center mb-6 pb-2 border-b"
+                >
+                    <h2 class="text-xl font-bold text-gray-700">
+                        Excel Bulk Upload
+                    </h2>
+                    <a
+                        href="/api/registry/template"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                        <svg
+                            class="mr-2 h-5 w-5 text-gray-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                            />
+                        </svg>
+                        Download Template
+                    </a>
+                </div>
+
+                <!-- Alerts specifically for bulk upload -->
+                <div ref="bulkAlertArea">
+                    <div
+                        v-if="bulkErrorMsg"
+                        class="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center justify-between"
+                    >
+                        <div class="flex items-center">
+                            <svg
+                                class="w-5 h-5 mr-2 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            {{ bulkErrorMsg }}
+                        </div>
+                        <button
+                            @click="bulkErrorMsg = ''"
+                            class="text-red-500 hover:text-red-700 focus:outline-none"
+                            aria-label="Dismiss"
+                        >
+                            <svg
+                                class="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- File Upload Area -->
+                <div
+                    v-if="!bulkResults"
+                    class="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors"
+                    @dragover.prevent="dragover = true"
+                    @dragleave.prevent="dragover = false"
+                    @drop.prevent="handleDrop"
+                    :class="
+                        dragover
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-300 bg-white'
+                    "
+                >
+                    <div class="space-y-1 text-center">
+                        <svg
+                            class="mx-auto h-12 w-12 text-gray-400"
+                            stroke="currentColor"
+                            fill="none"
+                            viewBox="0 0 48 48"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                        <div class="flex text-sm text-gray-600 justify-center">
+                            <label
+                                for="file-upload"
+                                class="relative cursor-pointer bg-transparent rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                            >
+                                <span>Upload a file</span>
+                                <input
+                                    id="file-upload"
+                                    ref="fileInput"
+                                    name="file-upload"
+                                    type="file"
+                                    class="sr-only"
+                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                    @change="handleFileSelect"
+                                />
+                            </label>
+                            <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            XLSX, XLS, CSV up to 10MB
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Selected File Info & Submit Button -->
+                <div
+                    v-if="selectedFile && !bulkResults"
+                    class="mt-4 flex items-center justify-between p-4 border rounded-md bg-gray-50"
+                >
+                    <div class="flex items-center">
+                        <svg
+                            class="w-8 h-8 text-green-500 mr-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                clip-rule="evenodd"
+                            ></path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">
+                                {{ selectedFile.name }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                {{
+                                    selectedFile.size > 1024 * 1024
+                                        ? (
+                                              selectedFile.size /
+                                              1024 /
+                                              1024
+                                          ).toFixed(2) + " MB"
+                                        : (selectedFile.size / 1024).toFixed(
+                                              2,
+                                          ) + " KB"
+                                }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button
+                            type="button"
+                            @click="
+                                selectedFile = null;
+                                if ($refs.fileInput) $refs.fileInput.value = '';
+                            "
+                            class="text-sm text-red-600 hover:text-red-900"
+                        >
+                            Remove
+                        </button>
+                        <button
+                            type="button"
+                            @click="submitBulkUpload"
+                            :disabled="isUploading"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg
+                                v-if="isUploading"
+                                class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                            >
+                                <circle
+                                    class="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    stroke-width="4"
+                                ></circle>
+                                <path
+                                    class="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                                ></path>
+                            </svg>
+                            {{
+                                isUploading
+                                    ? "Processing..."
+                                    : "Upload & Process"
+                            }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results UI -->
+                <div v-if="bulkResults" class="mt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div
+                            class="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center"
+                        >
+                            <p
+                                class="text-sm font-medium text-gray-500 uppercase tracking-wide"
+                            >
+                                Total Processed
+                            </p>
+                            <p
+                                class="mt-2 text-3xl font-extrabold text-gray-900"
+                            >
+                                {{ bulkResults.summary.total_processed }}
+                            </p>
+                        </div>
+                        <div
+                            class="bg-green-50 p-6 rounded-lg border border-green-200 text-center"
+                        >
+                            <p
+                                class="text-sm font-medium text-green-600 uppercase tracking-wide"
+                            >
+                                Valid Rows
+                            </p>
+                            <p
+                                class="mt-2 text-3xl font-extrabold text-green-700"
+                            >
+                                {{ bulkResults.summary.valid_count }}
+                            </p>
+                            <p class="mt-1 text-xs text-green-600">
+                                Sent to Staging
+                            </p>
+                        </div>
+                        <div
+                            class="bg-orange-50 p-6 rounded-lg border border-orange-200 text-center"
+                        >
+                            <p
+                                class="text-sm font-medium text-orange-600 uppercase tracking-wide"
+                            >
+                                Invalid Rows
+                            </p>
+                            <p
+                                class="mt-2 text-3xl font-extrabold text-orange-700"
+                            >
+                                {{ bulkResults.summary.invalid_count }}
+                            </p>
+                            <p class="mt-1 text-xs text-orange-600">
+                                Requires correction
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="bulkResults.summary.valid_count > 0"
+                        class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md"
+                    >
+                        <strong>Success:</strong>
+                        {{ bulkResults.summary.valid_count }} records
+                        successfully queued for review under batch ID:
+                        <code>{{ bulkResults.batch_id }}</code>
+                    </div>
+
+                    <div
+                        v-if="bulkResults.summary.invalid_count > 0"
+                        class="mb-6 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-md flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0"
+                    >
+                        <div>
+                            <strong>Attention Required:</strong>
+                            {{ bulkResults.summary.invalid_count }} rows
+                            contained errors or were duplicates. Download the
+                            error sheet to see specific reasons.
+                        </div>
+                        <button
+                            @click="downloadErrorSheet"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                        >
+                            <svg
+                                class="mr-2 h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                />
+                            </svg>
+                            Download Error Sheet
+                        </button>
+                    </div>
+
+                    <div
+                        class="mt-8 pt-6 border-t border-gray-200 flex justify-end"
+                    >
+                        <button
+                            @click="resetBulkUpload"
+                            class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        >
+                            Upload Another File
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </AppLayout>
@@ -598,9 +902,21 @@ import axios from "axios";
 import AppLayout from "@/Layouts/AppLayout.vue";
 
 const activeTab = ref("single");
+// ... Single Form state
 const isSubmitting = ref(false);
 const successMsg = ref("");
 const errorMsg = ref("");
+
+// File Input Ref
+const fileInput = ref(null);
+
+// Bulk Upload State
+const dragover = ref(false);
+const selectedFile = ref(null);
+const isUploading = ref(false);
+const bulkResults = ref(null);
+const bulkAlertArea = ref(null);
+const bulkErrorMsg = ref("");
 
 // Ref for auto-scrolling to alerts
 const alertArea = ref(null);
@@ -840,13 +1156,11 @@ const submitSingleForm = async () => {
         payload.ds_division = form.ds_division;
         payload.contact_number = form.contact_number;
 
-        // Optional common fields — only send if non-empty
-        if (form.address) payload.address = form.address;
         if (form.whatsapp_number)
             payload.whatsapp_number = form.whatsapp_number;
         if (form.email) payload.email = form.email;
+        if (form.address) payload.address = form.address;
 
-        // Category-specific fields — only include relevant ones
         if (form.category === "Self-Employed") {
             if (form.age !== null && form.age !== "")
                 payload.age = Number(form.age);
@@ -861,37 +1175,196 @@ const submitSingleForm = async () => {
         }
 
         const { data } = await axios.post("/api/registry/single", payload);
+        successMsg.value = `Record queued for review! Staging ID: ${data.staging_id}`;
 
-        successMsg.value = `Record submitted successfully! Staging ID: ${data.staging_id}. It is now in the review queue.`;
+        // Bug 13: Clear all dropdowns AND form values on success
         Object.assign(form, getInitialForm());
         districts.value = [];
         dsDivisions.value = [];
-        Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
 
         scrollToAlert();
-    } catch (error) {
-        if (error.response) {
+    } catch (err) {
+        if (err.response?.status === 422) {
+            // Handle server-side validation errors
+            const errors = err.response.data.errors;
+            for (const key in errors) {
+                fieldErrors[key] = errors[key][0];
+            }
+            errorMsg.value = "Validation failed on the server.";
+        } else if (err.response?.status === 409) {
+            // Handle 409 Conflict (Duplicate detection)
+            // We want to highlight the contact_number field and show the alert banner
+            errorMsg.value = err.response.data.message;
             if (
-                error.response.status === 409 ||
-                error.response.status === 422
+                err.response.data.errors &&
+                err.response.data.errors.contact_number
             ) {
-                errorMsg.value = error.response.data.message;
-
-                if (error.response.data.errors) {
-                    const errList = Object.values(error.response.data.errors)
-                        .flat()
-                        .join(" | ");
-                    errorMsg.value += ` (${errList})`;
-                }
-            } else {
-                errorMsg.value = "An unexpected server error occurred.";
+                fieldErrors.contact_number =
+                    err.response.data.errors.contact_number[0];
             }
         } else {
-            errorMsg.value = "Network Error. Could not connect to API.";
+            errorMsg.value =
+                err.response?.data?.message || "An unexpected error occurred.";
         }
         scrollToAlert();
+        console.error("Submission failed", err);
     } finally {
         isSubmitting.value = false;
     }
+};
+
+// ─── Bulk Upload Methods ────────────────────────────────────────────
+
+const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    validateAndSetFile(file);
+};
+
+const handleDrop = (e) => {
+    dragover.value = false;
+    const file = e.dataTransfer.files[0];
+    validateAndSetFile(file);
+};
+
+const validateAndSetFile = (file) => {
+    if (!file) return;
+    if (!file.name.match(/\.(csv|xlsx|xls)$/i)) {
+        bulkErrorMsg.value =
+            "Please select a valid Excel (.xlsx, .xls) or CSV file.";
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        bulkErrorMsg.value = "File size must be less than 10MB.";
+        return;
+    }
+    selectedFile.value = file;
+    bulkErrorMsg.value = "";
+    if (bulkAlertArea.value) {
+        bulkAlertArea.value.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    }
+};
+
+const submitBulkUpload = async () => {
+    if (!selectedFile.value) return;
+
+    isUploading.value = true;
+    bulkErrorMsg.value = "";
+    bulkResults.value = null;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile.value);
+
+    try {
+        const { data } = await axios.post("/api/registry/upload", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+        bulkResults.value = data;
+        if (bulkAlertArea.value) {
+            bulkAlertArea.value.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        }
+    } catch (err) {
+        bulkErrorMsg.value =
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            "An error occurred during upload. Please try again.";
+        console.error("Bulk upload failed", err);
+        if (bulkAlertArea.value) {
+            bulkAlertArea.value.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        }
+    } finally {
+        isUploading.value = false;
+    }
+};
+
+const resetBulkUpload = () => {
+    selectedFile.value = null;
+    bulkResults.value = null;
+    bulkErrorMsg.value = "";
+    dragover.value = false;
+    if (fileInput.value) {
+        fileInput.value.value = "";
+    }
+};
+
+const downloadErrorSheet = () => {
+    if (
+        !bulkResults.value ||
+        !bulkResults.value.invalid_rows ||
+        bulkResults.value.invalid_rows.length === 0
+    )
+        return;
+
+    const rows = bulkResults.value.invalid_rows;
+    // Headers matching the backend array mapping
+    const headers = [
+        "Category",
+        "Full Name",
+        "Contact Number",
+        "Province",
+        "District",
+        "DS Division",
+        "Field of Work",
+        "Age",
+        "Address",
+        "WhatsApp Number",
+        "Email Address",
+        "Contact Person",
+        "Members Count",
+        "Employees Count",
+        "Error Message",
+    ];
+
+    // Convert objects to array in correct order
+    const csvContent = [
+        headers.join(","),
+        ...rows.map((row) => {
+            const values = [
+                row.category || "",
+                row.full_name || "",
+                row.contact_number || "",
+                row.province || "",
+                row.district || "",
+                row.ds_division || "",
+                row.field_of_work || "",
+                row.age || "",
+                row.address || "",
+                row.whatsapp_number || "",
+                row.email || "",
+                row.contact_person || "",
+                row.members_count || "",
+                row.employees_count || "",
+                row.error || "",
+            ];
+            // Escape quotes and wrap in quotes to handle commas
+            return values
+                .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                .join(",");
+        }),
+    ].join("\n");
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+        "download",
+        `error_sheet_${bulkResults.value.batch_id || "unknown"}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url); // Release memory
 };
 </script>
