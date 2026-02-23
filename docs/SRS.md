@@ -54,12 +54,13 @@ Reviewing pending data, approving/rejecting entries, managing master data, viewi
     - `GET /api/locations/districts?province={name}` — Returns districts for the selected province.
     - `GET /api/locations/ds-divisions?district={name}` — Returns DS divisions for the selected district.
 - **Category A: Self-Employed:**
-    - **Mandatory:** Age, Business field, Number of employees
+    - **Mandatory:** Business field (Field of Work)
+    - **Optional:** Age, Number of employees
     - **Not Applicable:** Contact Person Name, Number of Members.
 
 - **Category B: Trade:**
     - **Not Applicable:** Age, Business field, Number of employees
-    - **Mandatory:** Contact Person Name, Number of Members.
+    - **Optional:** Contact Person Name, Number of Members.
 
 ### **2.2 Security Standards**
 
@@ -133,9 +134,16 @@ Excel uploads and single-form entry are used **exclusively for adding NEW record
 #### **3.2.2 Single Form Entry**
 
 - Agent fills out the form and clicks Submit.
-- **Duplicate Check:** System queries `main_registry` for the entered `contact_number` (1 DB call).
-    - **If exists:** Display an instant error: _"A record with this contact number already exists. Use the Update Data tab to modify existing records."_ The form is not submitted.
-    - **If not exists:** Insert to `staging_data` with `submission_type = 'NEW'`. Proceed to Maker-Checker workflow.
+- **Client-Side Validation (Pre-Submit):** The frontend validates all required fields, format constraints (e.g., contact number regex `^0\d{9}$`), and category-specific required fields before making any API call. Invalid fields are highlighted with red borders and inline error messages.
+- **Server-Side Processing (POST /api/registry/single):**
+    1. **Initial Format Check:** Validates `category` and `contact_number` format.
+    2. **Main Registry Duplicate Check:** Queries `main_registry` for the entered `contact_number` (1 DB call).
+        - **If exists:** Returns 409: _"A record with this contact number already exists. Use the Update Data tab to modify existing records."_
+    3. **Staging Duplicate Check:** Queries `staging_data` for pending records with the same `contact_number` (1 DB call).
+        - **If pending:** Returns 409: _"A record with this contact number is already pending review."_
+    4. **Category-Aware Validation:** Runs full `RegistryValidator` validation (see Section 3.2.4).
+    5. **Insert to Staging:** Creates a `staging_data` record with `submission_type = 'NEW'` and `batch_id = 'SINGLE-{timestamp}'`. Proceeds to Maker-Checker workflow.
+- **On Success:** Frontend displays a green success banner with the Staging ID. The form is reset to its initial state.
 
 #### **3.2.3 Error Resolution**
 
@@ -153,14 +161,16 @@ Excel uploads and single-form entry are used **exclusively for adding NEW record
 **Logic If Category = "Self-Employed":**
 
 - **Mandatory Checks:** full_name, contact_number, province, district, ds_division, field_of_work.
-- **Optional:** age (`min:16, max:110`), employees_count.
+- **Optional:** age (`min:16, max:110`), employees_count (`min:0`).
 - **Prohibited:** contact_person and members_count (actively rejected if present).
+- **Contact Number Format:** Must be exactly 10 digits starting with `0` (regex: `^0\d{9}$`).
 
 **Logic If Category = "Trade":**
 
 - **Mandatory Checks:** full_name, contact_number, province, district, ds_division.
-- **Optional:** contact_person, members_count.
+- **Optional:** contact_person (`max:255`), members_count (`min:0`).
 - **Prohibited:** age, field_of_work, and employees_count (actively rejected if present).
+- **Contact Number Format:** Same as Self-Employed.
 
 All valid records enter the Staging table with `submission_type = 'NEW'` and proceed to the Maker-Checker workflow (Section 3.4).
 
