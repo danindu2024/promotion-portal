@@ -85,13 +85,13 @@ Since both systems use MySQL, Laravel can connect to the legacy database **direc
 
 ### 2.3 Session Management Options
 
-| Option                                | How It Works                                                                            | Pros                                                  | Cons                                              |
-| ------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
-| **A. Laravel Sanctum (Own Tokens)**   | Validate against legacy DB, then issue a Sanctum API token                              | Full control, independent session management          | User has two separate sessions (legacy + portal)  |
-| **B. Laravel Sessions (Server-Side)** | Validate against legacy DB, use Laravel's built-in session (stored in `sessions` table) | Simplest to implement, uses existing `sessions` table | Cookie-based, not ideal for SPA frontends         |
-| **C. Reuse Legacy Tokens**            | Call legacy system's auth endpoint, forward their token                                 | Single Sign-On (SSO) experience                       | Tight coupling, need their token validation logic |
+| Option                                | How It Works                                                                            | Pros                                                  | Cons                                                 |
+| ------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| **A. Laravel Sanctum (Own Tokens)**   | Validate against legacy DB, then issue a Sanctum API token                              | Independent session management, good for detached SPA | User has two separate sessions, overkill for Inertia |
+| **B. Laravel Sessions (Server-Side)** | Validate against legacy DB, use Laravel's built-in session (stored in `sessions` table) | Simplest to implement, native support for Inertia.js  | Cookie-based (perfect for monolith, bad for API)     |
+| **C. Reuse Legacy Tokens**            | Call legacy system's auth endpoint, forward their token                                 | Single Sign-On (SSO) experience                       | Tight coupling, need their token validation logic    |
 
-**Our Recommendation:** **Option A (Laravel Sanctum)** — validates credentials against the legacy DB but manages sessions independently. This gives us full control without modifying the legacy system.
+**Our Recommendation:** **Option B (Laravel Sessions)** — Since we decided on Vue + Inertia.js for the frontend, the application is technically a monolithic SPA. We do not need stateless API tokens (Sanctum/JWT). Inertia relies perfectly on Laravel's built-in session cookies, meaning we only need to validate credentials against the legacy DB once and rely on standard Laravel auth mechanisms.
 
 ---
 
@@ -150,6 +150,19 @@ sessions           → Laravel session storage
 >
 > - **Point the User model to the legacy table directly**, or
 > - **Sync user data from the legacy DB** into our local `users` table on login.
+
+### 4.1 Development Mock: `Current.php` Helper
+
+Until authentication is integrated, a mock helper class is used to simulate the authenticated user:
+
+**File:** `app/Helpers/Current.php`
+
+| Method            | Returns         | Purpose                       |
+| ----------------- | --------------- | ----------------------------- |
+| `Current::user()` | `User::find(1)` | Returns the mock user object  |
+| `Current::id()`   | `1`             | Returns the hardcoded user ID |
+
+This helper is used by `RegistryController` (to set `uploaded_by`) and `ReviewController` (to set `reviewed_by` and `approved_by`). Both methods contain `// TODO` comments to replace with `Auth::user()` / `Auth::id()` once real authentication is implemented. API routes currently bypass CSRF protection (using the `api` middleware group), which is appropriate for development but must be reviewed during authentication integration.
 
 ---
 

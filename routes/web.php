@@ -1,15 +1,12 @@
 <?php
 
-use App\Http\Controllers\LocationController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/data-entry');
 });
 
-// Location API (cascading dropdowns)
-Route::prefix('api/locations')->group(function () {
-    Route::get('/provinces', [LocationController::class, 'provinces']);
-    Route::get('/districts', [LocationController::class, 'districts']);
-    Route::get('/ds-divisions', [LocationController::class, 'dsDivisions']);
+Route::get('/data-entry', function () {
+    return Inertia::render('Registry/DataEntry');
 });

@@ -79,3 +79,31 @@ The system provides a lightweight location data API to power cascading Province 
 3. **District Selected:** Frontend calls `GET /api/locations/ds-divisions?district={name}` → populates DS Division dropdown.
 
 **Validation (Server-side):** `RegistryValidator` enforces that the selected district belongs to the province, and the DS division belongs to the district, using closure-based cross-field validation rules.
+
+#### **Single Form Entry Flow (Frontend → Backend)**
+
+The following describes the complete data flow for the Single Form Entry feature as implemented.
+
+**Frontend (Vue.js — `DataEntry.vue`):**
+
+1. **Page Load:** Vue component mounts and calls `GET /api/locations/provinces` to populate the Province dropdown. A loading spinner is shown while fetching.
+2. **User Interaction:** User selects category (Self-Employed/Trade), fills in fields. Cascading dropdowns trigger additional API calls for districts and DS divisions. Loading indicators appear during each fetch.
+3. **Pre-Submit Client-Side Validation:** On "Save Registry" click, the `validateForm()` function checks:
+    - All required fields are filled (full_name, province, district, ds_division, contact_number)
+    - Contact number matches regex `^0\d{9}$`
+    - WhatsApp number matches format if provided
+    - Email format is valid if provided
+    - Category-specific required fields (e.g., `field_of_work` for Self-Employed)
+    - If validation fails: red borders + inline error messages appear. Page auto-scrolls to top error banner. No API call is made.
+4. **Payload Construction:** Irrelevant category fields are excluded entirely from the payload (not sent as empty strings). Only filled optional fields are included.
+
+**Backend (Laravel — `RegistryController@storeSingle`):**
+
+5. **Initial Format Check:** Validates `category` (in: Self-Employed, Trade) and `contact_number` (regex: `^0\d{9}$`).
+6. **Main Registry Duplicate Check (1 DB call):** `MainRegistry::where('contact_number', $data['contact_number'])->exists()`.
+7. **Staging Duplicate Check (1 DB call):** `StagingData::where('validation_status', 'Pending')->whereJsonContains('data_payload->contact_number', ...)->exists()`.
+8. **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — includes hierarchical location validation.
+9. **Insert to Staging (1 DB call):** `StagingData::create(...)` with `submission_type = 'NEW'` and `batch_id = 'SINGLE-{timestamp}'`.
+10. **Response:** Returns `201 Created` with `staging_id`. Frontend shows green success banner, resets form and dropdown option lists, auto-scrolls to banner.
+
+**Total DB Calls Per Submission:** 3 (main_registry check + staging check + insert).

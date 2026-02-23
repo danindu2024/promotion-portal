@@ -147,3 +147,58 @@ Security and compliance tracking.
 | `metadata`      | JSON      | Yes      | Context (search terms, record counts) |
 | `user_agent`    | String    | Yes      | Browser user agent string             |
 | `created_at`    | Timestamp | No       | Timestamp (auto-set, no `updated_at`) |
+
+## 6. Frontend Architecture (Vue + Inertia + Tailwind)
+
+To meet the requirements for a modern, responsive user interface capable of handling dynamic cascading forms, complex interactive charts, and rich data tables, the frontend is built using the **Vue.js 3 + Inertia.js + Tailwind CSS v4** stack.
+
+### 6.1 Unified Deployment (Virtual Machine Optimization)
+
+The project requires deployment on a Virtual Machine (VM). Using a decoupled Single Page Application (SPA) architecture (e.g., separate Node.js frontend and PHP backend) would introduce unnecessary infrastructure overhead, requiring two servers and complex CORS management.
+
+**Inertia.js** solves this by allowing us to build a fully modern Vue.js SPA that lives **inside** the Laravel monolith.
+
+- **Single Server:** The entire application (frontend + backend) is served via standard PHP/Nginx on the VM. No Node.js server required in production.
+- **Native Routing:** Inertia bridges Vue components directly to Laravel controllers and routing via `routes/web.php`, eliminating the need to build and maintain separate REST APIs just for page navigations.
+
+### 6.2 Build & Configuration
+
+| Component           | File                            | Description                                                                                                                                                                                                      |
+| ------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vite Config**     | `vite.config.js`                | Configures Laravel plugin, Vue plugin with asset URL transforms, and `@` alias for `resources/js/`                                                                                                               |
+| **Vue Entry Point** | `resources/js/app.js`           | Bootstraps `createInertiaApp()` with page component resolution via `import.meta.glob`                                                                                                                            |
+| **Blade Root**      | `resources/views/app.blade.php` | Root HTML document with `@vite()` and `@inertia` directives, Google Fonts (Inter, Roboto Mono)                                                                                                                   |
+| **PostCSS Config**  | `postcss.config.cjs`            | Uses `@tailwindcss/postcss` (Tailwind v4's separated PostCSS plugin) and `autoprefixer`. File uses `.cjs` extension because `package.json` has `"type": "module"`                                                |
+| **Tailwind Theme**  | `resources/css/app.css`         | Uses Tailwind v4 syntax: `@import "tailwindcss"` + `@theme { }` block. Custom design tokens (Royal Blue, Slate Grey, etc.) are defined inline via CSS custom properties. No external `tailwind.config.js` needed |
+
+### 6.3 Frontend File Structure
+
+```
+resources/
+├── css/
+│   └── app.css                     # Tailwind v4 import + @theme design tokens
+├── js/
+│   ├── app.js                      # Vue + Inertia bootstrap
+│   ├── bootstrap.js                # Axios defaults (Laravel default)
+│   ├── Layouts/
+│   │   └── AppLayout.vue           # Sidebar + main content wrapper (Royal Blue theme)
+│   └── Pages/
+│       └── Registry/
+│           └── DataEntry.vue       # Single Form Entry + Bulk Upload tabs
+└── views/
+    └── app.blade.php               # Root Blade template
+```
+
+### 6.4 Fulfilling Core Functionalities
+
+- **Government Aesthetics:** **Tailwind CSS v4** with custom `@theme` tokens strictly enforces the Royal Blue (`#0056b3`) and Off-White (`#f8f9fa`) palette defined in the UI/UX specifications.
+- **Data Visualization & Analytics:** Vue's reactive ecosystem allows seamless integration with reporting libraries (e.g., Chart.js, ApexCharts, Leaflet) to render the required demographic pyramids, sector pie charts, and regional heat maps.
+- **Complex UI Interactions:** The cascading Location dropdowns (Province -> District -> DS Division), dynamic category-aware form fields, and client-side validation with inline error feedback are all handled through Vue's reactive state management.
+- **Single Form Entry UX:** Client-side validation runs before API calls. Loading spinners appear during dropdown fetches. Double-click submission is prevented. The page auto-scrolls to success/error alerts.
+
+### 6.5 Web Routes (Inertia Pages)
+
+| Route             | Vue Component                  | Description                          |
+| ----------------- | ------------------------------ | ------------------------------------ |
+| `GET /`           | —                              | Redirects to `/data-entry`           |
+| `GET /data-entry` | `Pages/Registry/DataEntry.vue` | Single Form Entry + Bulk Upload tabs |
