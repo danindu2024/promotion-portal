@@ -8,19 +8,27 @@
 
 Before building individual screens, we define the common elements to ensure consistency.
 
-- **Color Palette:**
-    - **Primary:** Royal Blue (#0056b3) - 
-        - Trust and Authority (Buttons, Headers).
+### **1.1 Frontend Tech Stack**
 
-    - **Secondary:** Slate Grey (#6c757d) - Secondary actions (Cancel, Back).
-    - **Success:** Emerald Green (#28a745) - Approved, Valid, Clean Data.
-    - **Danger:** Crimson Red (#dc3545) - Rejected, Errors, Delete.
-    - **Background:** Off-White (#f8f9fa) - Reduces eye strain for data entry operators.
+- **Framework:** Vue.js 3 + Inertia.js
+    - _Why:_ Provides highly reactive, SPA-like experiences (e.g., instant cascading dropdowns, dynamic form fields) while remaining a single deployment monolith.
+- **Styling:** Tailwind CSS v4
+    - _Why:_ Allows rapid, strict enforcement of the government-style design system using Tailwind v4's CSS-native `@theme` blocks. Custom design tokens (colors, fonts) are defined directly in `resources/css/app.css` — no external config file needed.
+- **Data Visualization:** Chart.js / ApexCharts (via Vue wrappers) for analytics dashboards.
+
+### **1.2 Core Theme**
+
+- **Color Palette:**
+    - **Primary:** Royal Blue (`#0056b3` / Tailwind `blue-700`) - Trust and Authority (Buttons, Headers).
+    - **Secondary:** Slate Grey (`#6c757d` / Tailwind `slate-500`) - Secondary actions (Cancel, Back).
+    - **Success:** Emerald Green (`#28a745` / Tailwind `green-600`) - Approved, Valid, Clean Data.
+    - **Danger:** Crimson Red (`#dc3545` / Tailwind `red-600`) - Rejected, Errors, Delete.
+    - **Background:** Off-White (`#f8f9fa` / Tailwind `gray-50`) - Reduces eye strain for data entry operators.
 
 - **Typography:**
-    - **Font Family:** Inter or Roboto (Clean, legible sans-serif).
-    - **Headings:** Bold, Dark Grey.
-    - **Data Tables:** Monospaced numbers (e.g., Roboto Mono) for easy reading of figures.
+    - **Font Family:** Inter or Roboto (Clean, legible sans-serif - Tailwind `font-sans`).
+    - **Headings:** Bold, Dark Grey (Tailwind `font-bold text-gray-800`).
+    - **Data Tables:** Monospaced numbers (e.g., Roboto Mono - Tailwind `font-mono`) for easy reading of figures.
 
 ## **2\. Screen Specifications (Wireframes)**
 
@@ -85,17 +93,21 @@ Before building individual screens, we define the common elements to ensure cons
         - DS Division: **Dependent Dropdown** (disabled until District is selected). Populated dynamically with DS divisions belonging to the selected district.
 
 - **Section 3: Contact Details (Split Columns)**
-    - Contact Number: Tel Input (Validation: 10 digits).
-    - Whatsapp Number: Tel Input (Optional).
+    - Contact Number: Tel Input (Validation: exactly 10 digits starting with `0`, regex `^0\d{9}$`).
+    - Whatsapp Number: Tel Input (Optional, same format validation as Contact Number).
     - Email: Email Input (Standard regex validation).
 
 **Action Area (Footer)**
 
 - **Save Registry Button:**
     - **Style:** Primary Button (#0056b3), Large.
-    - **Interaction:** On click, triggers client-side validation. If valid, check if `contact_number` already exists in `main_registry`. If exists, display error: _"A record with this contact number already exists. Use the Update Data tab to modify existing records."_ If not exists, send POST request to `staging_data`.
+    - **Client-Side Validation (Pre-Submit):** Before contacting the server, the frontend validates all required fields. Invalid fields are highlighted with a red border and an inline error message appears below each invalid field. The page auto-scrolls to a top-level error banner.
+    - **Server Interaction:** On click (if client validation passes), sends a POST to the backend API. A spinner and "Saving..." text replace the button label. The button is disabled to prevent duplicate submissions.
+    - **On Success:** Displays a green success banner at the top showing the Staging ID. The entire form is reset to its initial state (including clearing dependent dropdown options). The page auto-scrolls to the success banner.
+    - **On Duplicate (409):** Displays a red error banner with the server's message (e.g., _"A record with this contact number already exists."_ or _"Already pending review."_).
+    - **On Validation Error (422):** Displays a red error banner listing specific field errors returned by the server.
 
-- **Reset Button:** Ghost/Text button to clear the form.
+- **Reset Button:** Ghost/Text button. Clears all form fields to their initial state, clears dependent dropdown option lists (District, DS Division), and removes all inline error messages.
 
 ### **Screen 4: The "Maker-Checker" Review (The "Validator" View)**
 
