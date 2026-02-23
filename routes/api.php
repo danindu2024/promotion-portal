@@ -21,6 +21,7 @@ Route::prefix('locations')->group(function () {
 Route::prefix('registry')->group(function () {
     Route::post('/single', [RegistryController::class, 'storeSingle']);
     Route::post('/upload', [RegistryController::class, 'uploadExcel']);
+    Route::get('/template', [RegistryController::class, 'downloadTemplate']);
 });
 
 // Maker-Checker Reviews
