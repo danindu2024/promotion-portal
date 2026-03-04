@@ -36,29 +36,33 @@ class ReviewController extends Controller
 
         $payload = $staging->data_payload;
 
-        if ($staging->submission_type === 'NEW') {
-            // Final duplicate guard — prevent race conditions
-            $contactNumber = $payload['contact_number'] ?? null;
-            if ($contactNumber && MainRegistry::where('contact_number', $contactNumber)->exists()) {
-                return response()->json([
-                    'message' => 'Cannot approve: a record with this contact number was already approved by another validator.',
-                ], 409);
-            }
-
-            $payload['approved_by'] = Current::id();
-            $payload['approved_at'] = now();
-            MainRegistry::create($payload);
-        } elseif ($staging->submission_type === 'UPDATE') {
-            $mainRecord = MainRegistry::findOrFail($staging->target_record_id);
-            // Optional: Save $mainRecord state to AuditLogs here
-            
-            $payload['approved_by'] = Current::id();
-            $payload['approved_at'] = now();
-            $mainRecord->update($payload);
+        // Final duplicate guard — prevent race conditions
+        $contactNumber = $payload['contact_number'] ?? null;
+        if ($contactNumber && MainRegistry::where('contact_number', $contactNumber)->exists()) {
+            return response()->json([
+                'message' => 'Cannot approve: a record with this contact number was already approved by another validator.',
+            ], 409);
         }
 
-        // Mark as approved
-        $staging->approve();
+        // Add approval metadata
+        $payload['approved_by'] = Current::id();
+        $payload['approved_at'] = now();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($staging, $payload) {
+            if ($staging->submission_type === 'NEW') {
+                MainRegistry::create($payload);
+            } elseif ($staging->submission_type === 'UPDATE') {
+                // target_record_id is nullable, ensure it exists for UPDATE
+                if (!$staging->target_record_id) {
+                    throw new \Exception("Update submission missing target_record_id");
+                }
+                $mainRecord = MainRegistry::findOrFail($staging->target_record_id);
+                $mainRecord->update($payload);
+            }
+
+            // Mark as approved (changes validation_status to Approved)
+            $staging->approve();
+        });
 
         return response()->json(['message' => 'Record approved successfully.']);
     }

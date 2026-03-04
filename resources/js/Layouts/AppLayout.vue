@@ -10,21 +10,31 @@
                 Promotion Portal
             </div>
             <nav class="flex-1 py-4">
-                <a
-                    href="#"
-                    class="block px-6 py-3 bg-primary-600 border-l-4 border-white font-medium"
+                <Link
+                    href="/data-entry"
+                    :class="[
+                        $page.url.startsWith('/data-entry')
+                            ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
+                            : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
+                        'block px-6 py-3'
+                    ]"
                 >
                     Data Entry
-                </a>
-                <a
-                    href="#"
-                    class="block px-6 py-3 hover:bg-primary-600 text-gray-200 hover:text-white transition"
+                </Link>
+                <Link
+                    href="/review"
+                    :class="[
+                        $page.url.startsWith('/review')
+                            ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
+                            : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
+                        'block px-6 py-3'
+                    ]"
                 >
                     Review Queue
-                </a>
+                </Link>
                 <a
                     href="#"
-                    class="block px-6 py-3 hover:bg-primary-600 text-gray-200 hover:text-white transition"
+                    class="block px-6 py-3 hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent"
                 >
                     Dashboard
                 </a>
@@ -42,5 +52,6 @@
 </template>
 
 <script setup>
+import { Link } from '@inertiajs/vue3';
 // Main Layout containing Royal Blue styling per UI specs
 </script>

@@ -10,3 +10,7 @@ Route::get('/', function () {
 Route::get('/data-entry', function () {
     return Inertia::render('Registry/DataEntry');
 });
+
+Route::get('/review', function () {
+    return Inertia::render('Registry/Review');
+});
