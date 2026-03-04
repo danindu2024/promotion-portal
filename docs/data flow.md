@@ -130,7 +130,7 @@ The following describes the complete data flow for the Excel Bulk Upload feature
     - `94771234567` → `0771234567`
 8. **In-Batch Duplicate Check (0 DB calls):** All `contact_number` values in the file are tracked. Subsequent duplicates within the same file are immediately flagged with `error = 'Duplicate contact number found within this Excel file.'`.
 9. **DB Duplicate Check — Main Registry (1 DB call):** `MainRegistry::whereIn('contact_number', $uniqueNumbers)->pluck('contact_number')`.
-10. **DB Duplicate Check — Staging (1 DB call):** `StagingData::where('validation_status', 'Pending')->get()->pluck('data_payload.contact_number')`. Both result sets are merged.
+10. **DB Duplicate Check — Staging (1 DB call):** `StagingData::where('validation_status', 'Pending')->whereIn('data_payload->contact_number', $uniqueNumbers)->pluck('data_payload->contact_number')`. Uses Laravel's JSON column shorthand — MySQL filters in SQL, only matched numbers are fetched (no full payloads loaded into memory). Both result sets are merged via `array_unique(array_merge(...))`.
 11. **Category-Aware Validation (per row, 0 DB calls):** `RegistryValidator::validate($data)` enforces all field rules. Failing rows are flagged with concatenated error messages.
 12. **Bulk Insert (1 DB call):** All valid rows are batch-inserted into `staging_data` with `batch_id = 'BATCH-{timestamp}'` and `submission_type = 'NEW'`.
 13. **Response:** Returns JSON with `summary` (total_processed, valid_count, invalid_count), `invalid_rows` array (with error messages), and `batch_id`.
