@@ -14,9 +14,9 @@ class LocationController extends Controller
      */
     public function provinces(): JsonResponse
     {
-        return response()->json(config('srilanka.provinces'));
+        return response()->json(config('srilanka.provinces')); // laravel automatically sets status code to 200
     }
-
+    
     /**
      * Get districts for a given province.
      * 
@@ -27,11 +27,16 @@ class LocationController extends Controller
     {
         $request->validate(['province' => 'required|string']);
         
-        $province = $request->query('province');
+        $province = ucwords(strtolower($request->query('province')));
         $hierarchy = config('srilanka.hierarchy');
 
         if (!isset($hierarchy[$province])) {
-            return response()->json(['error' => 'Invalid province'], 422);
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => [
+                    'province' => ['The selected province is invalid.']
+                ]
+            ], 422);
         }
 
         return response()->json(array_keys($hierarchy[$province]));
@@ -46,7 +51,7 @@ class LocationController extends Controller
     {
         $request->validate(['district' => 'required|string']);
         
-        $district = $request->query('district');
+        $district = ucwords(strtolower($request->query('district')));
         $hierarchy = config('srilanka.hierarchy');
 
         foreach ($hierarchy as $districts) {
@@ -55,6 +60,11 @@ class LocationController extends Controller
             }
         }
 
-        return response()->json(['error' => 'Invalid district'], 422);
+        return response()->json([
+            'message' => 'The given data was invalid.',
+            'errors' => [
+                'district' => ['The selected district is invalid.']
+            ]
+        ], 422);
     }
 }

@@ -19,20 +19,16 @@ class RegistryController extends Controller
     {
         $data = $request->all();
 
-        // 1. Initial format check
+        // Initial format check
         $validator = Validator::make($data, [
             'category' => 'required|in:Self-Employed,Trade',
             'contact_number' => 'required|string|regex:/^0\d{9}$/'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        // if fails, throw exception. Laravel will automatically convert it to 422 response
+        $validator->validate();
 
-        // 2. DB Duplicate Check — main_registry (1 DB call)
+        // DB Duplicate Check — main_registry
         $exists = MainRegistry::where('contact_number', $data['contact_number'])->exists();
         if ($exists) {
             return response()->json([
@@ -40,10 +36,10 @@ class RegistryController extends Controller
                 'errors' => ['contact_number' => ['Contact number already exists.']]
             ], 409);
         }
-
-        // 2b. Also check staging_data for pending duplicates
+        
+        // Also check staging_data for pending duplicates
         $pendingDuplicate = StagingData::where('validation_status', StagingData::STATUS_PENDING)
-            ->whereJsonContains('data_payload->contact_number', $data['contact_number'])
+            ->whereJsonContains('data_payload->contact_number', $data['contact_number']) //modern sql can store json object in columns
             ->exists();
         if ($pendingDuplicate) {
             return response()->json([
@@ -52,16 +48,18 @@ class RegistryController extends Controller
             ], 409);
         }
 
-        // 3. Full Category-Aware Validation
-        $fullValidator = RegistryValidator::validate($data);
-        if ($fullValidator->fails()) {
-            return response()->json([
-                'message' => 'Validation Failed',
-                'errors' => $fullValidator->errors()
-            ], 422);
+        // Strip cross-category null fields to prevent 'prohibited' rule from firing on empty fields
+        if ($data['category'] === 'Self-Employed') {
+            unset($data['contact_person'], $data['members_count']);
+        } elseif ($data['category'] === 'Trade') {
+            unset($data['field_of_work'], $data['age'], $data['employees_count']);
         }
 
-        // 4. Insert to Staging
+        // Full Category-Aware Validation
+        $fullValidator = RegistryValidator::validate($data);
+        $fullValidator->validate();
+
+        // Insert to Staging
         $staging = StagingData::create([
             'batch_id' => 'SINGLE-' . time(),
             'data_payload' => $data,
@@ -104,13 +102,15 @@ class RegistryController extends Controller
     /**
      * Parse Excel, validate rows, check duplicates efficiently, and stage valid rows.
      */
+
+    // validate file type and size
     public function uploadExcel(Request $request)
     {
         $request->validate([
             'file' => [
                 'required',
                 'file',
-                'max:10000',
+                'max:10000', // max size set to 10mb to save storage
                 function ($attribute, $value, $fail) {
                     $extension = strtolower($value->getClientOriginalExtension());
                     if (!in_array($extension, ['csv', 'xls', 'xlsx'])) {
@@ -120,29 +120,31 @@ class RegistryController extends Controller
             ],
         ]);
 
+        // efficient for >1000 raws. Not suitable for larger files
         $rows = \Maatwebsite\Excel\Facades\Excel::toArray(new class implements \Maatwebsite\Excel\Concerns\ToArray {
             public function array(array $array) {}
         }, $request->file('file'))[0]; // Get the first sheet
 
-        // Remove header row assuming first row is headers
-        $headers = array_shift($rows);
-        $totalRows = 0; // We will count non-empty rows
+        // Discard header row — column order is fixed by template
+        array_shift($rows);
 
-        $validRows = [];
+        // Initializing Counters and Storage
+        $totalRows = 0;
+        $validCount = 0; // count of valid rows — no need to store full payloads
         $invalidRows = [];
-        $contactNumbersInFile = [];
-        $uniqueNumbersForDbCheck = [];
+        $contactNumbersInFile = []; // use to check duplicate in file
+        $uniqueNumbersForDbCheck = []; // use to check duplicate in db
 
-        // Step 1: In-file duplicate check & structural mapping
+        // In-file duplicate check & structural mapping
         foreach ($rows as $index => $row) {
-            // Skip completely empty rows
+            // remove completely empty rows
             if (empty(array_filter($row, function($value) { return $value !== null && $value !== ''; }))) {
                 unset($rows[$index]);
                 continue;
             }
             $totalRows++;
 
-            // Assuming order: Category, Full Name, Contact Number, Province, District, DS Division, Field of Work, Age, Address, WhatsApp Number, Email Address, Contact Person, Members Count, Employees Count
+            // create data array with mapped values
             $data = [
                 'category' => $row[0] ?? null,
                 'full_name' => $row[1] ?? null,
@@ -150,55 +152,55 @@ class RegistryController extends Controller
                 'province' => $row[3] ?? null,
                 'district' => $row[4] ?? null,
                 'ds_division' => $row[5] ?? null,
-                'field_of_work' => $row[6] !== null && (string)$row[6] !== '' ? $row[6] : null,
+                'field_of_work' => isset($row[6]) && (string)$row[6] !== '' ? $row[6] : null,
                 'age' => isset($row[7]) && (string)$row[7] !== '' ? (int)$row[7] : null,
                 'address' => $row[8] ?? null,
                 'whatsapp_number' => $this->normalizePhoneNumber($row[9] ?? null),
                 'email' => $row[10] ?? null,
-                'contact_person' => $row[11] !== null && (string)$row[11] !== '' ? $row[11] : null,
+                'contact_person' => isset($row[11]) && (string)$row[11] !== '' ? $row[11] : null,
                 'members_count' => isset($row[12]) && (string)$row[12] !== '' ? (int)$row[12] : null,
                 'employees_count' => isset($row[13]) && (string)$row[13] !== '' ? (int)$row[13] : null,
             ];
 
             $contactNumber = $data['contact_number'];
 
+            // remove row if contact number is missing
             if (empty($contactNumber)) {
                 $data['error'] = 'Contact number is missing.';
                 $invalidRows[] = $data;
-                unset($rows[$index]); // Remove from $rows so Step 3 skips it cleanly
+                unset($rows[$index]);
                 continue;
             }
 
+            // remove row if contact number is duplicate in file
             if (in_array($contactNumber, $contactNumbersInFile)) {
                 $data['error'] = 'Duplicate contact number found within this Excel file.';
                 $invalidRows[] = $data;
-                unset($rows[$index]); // Remove from $rows so Step 3 skips it cleanly
+                unset($rows[$index]);
                 continue;
             }
 
+            // add contact number to arrays
             $contactNumbersInFile[] = $contactNumber;
             $uniqueNumbersForDbCheck[] = $contactNumber;
+
             // Store mapped data instead of raw numeric array for later
             $rows[$index] = $data; 
         }
 
-        // Step 2: Database duplicate check — main_registry (1 Query)
+        // Database duplicate check — main_registry
         $existingNumbers = !empty($uniqueNumbersForDbCheck)
             ? MainRegistry::whereIn('contact_number', $uniqueNumbersForDbCheck)
-                ->pluck('contact_number')
+                ->pluck('contact_number') // only get the contact numbers
                 ->toArray()
             : [];
 
-        // Step 2b: Also check staging_data for pending duplicates (1 Query)
+        // Check staging_data for pending duplicates
         // Use SQL JSON extraction to avoid loading full payloads into memory
         $pendingNumbers = !empty($uniqueNumbersForDbCheck)
             ? StagingData::where('validation_status', StagingData::STATUS_PENDING)
-                ->whereIn(
-                    \Illuminate\Support\Facades\DB::raw("JSON_UNQUOTE(JSON_EXTRACT(data_payload, '$.contact_number'))"),
-                    $uniqueNumbersForDbCheck
-                )
-                ->get()
-                ->map(fn($r) => $r->data_payload['contact_number'] ?? null)
+                ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck) // Laravel JSON shorthand
+                ->pluck('data_payload->contact_number') // only get the contact numbers
                 ->filter()
                 ->toArray()
             : [];
@@ -207,15 +209,15 @@ class RegistryController extends Controller
         $batchId = 'BATCH-' . time();
         $stagedInsertData = [];
 
-        // Step 3: Full Validation for remaining rows
+        // Full Validation for remaining rows
         foreach ($rows as $data) {
-            // Skip numeric-keyed rows (empty/unflagged rows from Step 1)
+            // Skip numeric-keyed rows (empty/unflagged rows)
             if (!is_array($data) || !array_key_exists('contact_number', $data)) {
                 continue;
             }
 
             if (in_array($data['contact_number'], $existingNumbers)) {
-                $data['error'] = 'Contact number already exists in the system.';
+                $data['error'] = 'Contact number already exists in either pending or main database';
                 $invalidRows[] = $data;
                 continue;
             }
@@ -233,7 +235,7 @@ class RegistryController extends Controller
             $validator = RegistryValidator::validate($data);
 
             if ($validator->fails()) {
-                $data['error'] = implode(' | ', $validator->errors()->all());
+                $data['error'] = implode(' | ', $validator->errors()->all()); // join multiple array elements to single string
                 $invalidRows[] = $data;
             } else {
                 // Ensure correct types before insert
@@ -246,7 +248,7 @@ class RegistryController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
-                $validRows[] = $data;
+                $validCount++;
             }
         }
 
@@ -254,8 +256,6 @@ class RegistryController extends Controller
         if (!empty($stagedInsertData)) {
             StagingData::insert($stagedInsertData);
         }
-
-        $validCount = count($validRows);
 
         return response()->json([
             'summary' => [
@@ -279,19 +279,14 @@ class RegistryController extends Controller
 
         // Convert to string
         $number = trim((string) $number);
+        // Strip all non-digit characters (spaces, dashes, dots, plus)
+        $number = preg_replace('/\D/', '', $number);
 
-        // Handle country code +94 (12 chars with +) before stripping
-        if (str_starts_with($number, '+94') && strlen(preg_replace('/\D/', '', $number)) === 11) {
-            $number = '0' . substr(preg_replace('/\D/', '', $number), 2);
-        }
-        // Handle country code 94 without + (11 digits)
-        elseif (str_starts_with($number, '94') && strlen(preg_replace('/\D/', '', $number)) === 11) {
-            $number = '0' . substr(preg_replace('/\D/', '', $number), 2);
+        // Handle country code 94 (11 digits)
+        if (str_starts_with($number, '94') && strlen($number) === 11) {
+            $number = '0' . substr($number, 2);
         }
         else {
-            // Strip all non-digit characters (spaces, dashes, dots)
-            $number = preg_replace('/\D/', '', $number);
-
             // Handle Excel stripped leading zero (exactly 9 digits, doesn't start with 0)
             if (strlen($number) === 9 && !str_starts_with($number, '0')) {
                 $number = '0' . $number;
