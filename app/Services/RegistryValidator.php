@@ -62,6 +62,7 @@ class RegistryValidator
             'contact_number' => ['required', 'string', 'regex:/^0\d{9}$/'],
             'whatsapp_number' => ['nullable', 'string', 'regex:/^0\d{9}$/'],
             'email' => 'nullable|email',
+            'national_id_number' => 'nullable|string|max:12',
         ];
 
         // Category-Specific Rules
