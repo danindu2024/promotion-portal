@@ -80,15 +80,15 @@ class RegistryController extends Controller
     public function downloadTemplate()
     {
         $headers = [
-            'Category', 'Full Name', 'Contact Number', 'Province', 'District', 'DS Division', 
+            'Category', 'Full Name', 'National ID Number', 'Contact Number', 'Province', 'District', 'DS Division', 
             'Field of Work', 'Age', 'Address', 'WhatsApp Number', 'Email Address', 'Contact Person', 'Members Count', 'Employees Count'
         ];
 
         $callback = function() use ($headers) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $headers);
-            fputcsv($file, ['Self-Employed', 'John Doe', '0771234567', 'Western', 'Colombo', 'Colombo', 'Information Technology and Modern Services', '30', '123 Main St', '0771234567', 'john@example.com', '', '', '5']);
-            fputcsv($file, ['Trade', 'Acme Corp', '0719876543', 'Central', 'Kandy', 'Kandy', '', '', '456 Market St', '', '', 'Jane Smith', '10', '']);
+            fputcsv($file, ['Self-Employed', 'John Doe', '199012345678', '0771234567', 'Western', 'Colombo', 'Colombo', 'Information Technology and Modern Services', '30', '123 Main St', '0771234567', 'john@example.com', '', '', '5']);
+            fputcsv($file, ['Trade', 'Acme Corp', '198512345678', '0719876543', 'Central', 'Kandy', 'Kandy', '', '', '456 Market St', '', '', 'Jane Smith', '10', '']);
             fclose($file);
         };
 
@@ -112,9 +112,23 @@ class RegistryController extends Controller
                 'file',
                 'max:10000', // max size set to 10mb to save storage
                 function ($attribute, $value, $fail) {
+                    // Check file extension
                     $extension = strtolower($value->getClientOriginalExtension());
                     if (!in_array($extension, ['csv', 'xls', 'xlsx'])) {
                         $fail('The file must be a file of type: xlsx, xls, csv.');
+                        return;
+                    }
+                    // Check real MIME type (prevents renamed malicious files)
+                    $allowedMimes = [
+                        'text/csv',
+                        'text/plain',
+                        'application/csv',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    ];
+                    $mime = $value->getMimeType();
+                    if (!in_array($mime, $allowedMimes)) {
+                        $fail('The file content does not match an allowed type (csv, xls, xlsx). Got: ' . $mime);
                     }
                 },
             ],
@@ -148,18 +162,19 @@ class RegistryController extends Controller
             $data = [
                 'category' => $row[0] ?? null,
                 'full_name' => $row[1] ?? null,
-                'contact_number' => $this->normalizePhoneNumber($row[2] ?? null),
-                'province' => $row[3] ?? null,
-                'district' => $row[4] ?? null,
-                'ds_division' => $row[5] ?? null,
-                'field_of_work' => isset($row[6]) && (string)$row[6] !== '' ? $row[6] : null,
-                'age' => isset($row[7]) && (string)$row[7] !== '' ? (int)$row[7] : null,
-                'address' => $row[8] ?? null,
-                'whatsapp_number' => $this->normalizePhoneNumber($row[9] ?? null),
-                'email' => $row[10] ?? null,
-                'contact_person' => isset($row[11]) && (string)$row[11] !== '' ? $row[11] : null,
-                'members_count' => isset($row[12]) && (string)$row[12] !== '' ? (int)$row[12] : null,
-                'employees_count' => isset($row[13]) && (string)$row[13] !== '' ? (int)$row[13] : null,
+                'national_id_number' => $row[2] ?? null,
+                'contact_number' => $this->normalizePhoneNumber($row[3] ?? null),
+                'province' => $row[4] ?? null,
+                'district' => $row[5] ?? null,
+                'ds_division' => $row[6] ?? null,
+                'field_of_work' => isset($row[7]) && (string)$row[7] !== '' ? $row[7] : null,
+                'age' => isset($row[8]) && (string)$row[8] !== '' ? (int)$row[8] : null,
+                'address' => $row[9] ?? null,
+                'whatsapp_number' => $this->normalizePhoneNumber($row[10] ?? null),
+                'email' => $row[11] ?? null,
+                'contact_person' => isset($row[12]) && (string)$row[12] !== '' ? $row[12] : null,
+                'members_count' => isset($row[13]) && (string)$row[13] !== '' ? (int)$row[13] : null,
+                'employees_count' => isset($row[14]) && (string)$row[14] !== '' ? (int)$row[14] : null,
             ];
 
             $contactNumber = $data['contact_number'];

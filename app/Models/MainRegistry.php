@@ -21,6 +21,7 @@ class MainRegistry extends Model
         'province',
         'district',
         'ds_division',
+        'national_id_number',
 
         'contact_number',
         'whatsapp_number',

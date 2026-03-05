@@ -12,10 +12,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Web group: Inertia + Security Headers
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\SecurityHeaders::class,
+        ]);
+
+        // API group: Security Headers + Input Sanitization
+        $middleware->api(append: [
+            \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\SanitizesInput::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+

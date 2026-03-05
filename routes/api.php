@@ -10,22 +10,22 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Location Dropdowns
-Route::prefix('locations')->group(function () {
+// Location Dropdowns — read-only, generous limit
+Route::prefix('locations')->middleware('throttle:60,1')->group(function () {
     Route::get('/provinces', [LocationController::class, 'provinces']);
     Route::get('/districts', [LocationController::class, 'districts']);
     Route::get('/ds-divisions', [LocationController::class, 'dsDivisions']);
 });
 
-// Registry Data Entry
-Route::prefix('registry')->group(function () {
+// Registry Data Entry — write operations, tighter limit
+Route::prefix('registry')->middleware('throttle:30,1')->group(function () {
     Route::post('/single', [RegistryController::class, 'storeSingle']);
     Route::post('/upload', [RegistryController::class, 'uploadExcel']);
     Route::get('/template', [RegistryController::class, 'downloadTemplate']);
 });
 
-// Maker-Checker Reviews
-Route::prefix('reviews')->group(function () {
+// Maker-Checker Reviews — sensitive actions, strict limit
+Route::prefix('reviews')->middleware('throttle:30,1')->group(function () {
     Route::get('/pending', [ReviewController::class, 'pending']);
     Route::post('/{id}/approve', [ReviewController::class, 'approve']);
     Route::post('/{id}/reject', [ReviewController::class, 'reject']);
