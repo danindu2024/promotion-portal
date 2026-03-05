@@ -1,16 +1,13 @@
 <template>
     <AppLayout>
-        <div class="max-w-6xl mx-auto">
+        <div class="max-w-7xl mx-auto">
             <h1 class="text-3xl font-bold text-gray-800 mb-6">
                 Validation Module (Maker-Checker)
             </h1>
 
             <!-- Alerts (scroll target) -->
             <div ref="alertArea">
-                <div
-                    v-if="successMsg"
-                    class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md flex items-center justify-between"
-                >
+                <div v-if="successMsg" class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md flex items-center justify-between">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -21,10 +18,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
-                <div
-                    v-if="errorMsg"
-                    class="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center justify-between"
-                >
+                <div v-if="errorMsg" class="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center justify-between">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
@@ -37,140 +31,129 @@
                 </div>
             </div>
 
-            <!-- View: Selected Record Detail -->
-            <div v-if="selectedRecord" class="bg-white rounded-lg shadow border border-gray-200 p-8 mb-8">
+            <!-- View: Selected Batch Detail -->
+            <div v-if="selectedBatch" class="bg-white rounded-lg shadow border border-gray-200 p-8 mb-8">
                 <div class="flex justify-between items-center mb-6 pb-2 border-b">
                     <div>
                         <h2 class="text-xl font-bold text-gray-700">Review Data Submission</h2>
                         <p class="text-sm text-gray-500 mt-1">
-                            Uploaded by <span class="font-semibold">{{ selectedRecord.uploader?.name || 'Unknown' }}</span> 
-                            on {{ new Date(selectedRecord.created_at).toLocaleString() }} 
-                            (Batch: {{ selectedRecord.batch_id }})
+                            Uploaded by <span class="font-semibold">{{ selectedBatch.uploader?.name || 'Unknown' }}</span> 
+                            on {{ new Date(selectedBatch.created_at).toLocaleString() }} 
+                            (Batch: <span class="font-mono text-xs">{{ selectedBatch.batch_id }}</span>)
                         </p>
                     </div>
-                    <div>
+                    <div class="text-right">
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
-                              :class="selectedRecord.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
-                            {{ selectedRecord.submission_type }} ENTRY
+                              :class="selectedBatch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
+                            {{ selectedBatch.submission_type }} BATCH
                         </span>
+                        <p class="text-sm text-gray-500 mt-2">
+                            Total Records: <span class="font-bold text-gray-800">{{ batchRecords.length }}</span>
+                        </p>
                     </div>
                 </div>
 
-                <!-- NEW Data Display -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <!-- Left Column: Identity -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Identity & Classification</h3>
-                        <dl class="space-y-4">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Category</dt>
-                                <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.category }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Full Name</dt>
-                                <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.full_name }}</dd>
-                            </div>
-                            <div v-if="selectedRecord.data_payload.national_id_number">
-                                <dt class="text-sm font-medium text-gray-500">National ID Number</dt>
-                                <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.national_id_number }}</dd>
-                            </div>
-                            <!-- Self Employed Specifics -->
-                            <template v-if="selectedRecord.data_payload.category === 'Self-Employed'">
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Age</dt>
-                                    <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.age || 'N/A' }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Field of Work</dt>
-                                    <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.field_of_work }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">No. of Employees</dt>
-                                    <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.employees_count || '0' }}</dd>
-                                </div>
-                            </template>
-                            <!-- Trade Specifics -->
-                            <template v-if="selectedRecord.data_payload.category === 'Trade'">
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Contact Person</dt>
-                                    <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.contact_person }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">No. of Members</dt>
-                                    <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.members_count || '0' }}</dd>
-                                </div>
-                            </template>
-                        </dl>
-                    </div>
+                <!-- Batch Records Table -->
+                <div v-if="isLoadingBatch" class="py-12 text-center text-gray-500">
+                    <svg class="animate-spin h-8 w-8 text-primary-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Loading batch records...
+                </div>
+                
+                <div v-else-if="batchRecords.length === 0" class="py-12 text-center text-gray-500">
+                    All records in this batch have been processed.
+                </div>
 
-                    <!-- Right Column: Location & Contact -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Location & Contact</h3>
-                        <dl class="space-y-4">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Address</dt>
-                                <dd class="mt-1 text-base text-gray-900 whitespace-pre-wrap">{{ selectedRecord.data_payload.address || 'N/A' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Location Hierarchy</dt>
-                                <dd class="mt-1 text-base text-gray-900">
-                                    {{ selectedRecord.data_payload.province }} &rarr; 
-                                    {{ selectedRecord.data_payload.district }} &rarr; 
-                                    {{ selectedRecord.data_payload.ds_division }}
-                                </dd>
-                            </div>
-                            <div class="pt-4 mt-4 border-t border-gray-100">
-                                <dt class="text-sm font-medium text-gray-500">Contact Number</dt>
-                                <dd class="mt-1 text-base text-gray-900 font-mono">{{ selectedRecord.data_payload.contact_number }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">WhatsApp Number</dt>
-                                <dd class="mt-1 text-base text-gray-900 font-mono">{{ selectedRecord.data_payload.whatsapp_number || 'N/A' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Email Address</dt>
-                                <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.email || 'N/A' }}</dd>
-                            </div>
-                        </dl>
-                    </div>
+                <div v-else class="overflow-x-auto border border-gray-200 rounded-md mb-8">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identity</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="record in batchRecords" :key="record.id" class="hover:bg-red-50 transition-colors group">
+                                <td class="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
+                                    <span class="font-medium">{{ record.data_payload.category }}</span>
+                                    <template v-if="record.data_payload.category === 'Self-Employed'">
+                                        <div class="text-xs text-gray-500 mt-1">Age: {{ record.data_payload.age || 'N/A' }}</div>
+                                        <div class="text-xs text-gray-500">Emp: {{ record.data_payload.employees_count || '0' }}</div>
+                                    </template>
+                                    <template v-if="record.data_payload.category === 'Trade'">
+                                        <div class="text-xs text-gray-500 mt-1">Mem: {{ record.data_payload.members_count || '0' }}</div>
+                                    </template>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
+                                    <div class="font-medium text-gray-900">{{ record.data_payload.full_name }}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5" v-if="record.data_payload.national_id_number">NIC: {{ record.data_payload.national_id_number }}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5" v-if="record.data_payload.category === 'Self-Employed'">{{ record.data_payload.field_of_work }}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5" v-if="record.data_payload.category === 'Trade'">CP: {{ record.data_payload.contact_person }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500 border-r border-gray-100">
+                                    <div class="text-gray-900">{{ record.data_payload.district }} &rarr; {{ record.data_payload.ds_division }}</div>
+                                    <div class="text-xs truncate max-w-xs mt-0.5" :title="record.data_payload.address">{{ record.data_payload.address || 'N/A' }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    <div class="font-mono text-gray-900">{{ record.data_payload.contact_number }}</div>
+                                    <div class="text-xs" v-if="record.data_payload.whatsapp_number"><span class="text-green-600">WA:</span> {{ record.data_payload.whatsapp_number }}</div>
+                                    <div class="text-xs truncate max-w-[150px]" v-if="record.data_payload.email">{{ record.data_payload.email }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right text-sm font-medium whitespace-nowrap">
+                                    <button 
+                                        @click="triggerRowReject(record)" 
+                                        class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md shadow-sm border border-red-200 transition-colors"
+                                        title="Reject this specific row"
+                                    >
+                                        Reject
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Actions -->
-                <div class="flex justify-end space-x-4 border-t pt-6 bg-gray-50 -mx-8 -mb-8 p-8 rounded-b-lg">
-                    <button 
-                        @click="selectedRecord = null" 
-                        class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                        :disabled="isProcessing"
-                    >
-                        Back to Queue
-                    </button>
-                    <button 
-                        @click="showRejectModal = true" 
-                        class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-                        :disabled="isProcessing"
-                    >
-                        Reject Entry
-                    </button>
-                    <button 
-                        @click="approveRecord" 
-                        class="flex justify-center px-8 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                        :disabled="isProcessing"
-                    >
-                        <svg v-if="isProcessing && currentAction === 'approve'" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        Approve & Save
-                    </button>
+                <div class="flex justify-between items-center border-t pt-6 bg-gray-50 -mx-8 -mb-8 p-8 rounded-b-lg">
+                    <div class="text-sm text-gray-500">
+                        <span v-if="batchRecords.length > 0">
+                            You are about to approve <strong>{{ batchRecords.length }}</strong> remaining records in this batch.
+                        </span>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button 
+                            @click="closeBatch" 
+                            class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            :disabled="isProcessing"
+                        >
+                            Back to Queue
+                        </button>
+                        <button 
+                            @click="approveBatch" 
+                            class="flex justify-center px-8 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                            :disabled="isProcessing || batchRecords.length === 0"
+                        >
+                            <svg v-if="isProcessing && currentAction === 'approve'" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            Approve & Save All
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- View: Pending Queue Table -->
-            <div v-show="!selectedRecord" class="bg-white rounded-lg shadow border border-gray-200">
+            <div v-show="!selectedBatch" class="bg-white rounded-lg shadow border border-gray-200">
                 <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
                     <h2 class="text-xl font-medium text-gray-800">Pending Review Queue</h2>
                     <span class="bg-primary-100 text-primary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                        {{ pendingRecords.total || 0 }} Records
+                        {{ pendingBatches.total || 0 }} Upload Events
                     </span>
                 </div>
                 
@@ -180,8 +163,8 @@
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploader</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category & Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category & District</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Record Count</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                             </tr>
@@ -193,38 +176,40 @@
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                     </svg>
-                                    Loading pending records...
+                                    Loading pending batches...
                                 </td>
                             </tr>
-                            <tr v-else-if="!pendingRecords.data || pendingRecords.data.length === 0">
+                            <tr v-else-if="!pendingBatches.data || pendingBatches.data.length === 0">
                                 <td colspan="6" class="px-6 py-10 text-center text-gray-500">
                                     No pending records in the queue. You're all caught up!
                                 </td>
                             </tr>
-                            <tr v-else v-for="record in pendingRecords.data" :key="record.id" class="hover:bg-gray-50 transition-colors">
+                            <tr v-else v-for="batch in pendingBatches.data" :key="batch.batch_id" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ new Date(record.created_at).toLocaleDateString() }}<br>
-                                    <span class="text-xs">{{ new Date(record.created_at).toLocaleTimeString() }}</span>
+                                    {{ new Date(batch.created_at).toLocaleDateString() }}<br>
+                                    <span class="text-xs">{{ new Date(batch.created_at).toLocaleTimeString() }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ record.uploader?.name || 'Unknown' }}</div>
-                                    <div class="text-sm text-gray-500">{{ record.batch_id }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-mono text-gray-900">{{ record.data_payload.contact_number }}</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ batch.uploader?.name || 'Unknown' }}</div>
+                                    <div class="text-xs text-gray-500 font-mono" :title="batch.batch_id">{{ batch.batch_id.substring(0, 8) }}...</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ record.data_payload.full_name }}</div>
-                                    <div class="text-sm text-gray-500">{{ record.data_payload.category }} &bull; {{ record.data_payload.district }}</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ batch.category }}</div>
+                                    <div class="text-sm text-gray-500">{{ batch.district }} - {{ batch.ds_division }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-800 min-w-[2.5rem]">
+                                        {{ batch.record_count }}
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
-                                          :class="record.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
-                                        {{ record.submission_type }}
+                                          :class="batch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
+                                        {{ batch.submission_type }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button @click="openRecord(record)" class="text-primary-600 hover:text-primary-900 bg-primary-50 px-3 py-1 rounded-md shadow-sm border border-primary-200">
+                                    <button @click="openBatch(batch)" class="text-primary-600 hover:text-primary-900 bg-primary-50 px-4 py-2 rounded-md shadow-sm border border-primary-200 transition-colors">
                                         Review
                                     </button>
                                 </td>
@@ -233,21 +218,21 @@
                     </table>
                 </div>
                 
-                <!-- Pagination (Simple Implementation) -->
-                <div v-if="pendingRecords.links && pendingRecords.links.length > 3" class="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
+                <!-- Pagination -->
+                <div v-if="pendingBatches.links && pendingBatches.links.length > 3" class="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
                     <div class="flex-1 flex justify-between sm:hidden">
-                        <button :disabled="!pendingRecords.prev_page_url" @click="fetchQueue(pendingRecords.prev_page_url)" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</button>
-                        <button :disabled="!pendingRecords.next_page_url" @click="fetchQueue(pendingRecords.next_page_url)" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</button>
+                        <button :disabled="!pendingBatches.prev_page_url" @click="fetchQueue(pendingBatches.prev_page_url)" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</button>
+                        <button :disabled="!pendingBatches.next_page_url" @click="fetchQueue(pendingBatches.next_page_url)" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</button>
                     </div>
                     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
                             <p class="text-sm text-gray-700">
-                                Showing <span class="font-medium">{{ pendingRecords.from || 0 }}</span> to <span class="font-medium">{{ pendingRecords.to || 0 }}</span> of <span class="font-medium">{{ pendingRecords.total || 0 }}</span> results
+                                Showing <span class="font-medium">{{ pendingBatches.from || 0 }}</span> to <span class="font-medium">{{ pendingBatches.to || 0 }}</span> of <span class="font-medium">{{ pendingBatches.total || 0 }}</span> batches
                             </p>
                         </div>
                         <div>
                             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                <template v-for="(link, index) in pendingRecords.links" :key="index">
+                                <template v-for="(link, index) in pendingBatches.links" :key="index">
                                     <button 
                                         @click="link.url ? fetchQueue(link.url) : null"
                                         :disabled="!link.url"
@@ -264,10 +249,10 @@
                 </div>
             </div>
 
-            <!-- Rejection Modal -->
+            <!-- Single Row Rejection Modal -->
             <div v-if="showRejectModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                 <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showRejectModal = false"></div>
+                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeRejectModal"></div>
 
                     <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
@@ -282,7 +267,10 @@
                                 <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                                     <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Reject Record</h3>
                                     <div class="mt-2 text-sm text-gray-500">
-                                        <p>You are about to return this record to the agent queue. A rejection reason is mandatory so the agent knows what to fix.</p>
+                                        <p v-if="recordToReject">
+                                            You are rejecting the record for <strong>{{ recordToReject.data_payload.full_name }}</strong>. 
+                                            This row will be removed from the batch and returned to the agent.
+                                        </p>
                                     </div>
                                     <div class="mt-4">
                                         <label for="reject-reason" class="block text-sm font-medium text-gray-700">Rejection Reason <span class="text-red-500">*</span></label>
@@ -301,7 +289,7 @@
                         <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                             <button 
                                 type="button" 
-                                @click="rejectRecord" 
+                                @click="rejectSingleRecord" 
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
                                 :disabled="isProcessing"
                             >
@@ -313,7 +301,7 @@
                             </button>
                             <button 
                                 type="button" 
-                                @click="showRejectModal = false; rejectError = ''; rejectionReason = ''; currentAction = null;" 
+                                @click="closeRejectModal" 
                                 class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                                 :disabled="isProcessing"
                             >
@@ -333,10 +321,16 @@ import { ref, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
-const pendingRecords = ref({});
+// Queue State
+const pendingBatches = ref({});
 const isLoadingQueue = ref(true);
-const selectedRecord = ref(null);
 
+// Batch View State
+const selectedBatch = ref(null);
+const batchRecords = ref([]);
+const isLoadingBatch = ref(false);
+
+// Global Messages
 const successMsg = ref('');
 const errorMsg = ref('');
 const alertArea = ref(null);
@@ -346,6 +340,7 @@ const currentAction = ref(null);
 
 // Rejection Modal State
 const showRejectModal = ref(false);
+const recordToReject = ref(null);
 const rejectionReason = ref('');
 const rejectError = ref('');
 
@@ -357,7 +352,7 @@ const fetchQueue = async (url) => {
     isLoadingQueue.value = true;
     try {
         const response = await axios.get(url);
-        pendingRecords.value = response.data;
+        pendingBatches.value = response.data;
     } catch (error) {
         console.error("Failed to fetch pending queue", error);
         errorMsg.value = "Failed to load the pending queue. Please try again.";
@@ -366,44 +361,88 @@ const fetchQueue = async (url) => {
     }
 };
 
-const openRecord = (record) => {
+const openBatch = async (batch) => {
     successMsg.value = '';
     errorMsg.value = '';
-    selectedRecord.value = record;
+    selectedBatch.value = batch;
+    batchRecords.value = [];
+    isLoadingBatch.value = true;
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+        const response = await axios.get(`/api/reviews/batch/${batch.batch_id}`);
+        batchRecords.value = response.data.records;
+    } catch (error) {
+        console.error("Failed to fetch batch details", error);
+        errorMsg.value = "Failed to load batch details. Please try again.";
+    } finally {
+        isLoadingBatch.value = false;
+    }
 };
 
-const approveRecord = async () => {
-    if (!selectedRecord.value) return;
+const closeBatch = () => {
+    selectedBatch.value = null;
+    batchRecords.value = [];
+};
+
+const approveBatch = async () => {
+    if (!selectedBatch.value || batchRecords.value.length === 0) return;
     
     isProcessing.value = true;
     currentAction.value = 'approve';
     errorMsg.value = '';
     
     try {
-        const response = await axios.post(`/api/reviews/${selectedRecord.value.id}/approve`);
-        successMsg.value = `Record for ${selectedRecord.value.data_payload.full_name} approved and saved successfully!`;
+        const response = await axios.post(`/api/reviews/batch/${selectedBatch.value.batch_id}/approve`);
+        successMsg.value = response.data.message || "Batch successfully approved & saved.";
         
-        // Remove from list and return
-        selectedRecord.value = null;
-        await fetchQueue('/api/reviews/pending'); // Refresh current page
+        // Return to queue
+        closeBatch();
+        await fetchQueue('/api/reviews/pending'); // Refresh queue list
         scrollToAlert();
     } catch (error) {
-        let msg = "An unexpected error occurred during approval.";
-        if (error.response && error.response.data && error.response.data.message) {
+        let msg = "An unexpected error occurred during batch approval.";
+        if (error.response?.data?.message) {
             msg = error.response.data.message;
         }
-        errorMsg.value = msg;
+        
+        if (error.response?.status === 207) {
+            // Partial success / conflicts
+            successMsg.value = msg;
+        } else {
+            errorMsg.value = msg;
+        }
+        
         scrollToAlert();
-        // If it was a duplicate conflict, we stay on the detail view so they can read the error
+        
+        // Refresh the local batch view so missing rows are dropped
+        if (selectedBatch.value) {
+            openBatch(selectedBatch.value);
+        }
     } finally {
         isProcessing.value = false;
         currentAction.value = null;
     }
 };
 
-const rejectRecord = async () => {
-    if (!selectedRecord.value) return;
+const triggerRowReject = (record) => {
+    recordToReject.value = record;
+    rejectionReason.value = '';
+    rejectError.value = '';
+    showRejectModal.value = true;
+};
+
+const closeRejectModal = () => {
+    if (isProcessing.value) return;
+    showRejectModal.value = false;
+    recordToReject.value = null;
+    rejectionReason.value = '';
+    rejectError.value = '';
+};
+
+const rejectSingleRecord = async () => {
+    if (!recordToReject.value) return;
     
     if (!rejectionReason.value.trim()) {
         rejectError.value = "A rejection reason is required.";
@@ -415,22 +454,31 @@ const rejectRecord = async () => {
     rejectError.value = '';
     
     try {
-        const response = await axios.post(`/api/reviews/${selectedRecord.value.id}/reject`, {
+        await axios.post(`/api/reviews/${recordToReject.value.id}/reject`, {
             reason: rejectionReason.value
         });
         
-        successMsg.value = `Record rejected and returned to the uploader queue.`;
+        // Remove locally from the array to avoid re-fetching the entire batch immediately
+        const recordIndex = batchRecords.value.findIndex(r => r.id === recordToReject.value.id);
+        if (recordIndex !== -1) {
+            batchRecords.value.splice(recordIndex, 1);
+        }
         
-        // Cleanup and return to queue
-        showRejectModal.value = false;
-        rejectionReason.value = '';
-        selectedRecord.value = null;
+        successMsg.value = `Record for ${recordToReject.value.data_payload.full_name} rejected.`;
         
-        await fetchQueue('/api/reviews/pending');
+        // If the batch is now empty, automatically return to queue
+        if (batchRecords.value.length === 0) {
+            successMsg.value += ' All records in batch processed. Returning to queue.';
+            closeBatch();
+            fetchQueue('/api/reviews/pending');
+        }
+        
+        closeRejectModal();
         scrollToAlert();
+        
     } catch (error) {
         let msg = "An unexpected error occurred during rejection.";
-        if (error.response && error.response.data && error.response.data.message) {
+        if (error.response?.data?.message) {
             msg = error.response.data.message;
         }
         rejectError.value = msg;
