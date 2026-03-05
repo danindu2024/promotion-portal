@@ -70,6 +70,10 @@
                                 <dt class="text-sm font-medium text-gray-500">Full Name</dt>
                                 <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.full_name }}</dd>
                             </div>
+                            <div v-if="selectedRecord.data_payload.national_id_number">
+                                <dt class="text-sm font-medium text-gray-500">National ID Number</dt>
+                                <dd class="mt-1 text-base text-gray-900">{{ selectedRecord.data_payload.national_id_number }}</dd>
+                            </div>
                             <!-- Self Employed Specifics -->
                             <template v-if="selectedRecord.data_payload.category === 'Self-Employed'">
                                 <div>
@@ -267,7 +271,7 @@
 
                     <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="relative z-20 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <div class="sm:flex sm:items-start">
                                 <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
