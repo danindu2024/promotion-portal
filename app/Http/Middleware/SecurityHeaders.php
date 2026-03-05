@@ -20,16 +20,25 @@ class SecurityHeaders
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        $response->headers->set(
-            'Content-Security-Policy',
-            "default-src 'self'; " .
-            "script-src 'self' 'unsafe-inline'; " .   // 'unsafe-inline' needed for Vite HMR in dev
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
-            "font-src 'self' https://fonts.gstatic.com; " .
-            "img-src 'self' data:; " .
-            "connect-src 'self' ws: wss:; " .          // ws/wss for Vite HMR websocket
-            "frame-ancestors 'none';"
-        );
+        $csp = app()->isProduction()
+            ? // Production: strict CSP, no localhost
+              "default-src 'self'; " .
+              "script-src 'self'; " .
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+              "font-src 'self' https://fonts.gstatic.com; " .
+              "img-src 'self' data:; " .
+              "connect-src 'self'; " .
+              "frame-ancestors 'none';"
+            : // Development: allow Vite dev server (forced to 127.0.0.1 in vite.config.js)
+              "default-src 'self'; " .
+              "script-src 'self' 'unsafe-inline' http://localhost:5173 http://127.0.0.1:5173; " .
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com http://localhost:5173 http://127.0.0.1:5173; " .
+              "font-src 'self' https://fonts.gstatic.com; " .
+              "img-src 'self' data:; " .
+              "connect-src 'self' http://localhost:5173 http://127.0.0.1:5173 ws://localhost:5173 ws://127.0.0.1:5173 wss://localhost:5173 wss://127.0.0.1:5173; " .
+              "frame-ancestors 'none';";
+
+        $response->headers->set('Content-Security-Policy', $csp);
 
         return $response;
     }
