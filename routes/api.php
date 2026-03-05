@@ -27,6 +27,7 @@ Route::prefix('registry')->middleware('throttle:30,1')->group(function () {
 // Maker-Checker Reviews — sensitive actions, strict limit
 Route::prefix('reviews')->middleware('throttle:30,1')->group(function () {
     Route::get('/pending', [ReviewController::class, 'pending']);
-    Route::post('/{id}/approve', [ReviewController::class, 'approve']);
+    Route::get('/batch/{batchId}', [ReviewController::class, 'batchDetails']);
+    Route::post('/batch/{batchId}/approve', [ReviewController::class, 'approveBatch']);
     Route::post('/{id}/reject', [ReviewController::class, 'reject']);
 });
