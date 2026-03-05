@@ -186,6 +186,24 @@
                                 </p>
                             </div>
 
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >National ID Number</label
+                                >
+                                <input
+                                    type="text"
+                                    v-model="form.national_id_number"
+                                    :class="inputClass(fieldErrors.national_id_number)"
+                                />
+                                <p
+                                    v-if="fieldErrors.national_id_number"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ fieldErrors.national_id_number }}
+                                </p>
+                            </div>
+
                             <!-- Dynamic Fields for Self-Employed -->
                             <template v-if="form.category === 'Self-Employed'">
                                 <div>
@@ -938,6 +956,7 @@ const fieldErrors = reactive({});
 const getInitialForm = () => ({
     category: "Self-Employed",
     full_name: "",
+    national_id_number: "",
     age: null,
     field_of_work: "",
     employees_count: null,
@@ -1151,6 +1170,8 @@ const submitSingleForm = async () => {
         const payload = {};
         payload.category = form.category;
         payload.full_name = form.full_name;
+        if (form.national_id_number)
+            payload.national_id_number = form.national_id_number;
         payload.province = form.province;
         payload.district = form.district;
         payload.ds_division = form.ds_division;
@@ -1310,6 +1331,7 @@ const downloadErrorSheet = () => {
     const headers = [
         "Category",
         "Full Name",
+        "National ID Number",
         "Contact Number",
         "Province",
         "District",
@@ -1325,30 +1347,42 @@ const downloadErrorSheet = () => {
         "Error Message",
     ];
 
-    // Convert objects to array in correct order
+    /**
+     * Sanitize a single CSV cell value against Formula/Excel Injection.
+     * Excel treats cells starting with =, +, -, @ as formulas.
+     * We prefix such values with a tab so Excel treats them as plain text.
+     */
+    const sanitizeCsvCell = (val) => {
+        const str = String(val ?? "");
+        // Strip any leading formula-trigger characters for safety
+        return str.replace(/^[=+\-@\t\r]+/, "");
+    };
+
+    // Convert objects to array in correct order, sanitizing each cell
     const csvContent = [
         headers.join(","),
         ...rows.map((row) => {
             const values = [
-                row.category || "",
-                row.full_name || "",
-                row.contact_number || "",
-                row.province || "",
-                row.district || "",
-                row.ds_division || "",
-                row.field_of_work || "",
-                row.age || "",
-                row.address || "",
-                row.whatsapp_number || "",
-                row.email || "",
-                row.contact_person || "",
-                row.members_count || "",
-                row.employees_count || "",
-                row.error || "",
+                sanitizeCsvCell(row.category),
+                sanitizeCsvCell(row.full_name),
+                sanitizeCsvCell(row.national_id_number),
+                sanitizeCsvCell(row.contact_number),
+                sanitizeCsvCell(row.province),
+                sanitizeCsvCell(row.district),
+                sanitizeCsvCell(row.ds_division),
+                sanitizeCsvCell(row.field_of_work),
+                sanitizeCsvCell(row.age),
+                sanitizeCsvCell(row.address),
+                sanitizeCsvCell(row.whatsapp_number),
+                sanitizeCsvCell(row.email),
+                sanitizeCsvCell(row.contact_person),
+                sanitizeCsvCell(row.members_count),
+                sanitizeCsvCell(row.employees_count),
+                sanitizeCsvCell(row.error),
             ];
-            // Escape quotes and wrap in quotes to handle commas
+            // Wrap in quotes to handle commas, escape internal quotes
             return values
-                .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                .map((v) => `"${v.replace(/"/g, '""')}"`)
                 .join(",");
         }),
     ].join("\n");
