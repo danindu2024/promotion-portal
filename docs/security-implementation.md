@@ -96,16 +96,16 @@ Server-side validation rules are enforced for every data submission. Category-aw
 
 Key rules:
 
-| Field                               | Rule                                  |
-| ----------------------------------- | ------------------------------------- |
-| `category`                          | Required, in `[Self-Employed, Trade]` |
-| `contact_number`                    | Required, regex `/^0\d{9}$/`          |
-| `whatsapp_number`                   | Nullable, regex `/^0\d{9}$/`          |
-| `email`                             | Nullable, valid email                 |
-| `national_id_number`                | Nullable, string, max 12 chars        |
-| `province / district / ds_division` | Must match Sri Lanka hierarchy config |
-| Trade-only fields                   | `prohibited` on Self-Employed records |
-| Self-Employed-only fields           | `prohibited` on Trade records         |
+| Field                               | Rule                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| `category`                          | Required, in `[Self-Employed, Trade]`                                                      |
+| `contact_number`                    | Required, regex `/^0\d{9}$/`                                                               |
+| `whatsapp_number`                   | Nullable, regex `/^0\d{9}$/`                                                               |
+| `email`                             | Nullable, valid email                                                                      |
+| `national_id_number`                | Nullable, regex — Sri Lankan NIC format: 9 digits + V/X (old type) or 12 digits (new type) |
+| `province / district / ds_division` | Must match Sri Lanka hierarchy config                                                      |
+| Trade-only fields                   | `prohibited` on Self-Employed records                                                      |
+| Self-Employed-only fields           | `prohibited` on Trade records                                                              |
 
 ---
 
@@ -166,6 +166,27 @@ While not strictly a security control, duplicate detection prevents data integri
 
 ---
 
+## 3.1 Maker-Checker Batch Workflow
+
+The Validation Module groups all staging records by `batch_id` into **Upload Events** so a bulk upload of 500 rows appears as a single reviewable item in the queue.
+
+### Queue (Aggregated View)
+
+- `GET /api/reviews/pending` — Returns one row per unique `batch_id` with representative `category`, `district`, `ds_division`, and a `record_count`.
+- Internally selects `MIN(id) as representative_id` per group and fetches all representative records in a single `whereIn` query (prevents N+1 queries).
+- Single entries (`storeSingle`) generate a unique `SINGLE-<uniqid>` batch ID so they appear as individual queue rows.
+
+### Batch Detail & Partial Approval
+
+- `GET /api/reviews/batch/{batchId}` — Returns all pending rows in a batch. Returns **404** if the batch does not exist or has no pending records.
+- Validators can **reject individual rows** inline. Each rejected row is stamped: `validation_status = Rejected`, `reviewed_by = <validator_id>`, and a mandatory `rejection_reason`.
+- `POST /api/reviews/batch/{batchId}/approve` — Approves all remaining **pending** rows in a single database transaction.
+    - Rows that fail the final duplicate guard are **auto-rejected** (not left as Pending) with a system-generated reason.
+    - UPDATE rows with a missing/stale `target_record_id` are also **auto-rejected**.
+    - Returns **207 Multi-Status** if any rows were skipped, along with an `errors` array listing affected rows and reasons.
+
+---
+
 ## 4. Planned Controls (Pending Authentication Integration)
 
 The following controls are documented in `authentication-strategy.md` and will be implemented once the legacy system integration is confirmed:
@@ -184,11 +205,12 @@ The following controls are documented in `authentication-strategy.md` and will b
 
 ## 5. Key Files Reference
 
-| File                                          | Purpose                          |
-| --------------------------------------------- | -------------------------------- |
-| `app/Http/Middleware/SecurityHeaders.php`     | HTTP security headers middleware |
-| `app/Http/Middleware/SanitizesInput.php`      | Input sanitization middleware    |
-| `bootstrap/app.php`                           | Middleware registration          |
-| `routes/api.php`                              | Rate limiting per route group    |
-| `app/Services/RegistryValidator.php`          | Category-aware input validation  |
-| `app/Http/Controllers/RegistryController.php` | File upload MIME validation      |
+| File                                          | Purpose                            |
+| --------------------------------------------- | ---------------------------------- |
+| `app/Http/Middleware/SecurityHeaders.php`     | HTTP security headers middleware   |
+| `app/Http/Middleware/SanitizesInput.php`      | Input sanitization middleware      |
+| `bootstrap/app.php`                           | Middleware registration            |
+| `routes/api.php`                              | Rate limiting per route group      |
+| `app/Services/RegistryValidator.php`          | Category-aware input validation    |
+| `app/Http/Controllers/RegistryController.php` | File upload MIME validation        |
+| `app/Http/Controllers/ReviewController.php`   | Maker-Checker batch approval logic |
