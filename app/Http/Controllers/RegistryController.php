@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Validator;
 use App\Models\MainRegistry;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\StagingData;
 use App\Services\RegistryValidator;
 use App\Helpers\Current;
@@ -97,6 +98,18 @@ class RegistryController extends Controller
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Content-Disposition' => 'attachment; filename="registry_upload_template.csv"',
         ]);
+    }
+
+    /**
+     * Download the PDF containing instructions and location lists.
+     */
+    public function downloadInstructionsPdf()
+    {
+        $hierarchy = config('srilanka.hierarchy');
+
+        $pdf = Pdf::loadView('pdf.location_instructions', compact('hierarchy'));
+        
+        return $pdf->download('location_instructions.pdf');
     }
 
     /**
@@ -309,5 +322,103 @@ class RegistryController extends Controller
         }
 
         return $number;
+    }
+
+    /**
+     * Get rejected records for the current Data Entry user
+     */
+    public function getRejected()
+    {
+        $records = StagingData::where('uploaded_by', Current::id())
+            ->where('validation_status', StagingData::STATUS_REJECTED)
+            ->orderBy('updated_at', 'desc')
+            ->paginate(15);
+            
+        return response()->json($records);
+    }
+    
+    /**
+     * Get a specific rejected record by ID
+     */
+    public function getRejectedRecord($id)
+    {
+        $record = StagingData::where('uploaded_by', Current::id())
+            ->where('validation_status', StagingData::STATUS_REJECTED)
+            ->findOrFail($id);
+            
+        return response()->json($record);
+    }
+    
+    /**
+     * Resubmit a corrected rejected record
+     */
+    public function resubmitRejected(Request $request, $id)
+    {
+        $staging = StagingData::where('uploaded_by', Current::id())
+            ->where('validation_status', StagingData::STATUS_REJECTED)
+            ->findOrFail($id);
+            
+        $data = $request->all();
+        
+        // Strip cross-category null fields
+        if (isset($data['category'])) {
+            if ($data['category'] === 'Self-Employed') {
+                unset($data['contact_person'], $data['members_count']);
+            } elseif ($data['category'] === 'Trade') {
+                unset($data['field_of_work'], $data['age'], $data['employees_count']);
+            }
+        }
+
+        // Full Validation
+        $validator = RegistryValidator::validate($data);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        // Check for duplicates in main_registry (excluding the target record if this was an update)
+        $query = MainRegistry::where('contact_number', $data['contact_number']);
+        if ($staging->submission_type === 'UPDATE' && $staging->target_record_id) {
+            $query->where('id', '!=', $staging->target_record_id);
+        }
+        
+        if ($query->exists()) {
+            return response()->json([
+                'message' => 'A record with this contact number already exists.',
+                'errors' => ['contact_number' => ['Contact number already exists.']]
+            ], 409);
+        }
+
+        // Check staging_data for pending duplicates (excluding this very record)
+        $pendingDuplicate = StagingData::where('validation_status', StagingData::STATUS_PENDING)
+            ->where('id', '!=', $staging->id)
+            ->whereJsonContains('data_payload->contact_number', $data['contact_number'])
+            ->exists();
+            
+        if ($pendingDuplicate) {
+            return response()->json([
+                'message' => 'A record with this contact number is already pending review.',
+                'errors' => ['contact_number' => ['Contact number is already pending approval.']]
+            ], 409);
+        }
+
+        // Update the record and switch back to Pending
+        $staging->update([
+            'data_payload' => $data,
+            'validation_status' => StagingData::STATUS_PENDING,
+            // Keep original batch_id and submission_type
+            'rejection_reason' => null
+        ]);
+
+        // Update created_at to reflect the new submission time
+        $staging->created_at = now();
+        $staging->save();
+
+        return response()->json([
+            'message' => 'Record resubmitted successfully.',
+            'staging_id' => $staging->id
+        ], 200);
     }
 }
