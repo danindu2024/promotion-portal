@@ -61,7 +61,7 @@ class RegistryController extends Controller
 
         // Insert to Staging
         $staging = StagingData::create([
-            'batch_id' => 'SINGLE-' . time(),
+            'batch_id' => 'SINGLE-' . uniqid('', true),
             'data_payload' => $data,
             'validation_status' => StagingData::STATUS_PENDING,
             'submission_type' => 'NEW',
@@ -134,7 +134,7 @@ class RegistryController extends Controller
             ],
         ]);
 
-        // efficient for >1000 raws. Not suitable for larger files
+        // efficient for <1000 raws. Not suitable for larger files
         $rows = \Maatwebsite\Excel\Facades\Excel::toArray(new class implements \Maatwebsite\Excel\Concerns\ToArray {
             public function array(array $array) {}
         }, $request->file('file'))[0]; // Get the first sheet
@@ -214,19 +214,19 @@ class RegistryController extends Controller
         // Use SQL JSON extraction to avoid loading full payloads into memory
         $pendingNumbers = !empty($uniqueNumbersForDbCheck)
             ? StagingData::where('validation_status', StagingData::STATUS_PENDING)
-                ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck) // Laravel JSON shorthand
+                ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck) // use when you need to match a list of values against json object
                 ->pluck('data_payload->contact_number') // only get the contact numbers
-                ->filter()
+                ->filter() // defensive method to remove null values
                 ->toArray()
             : [];
         $existingNumbers = array_unique(array_merge($existingNumbers, $pendingNumbers));
 
-        $batchId = 'BATCH-' . time();
+        $batchId = 'BATCH-' . uniqid('', true);
         $stagedInsertData = [];
 
         // Full Validation for remaining rows
         foreach ($rows as $data) {
-            // Skip numeric-keyed rows (empty/unflagged rows)
+            // Skip empty rows
             if (!is_array($data) || !array_key_exists('contact_number', $data)) {
                 continue;
             }
@@ -267,7 +267,7 @@ class RegistryController extends Controller
             }
         }
 
-        // Step 4: Bulk Insert valid records (1 Query)
+        // Step 4: Bulk Insert valid records
         if (!empty($stagedInsertData)) {
             StagingData::insert($stagedInsertData);
         }
