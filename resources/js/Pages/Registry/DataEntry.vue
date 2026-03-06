@@ -30,6 +30,20 @@
                     >
                         Excel Bulk Upload
                     </button>
+                    <button
+                        @click="activeTab = 'rejected'"
+                        :class="[
+                            activeTab === 'rejected'
+                                ? 'border-red-500 text-red-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                            'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-lg flex items-center',
+                        ]"
+                    >
+                        Rejected Data
+                        <span v-if="rejectedCount > 0" class="ml-2 bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">
+                            {{ rejectedCount }}
+                        </span>
+                    </button>
                 </nav>
             </div>
 
@@ -115,6 +129,31 @@
                                 ></path>
                             </svg>
                         </button>
+                    </div>
+                    
+                    <!-- Rejection Alert Banner -->
+                    <div
+                        v-if="editingRejectedId"
+                        class="mb-6 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-md shadow-sm"
+                    >
+                        <div class="flex">
+                            <svg class="h-5 w-5 text-orange-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h3 class="text-sm font-medium text-orange-800">
+                                    Fixing Rejected Record
+                                </h3>
+                                <div class="mt-2 text-sm text-orange-700">
+                                    <p>Reason: <span class="font-semibold">{{ currentRejectionReason }}</span></p>
+                                </div>
+                            </div>
+                            <div class="ml-auto">
+                                <button type="button" @click="cancelEditRejected" class="inline-flex items-center px-4 py-2 border border-orange-300 shadow-sm text-sm font-medium rounded-md text-orange-700 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
+                                    Cancel Editing
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -588,7 +627,7 @@
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                                 />
                             </svg>
-                            {{ isSubmitting ? "Saving..." : "Save Registry" }}
+                            {{ isSubmitting ? "Saving..." : (editingRejectedId ? "Resubmit Correction" : "Save Registry") }}
                         </button>
                     </div>
                 </form>
@@ -605,26 +644,38 @@
                     <h2 class="text-xl font-bold text-gray-700">
                         Excel Bulk Upload
                     </h2>
-                    <a
-                        href="/api/registry/template"
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                    >
-                        <svg
-                            class="mr-2 h-5 w-5 text-gray-400"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                    <div class="flex space-x-3">
+                        <a
+                            href="/api/registry/instructions-pdf"
+                            target="_blank"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                         >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                            />
-                        </svg>
-                        Download Template
-                    </a>
+                            <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            Instructions
+                        </a>
+                        <a
+                            href="/api/registry/template"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                        >
+                            <svg
+                                class="mr-2 h-5 w-5 text-primary-100"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                />
+                            </svg>
+                            Download Template
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Alerts specifically for bulk upload -->
@@ -697,10 +748,10 @@
                                 stroke-linejoin="round"
                             />
                         </svg>
-                        <div class="flex text-sm text-gray-600 justify-center">
+                        <div class="flex text-sm text-gray-600 justify-center items-center gap-3">
                             <label
                                 for="file-upload"
-                                class="relative cursor-pointer bg-transparent rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                                class="relative cursor-pointer bg-white border border-gray-300 rounded-md py-2 px-4 shadow-sm font-medium text-gray-700 hover:bg-gray-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500 transition-colors"
                             >
                                 <span>Upload a file</span>
                                 <input
@@ -713,7 +764,7 @@
                                     @change="handleFileSelect"
                                 />
                             </label>
-                            <p class="pl-1">or drag and drop</p>
+                            <p>or drag and drop</p>
                         </div>
                         <p class="text-xs text-gray-500">
                             XLSX, XLS, CSV up to 10MB
@@ -910,6 +961,108 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Rejected Data Tab -->
+            <div
+                v-show="activeTab === 'rejected'"
+                class="bg-white rounded-lg shadow border border-gray-200"
+            >
+                <div class="p-6 border-b border-gray-200 flex justify-between items-center bg-red-50 rounded-t-lg">
+                    <div>
+                        <h2 class="text-xl font-bold text-red-800">
+                            Rejected Submissions
+                        </h2>
+                        <p class="text-sm text-red-600 mt-1">
+                            These records were rejected by a Validator and require your correction before they can be approved.
+                        </p>
+                    </div>
+                    <button @click="fetchRejectedRecords" class="p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors" title="Refresh">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="p-0 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District & DS Division</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider border-l border-red-200 bg-red-50">Rejection Reason</th>
+                                <th scope="col" class="relative px-6 py-3"><span class="sr-only">Action</span></th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-if="loadingRejected">
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                    <svg class="animate-spin h-8 w-8 text-red-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    Loading rejected records...
+                                </td>
+                            </tr>
+                            <tr v-else-if="rejectedRecords.length === 0">
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                    <div class="mx-auto h-12 w-12 text-green-400 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                    <p class="text-lg font-medium text-gray-900">All clear!</p>
+                                    <p class="mt-1">You have no rejected records.</p>
+                                </td>
+                            </tr>
+                            <tr v-else v-for="record in rejectedRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ new Date(record.created_at).toLocaleDateString() }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ record.data_payload.district }}</div>
+                                    <div class="text-sm text-gray-500">{{ record.data_payload.ds_division }}</div>
+                                    <div v-if="record.submission_type === 'UPDATE'" class="text-xs text-blue-600 font-medium">Update Request</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ record.data_payload.full_name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span :class="record.data_payload.category === 'Self-Employed' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                        {{ record.data_payload.category }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-red-700 bg-red-50/30 border-l border-red-100 max-w-xs">
+                                    <div class="whitespace-normal break-words font-medium">
+                                        {{ record.rejection_reason }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button @click="editRejectedRecord(record)" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        Edit & Resubmit
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Pagination details if needed -->
+                    <div v-if="rejectedPagination && rejectedPagination.total > 0" class="px-6 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between sm:px-6">
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing
+                                    <span class="font-medium">{{ rejectedPagination.from }}</span>
+                                    to
+                                    <span class="font-medium">{{ rejectedPagination.to }}</span>
+                                    of
+                                    <span class="font-medium">{{ rejectedPagination.total }}</span>
+                                    results
+                                </p>
+                            </div>
+                            <!-- Implement generic pagination buttons later if needed, limiting to 15 for now -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
@@ -924,6 +1077,14 @@ const activeTab = ref("single");
 const isSubmitting = ref(false);
 const successMsg = ref("");
 const errorMsg = ref("");
+
+// Rejection handling state
+const rejectedRecords = ref([]);
+const rejectedCount = ref(0);
+const loadingRejected = ref(false);
+const rejectedPagination = ref(null);
+const editingRejectedId = ref(null);
+const currentRejectionReason = ref("");
 
 // File Input Ref
 const fileInput = ref(null);
@@ -1087,7 +1248,7 @@ async function scrollToAlert() {
     alertArea.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ─── Fetch Geography ────────────────────────────────────────────────
+// ─── Fetch Geography & Rejected Data ────────────────────────────────────────────────
 onMounted(async () => {
     loadingProvinces.value = true;
     try {
@@ -1098,7 +1259,61 @@ onMounted(async () => {
     } finally {
         loadingProvinces.value = false;
     }
+    
+    fetchRejectedRecords();
 });
+
+const fetchRejectedRecords = async () => {
+    loadingRejected.value = true;
+    try {
+        const { data } = await axios.get("/api/registry/rejected");
+        rejectedRecords.value = data.data;
+        rejectedCount.value = data.total;
+        rejectedPagination.value = {
+            total: data.total,
+            from: data.from,
+            to: data.to,
+            links: data.links
+        };
+    } catch (e) {
+        console.error("Failed to load rejected records", e);
+    } finally {
+        loadingRejected.value = false;
+    }
+};
+
+const editRejectedRecord = async (record) => {
+    editingRejectedId.value = record.id;
+    currentRejectionReason.value = record.rejection_reason;
+    activeTab.value = 'single';
+    
+    // Reset form and errors
+    resetForm(false); // false = don't clear rejection state
+    
+    // Fill the form with rejected payload
+    const payload = record.data_payload;
+    Object.assign(form, payload);
+    
+    // If the record had district/ds_division, fetch those options
+    if (form.province) {
+        await fetchDistricts();
+        if (payload.district) form.district = payload.district; 
+        
+        if (form.district) {
+            await fetchDsDivisions();
+            if (payload.ds_division) form.ds_division = payload.ds_division;
+        }
+    }
+    
+    scrollToAlert();
+};
+
+const cancelEditRejected = () => {
+    editingRejectedId.value = null;
+    currentRejectionReason.value = "";
+    resetForm();
+    activeTab.value = 'rejected';
+};
 
 const fetchDistricts = async () => {
     form.district = "";
@@ -1139,7 +1354,7 @@ const fetchDsDivisions = async () => {
 };
 
 // ─── Submission ─────────────────────────────────────────────────────
-const resetForm = () => {
+const resetForm = (clearRejectionState = true) => {
     Object.assign(form, getInitialForm());
     // Bug 13: Clear dropdown option lists
     districts.value = [];
@@ -1148,6 +1363,11 @@ const resetForm = () => {
     successMsg.value = "";
     errorMsg.value = "";
     Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+    
+    if (clearRejectionState) {
+        editingRejectedId.value = null;
+        currentRejectionReason.value = "";
+    }
 };
 
 const submitSingleForm = async () => {
@@ -1195,13 +1415,23 @@ const submitSingleForm = async () => {
                 payload.members_count = Number(form.members_count);
         }
 
-        const { data } = await axios.post("/api/registry/single", payload);
-        successMsg.value = `Record queued for review! Staging ID: ${data.staging_id}`;
-
-        // Bug 13: Clear all dropdowns AND form values on success
-        Object.assign(form, getInitialForm());
-        districts.value = [];
-        dsDivisions.value = [];
+        if (editingRejectedId.value) {
+            // Processing a resubmission
+            const { data } = await axios.post(`/api/registry/rejected/${editingRejectedId.value}/resubmit`, payload);
+            successMsg.value = `Resubmitted successfully! Back in the pending queue.`;
+            // Refresh rejection count
+            fetchRejectedRecords();
+            // Bug 13: Clear all dropdowns AND form values on success (also clears rejection editing state)
+            resetForm();
+            // Switch back to rejected tab automatically
+            activeTab.value = 'rejected';
+        } else {
+            // Standard new single submission
+            const { data } = await axios.post("/api/registry/single", payload);
+            successMsg.value = `Record queued for review! Staging ID: ${data.staging_id}`;
+            // Bug 13: Clear all dropdowns AND form values on success
+            resetForm();
+        }
 
         scrollToAlert();
     } catch (err) {
