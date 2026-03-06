@@ -22,6 +22,12 @@ Route::prefix('registry')->middleware('throttle:30,1')->group(function () {
     Route::post('/single', [RegistryController::class, 'storeSingle']);
     Route::post('/upload', [RegistryController::class, 'uploadExcel']);
     Route::get('/template', [RegistryController::class, 'downloadTemplate']);
+    Route::get('/instructions-pdf', [RegistryController::class, 'downloadInstructionsPdf']);
+    
+    // Rejected Records Management
+    Route::get('/rejected', [RegistryController::class, 'getRejected']);
+    Route::get('/rejected/{id}', [RegistryController::class, 'getRejectedRecord']);
+    Route::post('/rejected/{id}/resubmit', [RegistryController::class, 'resubmitRejected']);
 });
 
 // Maker-Checker Reviews — sensitive actions, strict limit
