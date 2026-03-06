@@ -15,30 +15,39 @@ class ReviewController extends Controller
      */
     public function pending()
     {
-        // Get unique pending batch IDs and their counts, paginated
+        // Get unique pending batch IDs, their counts, and the MIN(id) as a stable
+        // representative row to avoid N+1 queries later.
         $query = StagingData::where('validation_status', StagingData::STATUS_PENDING)
-            ->select('batch_id', DB::raw('MIN(created_at) as batch_created_at'), DB::raw('COUNT(id) as record_count'))
+            ->select(
+                'batch_id',
+                DB::raw('MIN(created_at) as batch_created_at'),
+                DB::raw('COUNT(id) as record_count'),
+                DB::raw('MIN(id) as representative_id')  // stable representative row
+            )
             ->groupBy('batch_id')
             ->orderBy('batch_created_at', 'asc');
-            
+
         $paginated = $query->paginate(50);
-        
-        // Enhance with representative data from the first record in the batch
-        $paginated->getCollection()->transform(function ($batch) {
-            $firstRecord = StagingData::with('uploader')
-                ->where('batch_id', $batch->batch_id)
-                ->where('validation_status', StagingData::STATUS_PENDING)
-                ->first();
-                
+
+        // Fetch all representative records + their uploaders in ONE query
+        $representativeIds = $paginated->getCollection()->pluck('representative_id');
+        $representatives = StagingData::with('uploader')
+            ->whereIn('id', $representativeIds)
+            ->get()
+            ->keyBy('id'); // keyed by id for O(1) lookup
+
+        $paginated->getCollection()->transform(function ($batch) use ($representatives) {
+            $rep = $representatives->get($batch->representative_id);
+
             return [
-                'batch_id' => $batch->batch_id,
-                'created_at' => $batch->batch_created_at,
-                'record_count' => $batch->record_count,
-                'uploader' => $firstRecord ? $firstRecord->uploader : null,
-                'submission_type' => $firstRecord ? $firstRecord->submission_type : 'N/A',
-                'category' => $firstRecord ? ($firstRecord->data_payload['category'] ?? 'N/A') : 'N/A',
-                'district' => $firstRecord ? ($firstRecord->data_payload['district'] ?? 'N/A') : 'N/A',
-                'ds_division' => $firstRecord ? ($firstRecord->data_payload['ds_division'] ?? 'N/A') : 'N/A',
+                'batch_id'        => $batch->batch_id,
+                'created_at'      => $batch->batch_created_at,
+                'record_count'    => $batch->record_count,
+                'uploader'        => $rep?->uploader,
+                'submission_type' => $rep?->submission_type ?? 'N/A',
+                'category'        => $rep?->data_payload['category'] ?? 'N/A',
+                'district'        => $rep?->data_payload['district'] ?? 'N/A',
+                'ds_division'     => $rep?->data_payload['ds_division'] ?? 'N/A',
             ];
         });
 
@@ -55,6 +64,10 @@ class ReviewController extends Controller
             ->with(['uploader', 'targetRecord'])
             ->orderBy('id', 'asc')
             ->get();
+
+        if ($records->isEmpty()) {
+            return response()->json(['message' => 'Batch not found or has no pending records.'], 404);
+        }
 
         return response()->json([
             'batch_id' => $batchId,
@@ -82,11 +95,21 @@ class ReviewController extends Controller
             foreach ($records as $staging) {
                 $payload = $staging->data_payload;
 
-                // Final duplicate guard for this specific row
+                // Final duplicate guard — auto-reject duplicates so they don't stay PENDING
                 $contactNumber = $payload['contact_number'] ?? null;
                 if ($contactNumber && MainRegistry::where('contact_number', $contactNumber)->exists()) {
-                    $errors[] = "Row ID {$staging->id} ({$contactNumber}) was already approved elsewhere and skipped.";
-                    continue; // Skip this row instead of failing the whole batch
+                    $reason = "Auto-rejected: contact number {$contactNumber} was already approved by another validator.";
+                    $staging->reject($reason);
+                    $errors[] = "Row ID {$staging->id} ({$contactNumber}): {$reason}";
+                    continue;
+                }
+
+                // Missing target guard for UPDATE — auto-reject so it doesn't stay PENDING
+                if ($staging->submission_type === 'UPDATE' && !$staging->target_record_id) {
+                    $reason = 'Auto-rejected: UPDATE submission is missing a target_record_id.';
+                    $staging->reject($reason);
+                    $errors[] = "Row ID {$staging->id}: {$reason}";
+                    continue;
                 }
 
                 $payload['approved_by'] = Current::id();
@@ -95,17 +118,14 @@ class ReviewController extends Controller
                 if ($staging->submission_type === 'NEW') {
                     MainRegistry::create($payload);
                 } elseif ($staging->submission_type === 'UPDATE') {
-                    if (!$staging->target_record_id) {
-                        $errors[] = "Row ID {$staging->id} missing target_record_id.";
-                        continue;
-                    }
                     $mainRecord = MainRegistry::find($staging->target_record_id);
-                    if ($mainRecord) {
-                        $mainRecord->update($payload);
-                    } else {
-                        $errors[] = "Row ID {$staging->id} target record not found.";
+                    if (!$mainRecord) {
+                        $reason = 'Auto-rejected: target record no longer exists in main registry.';
+                        $staging->reject($reason);
+                        $errors[] = "Row ID {$staging->id}: {$reason}";
                         continue;
                     }
+                    $mainRecord->update($payload);
                 }
 
                 $staging->approve();
