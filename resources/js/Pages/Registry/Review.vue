@@ -38,7 +38,7 @@
                         <h2 class="text-xl font-bold text-gray-700">Review Data Submission</h2>
                         <p class="text-sm text-gray-500 mt-1">
                             Uploaded by <span class="font-semibold">{{ selectedBatch.uploader?.name || 'Unknown' }}</span> 
-                            on {{ new Date(selectedBatch.created_at).toLocaleString() }} 
+                            on {{ new Date(selectedBatch.created_at.replace(' ', 'T')).toLocaleString() }} 
                             (Batch: <span class="font-mono text-xs">{{ selectedBatch.batch_id }}</span>)
                         </p>
                     </div>
@@ -83,10 +83,10 @@
                                     <span class="font-medium">{{ record.data_payload.category }}</span>
                                     <template v-if="record.data_payload.category === 'Self-Employed'">
                                         <div class="text-xs text-gray-500 mt-1">Age: {{ record.data_payload.age || 'N/A' }}</div>
-                                        <div class="text-xs text-gray-500">Emp: {{ record.data_payload.employees_count || '0' }}</div>
+                                        <div class="text-xs text-gray-500">Emp: {{ record.data_payload.employees_count !== null && record.data_payload.employees_count !== undefined && record.data_payload.employees_count !== '' ? record.data_payload.employees_count : 'N/A' }}</div>
                                     </template>
                                     <template v-if="record.data_payload.category === 'Trade'">
-                                        <div class="text-xs text-gray-500 mt-1">Mem: {{ record.data_payload.members_count || '0' }}</div>
+                                        <div class="text-xs text-gray-500 mt-1">Mem: {{ record.data_payload.members_count !== null && record.data_payload.members_count !== undefined && record.data_payload.members_count !== '' ? record.data_payload.members_count : 'N/A' }}</div>
                                     </template>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
@@ -186,8 +186,8 @@
                             </tr>
                             <tr v-else v-for="batch in pendingBatches.data" :key="batch.batch_id" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ new Date(batch.created_at).toLocaleDateString() }}<br>
-                                    <span class="text-xs">{{ new Date(batch.created_at).toLocaleTimeString() }}</span>
+                                    {{ new Date(batch.created_at.replace(' ', 'T')).toLocaleDateString() }}<br>
+                                    <span class="text-xs">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleTimeString() }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900">{{ batch.uploader?.name || 'Unknown' }}</div>
@@ -466,13 +466,11 @@ const rejectSingleRecord = async () => {
         
         successMsg.value = `Record for ${recordToReject.value.data_payload.full_name} rejected.`;
         
-        // If the batch is now empty, automatically return to queue
-        if (batchRecords.value.length === 0) {
-            successMsg.value += ' All records in batch processed. Returning to queue.';
-            closeBatch();
-            fetchQueue('/api/reviews/pending');
-        }
+        // After any rejection, we always return to the main queue
+        closeBatch();
+        fetchQueue('/api/reviews/pending');
         
+        isProcessing.value = false;
         closeRejectModal();
         scrollToAlert();
         
