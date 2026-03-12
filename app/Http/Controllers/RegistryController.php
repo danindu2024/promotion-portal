@@ -227,9 +227,10 @@ class RegistryController extends Controller
         // Use SQL JSON extraction to avoid loading full payloads into memory
         $pendingNumbers = !empty($uniqueNumbersForDbCheck)
             ? StagingData::where('validation_status', StagingData::STATUS_PENDING)
-                ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck) // use when you need to match a list of values against json object
-                ->pluck('data_payload->contact_number') // only get the contact numbers
-                ->filter() // defensive method to remove null values
+                ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck)
+                ->get(['data_payload'])
+                ->pluck('data_payload.contact_number')
+                ->filter()
                 ->toArray()
             : [];
         $existingNumbers = array_unique(array_merge($existingNumbers, $pendingNumbers));
@@ -354,32 +355,34 @@ class RegistryController extends Controller
      */
     public function resubmitRejected(Request $request, $id)
     {
+        // Get rejected record
         $staging = StagingData::where('uploaded_by', Current::id())
             ->where('validation_status', StagingData::STATUS_REJECTED)
             ->findOrFail($id);
             
         $data = $request->all();
+
+        // Initial format check before expensive db checks
+        $preCheck = Validator::make($data, [
+            'category'       => 'required|in:Self-Employed,Trade',
+            'contact_number' => 'required|string|regex:/^0\d{9}$/'
+        ]);
+        $preCheck->validate();
         
         // Strip cross-category null fields
-        if (isset($data['category'])) {
-            if ($data['category'] === 'Self-Employed') {
-                unset($data['contact_person'], $data['members_count']);
-            } elseif ($data['category'] === 'Trade') {
-                unset($data['field_of_work'], $data['age'], $data['employees_count']);
-            }
+        if ($data['category'] === 'Self-Employed') {
+            unset($data['contact_person'], $data['members_count']);
+        } elseif ($data['category'] === 'Trade') {
+            unset($data['field_of_work'], $data['age'], $data['employees_count']);
         }
 
-        // Full Validation
+        // Full Category-Aware Validation
         $validator = RegistryValidator::validate($data);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'The given data was invalid.',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $validator->validate();
         
-        // Check for duplicates in main_registry (excluding the target record if this was an update)
+        // Check for duplicates in main_registry
         $query = MainRegistry::where('contact_number', $data['contact_number']);
+        // exclude the target record if this was an update
         if ($staging->submission_type === 'UPDATE' && $staging->target_record_id) {
             $query->where('id', '!=', $staging->target_record_id);
         }
@@ -404,20 +407,19 @@ class RegistryController extends Controller
             ], 409);
         }
 
-        // Update the record and switch back to Pending
+        // Update the record and switch back to Pending.
+        // created_at is intentionally preserved — it reflects the original submission time
+        // and is used by ReviewController::pending() to order batches chronologically.
+        // updated_at is auto-set by Eloquent's update() to reflect this resubmission time.
         $staging->update([
-            'data_payload' => $data,
+            'data_payload'      => $data,
             'validation_status' => StagingData::STATUS_PENDING,
             // Keep original batch_id and submission_type
-            'rejection_reason' => null
+            'rejection_reason'  => null
         ]);
 
-        // Update created_at to reflect the new submission time
-        $staging->created_at = now();
-        $staging->save();
-
         return response()->json([
-            'message' => 'Record resubmitted successfully.',
+            'message'    => 'Record resubmitted successfully.',
             'staging_id' => $staging->id
         ], 200);
     }

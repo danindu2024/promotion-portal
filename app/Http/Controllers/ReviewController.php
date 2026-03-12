@@ -17,7 +17,7 @@ class ReviewController extends Controller
     {
         // Get unique pending batch IDs, their counts, and the MIN(id) as a stable
         // representative row to avoid N+1 queries later.
-        $query = StagingData::where('validation_status', StagingData::STATUS_PENDING)
+        $paginated = StagingData::where('validation_status', StagingData::STATUS_PENDING)
             ->select(
                 'batch_id',
                 DB::raw('MIN(created_at) as batch_created_at'),
@@ -25,9 +25,8 @@ class ReviewController extends Controller
                 DB::raw('MIN(id) as representative_id')  // stable representative row
             )
             ->groupBy('batch_id')
-            ->orderBy('batch_created_at', 'asc');
-
-        $paginated = $query->paginate(50);
+            ->orderBy('batch_created_at', 'asc')
+            ->paginate(50);
 
         // Fetch all representative records + their uploaders in ONE query
         $representativeIds = $paginated->getCollection()->pluck('representative_id');
@@ -36,6 +35,7 @@ class ReviewController extends Controller
             ->get()
             ->keyBy('id'); // keyed by id for O(1) lookup
 
+            //map each batch data
         $paginated->getCollection()->transform(function ($batch) use ($representatives) {
             $rep = $representatives->get($batch->representative_id);
 
@@ -43,7 +43,7 @@ class ReviewController extends Controller
                 'batch_id'        => $batch->batch_id,
                 'created_at'      => $batch->batch_created_at,
                 'record_count'    => $batch->record_count,
-                'uploader'        => $rep?->uploader,
+                'uploader'        => $rep?->uploader, // N/A is not added as this is object type
                 'submission_type' => $rep?->submission_type ?? 'N/A',
                 'category'        => $rep?->data_payload['category'] ?? 'N/A',
                 'district'        => $rep?->data_payload['district'] ?? 'N/A',

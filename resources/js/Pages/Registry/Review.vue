@@ -29,6 +29,32 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
+
+                <!-- Approval Conflict Report (207 partial success) -->
+                <div v-if="approvalConflicts.length > 0" class="mb-6 border border-amber-300 rounded-md bg-amber-50 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 bg-amber-100 border-b border-amber-300">
+                        <div class="flex items-center gap-2 text-amber-800 font-semibold">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            Partial Approval — {{ approvalConflicts.length }} record{{ approvalConflicts.length > 1 ? 's' : '' }} auto-rejected due to conflicts
+                        </div>
+                        <button @click="approvalConflicts = []" class="text-amber-600 hover:text-amber-800" aria-label="Dismiss">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-amber-700 px-4 pt-3 pb-1">
+                        The following rows were <strong>not approved</strong>. They have been moved to <strong>Rejected</strong> status and the data entry operator will see them in their Rejection Dashboard.
+                    </p>
+                    <ul class="divide-y divide-amber-200 px-4 pb-3">
+                        <li v-for="(conflict, i) in approvalConflicts" :key="i" class="py-2 flex items-start gap-2">
+                            <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-sm text-amber-900 font-mono">{{ conflict }}</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <!-- View: Selected Batch Detail -->
@@ -333,6 +359,7 @@ const isLoadingBatch = ref(false);
 // Global Messages
 const successMsg = ref('');
 const errorMsg = ref('');
+const approvalConflicts = ref([]); // rows auto-rejected during batch approval (207)
 const alertArea = ref(null);
 
 const isProcessing = ref(false);
@@ -392,6 +419,8 @@ const approveBatch = async () => {
     isProcessing.value = true;
     currentAction.value = 'approve';
     errorMsg.value = '';
+    successMsg.value = '';
+    approvalConflicts.value = [];
     
     try {
         const response = await axios.post(`/api/reviews/batch/${selectedBatch.value.batch_id}/approve`);
@@ -399,27 +428,25 @@ const approveBatch = async () => {
         
         // Return to queue
         closeBatch();
-        await fetchQueue('/api/reviews/pending'); // Refresh queue list
+        await fetchQueue('/api/reviews/pending');
         scrollToAlert();
     } catch (error) {
-        let msg = "An unexpected error occurred during batch approval.";
-        if (error.response?.data?.message) {
-            msg = error.response.data.message;
-        }
-        
         if (error.response?.status === 207) {
-            // Partial success / conflicts
-            successMsg.value = msg;
+            // Partial success — some records were auto-rejected due to conflicts.
+            // Show the approved count as a success AND list each rejected row.
+            successMsg.value = error.response.data.message || "Batch partially approved.";
+            approvalConflicts.value = error.response.data.errors || [];
+            
+            // Return to queue — conflicted rows are now REJECTED, not PENDING
+            closeBatch();
+            await fetchQueue('/api/reviews/pending');
         } else {
+            // Full failure — nothing was committed
+            const msg = error.response?.data?.message || "An unexpected error occurred during batch approval.";
             errorMsg.value = msg;
         }
         
         scrollToAlert();
-        
-        // Refresh the local batch view so missing rows are dropped
-        if (selectedBatch.value) {
-            openBatch(selectedBatch.value);
-        }
     } finally {
         isProcessing.value = false;
         currentAction.value = null;
