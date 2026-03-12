@@ -154,7 +154,13 @@ Excel uploads and single-form entry are used **exclusively for adding NEW record
 
 #### **3.2.3 Error Resolution**
 
-- **R-DATA-03:** Users can download the Error Sheet, correct rejected rows offline, and re-upload the corrected file.
+**R-DATA-03a — Excel Error Sheet:** After a bulk upload, invalid rows that fail immediate in-memory checks (duplicate in file, missing contact number) or server-side validation are returned in an `invalid_rows` response array. The frontend provides a "Download Error Sheet" button that generates a CSV client-side (0 additional network calls), allowing the Agent to correct rows offline and re-upload.
+
+**R-DATA-03b — Rejection Dashboard:** Records that pass the initial upload and enter the `staging_data` Pending queue but are subsequently rejected by a Validator remain stored in `staging_data` with `validation_status = 'Rejected'` and a `rejection_reason`. The Agent can access the Rejection Dashboard to:
+
+1. **View Rejected Records** (`GET /api/registry/rejected`): A paginated list of the Agent's own rejected records, ordered by most-recently-rejected first.
+2. **Open a Record** (`GET /api/registry/rejected/{id}`): Full record detail, including the rejection reason and all original field data, pre-filled into an edit form.
+3. **Resubmit a Corrected Record** (`POST /api/registry/rejected/{id}/resubmit`): The corrected payload undergoes the same full Category-Aware Validation and duplicate checks as a new submission. If valid, the record's status is reset to `Pending` and it re-enters the Maker-Checker queue. The original `batch_id` and `submission_type` are preserved.
 
 #### **3.2.4 Category-Aware Validation**
 
