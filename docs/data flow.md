@@ -141,3 +141,30 @@ The following describes the complete data flow for the Excel Bulk Upload feature
 15. **Error Sheet Generation (client-side, 0 network calls):** If `invalid_count > 0`, the "Download Error Sheet" button is shown. Clicking it builds a CSV in-browser from `invalid_rows`, appends an "Error Message" column, and triggers a download via a temporary object URL.
 
 **Total DB Calls Per Upload:** 3 (main_registry check + staging_data check + bulk insert).
+
+#### **Rejection Dashboard Flow (Frontend → Backend)**
+
+The following describes the complete data flow for the Rejection Dashboard feature, allowing Data Entry Operators to correct and resubmit records that were rejected by a Validator.
+
+**Frontend (Vue.js — Rejection Dashboard page):**
+
+1.  **Page Load:** Frontend calls `GET /api/registry/rejected` → receives a paginated list (15/page) of the current user's rejected staging records, ordered by most-recently-rejected first.
+2.  **User Selects a Record:** User clicks a rejected record in the list.
+3.  **Load Detail for Editing:** Frontend calls `GET /api/registry/rejected/{id}` → receives the full `StagingData` record including `data_payload` and `rejection_reason`. The edit form is pre-filled with the data. The rejection reason is displayed prominently so the Agent understands what to fix.
+4.  **User Corrects Fields and Submits:** Frontend sends `POST /api/registry/rejected/{id}/resubmit` with the corrected payload.
+
+**Backend (Laravel — `RegistryController@resubmitRejected`):**
+
+5.  **Ownership + Status Guard:** Queries `staging_data` with `uploaded_by = Current::id()` AND `validation_status = 'Rejected'` + `findOrFail($id)`. Returns 404 if not found or not owned.
+6.  **Category Field Stripping:** Cross-category null fields are unset before validation (same logic as `storeSingle`).
+7.  **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — enforces all field and location rules. Returns 422 on failure.
+8.  **Main Registry Duplicate Check (1 DB call):** `MainRegistry::where('contact_number', ...)`. If `submission_type = 'UPDATE'`, the `target_record_id` row is excluded from the check.
+9.  **Staging Pending Duplicate Check (1 DB call):** `StagingData::where('validation_status', 'Pending')->where('id', '!=', $staging->id)->whereJsonContains(...)`. The `id !=` guard ensures the current record (which is `Rejected`, not `Pending`) is not accidentally matched.
+10. **Status Reset (1 DB call):** Updates `data_payload = $data`, `validation_status = 'Pending'`, `rejection_reason = null`. Original `batch_id` and `submission_type` are preserved.
+11. **Response:** Returns `200 OK` with `{ message: 'Record resubmitted successfully.', staging_id }`.
+
+**Frontend (Post-Processing):**
+
+12. **Success:** Display confirmation and redirect user to the rejections list (record should no longer appear there).
+
+**Total DB Calls Per Resubmission:** 3 (main_registry check + staging_data check + update).
