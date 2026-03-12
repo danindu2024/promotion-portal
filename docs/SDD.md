@@ -205,14 +205,18 @@ resources/
 
 ### 6.6 API Routes (JSON Endpoints)
 
-| Route                         | Method | Controller Method                     | Description                                                                             |
-| ----------------------------- | ------ | ------------------------------------- | --------------------------------------------------------------------------------------- |
-| `/api/locations/provinces`    | GET    | `LocationController@provinces`        | Returns all 9 Sri Lankan provinces                                                      |
-| `/api/locations/districts`    | GET    | `LocationController@districts`        | Returns districts for a given `province` query param                                    |
-| `/api/locations/ds-divisions` | GET    | `LocationController@dsDivisions`      | Returns DS divisions for a given `district` query param                                 |
-| `/api/registry/single`        | POST   | `RegistryController@storeSingle`      | Validates and stages a single manually-entered record                                   |
-| `/api/registry/upload`        | POST   | `RegistryController@uploadExcel`      | Parses, normalizes, deduplicates, validates, and bulk-stages rows from an uploaded file |
-| `/api/registry/template`      | GET    | `RegistryController@downloadTemplate` | Streams a pre-formatted CSV template with headers + example rows for Agent download     |
+| Route                                  | Method | Controller Method                            | Description                                                                             |
+| -------------------------------------- | ------ | -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `/api/locations/provinces`             | GET    | `LocationController@provinces`               | Returns all 9 Sri Lankan provinces                                                      |
+| `/api/locations/districts`             | GET    | `LocationController@districts`               | Returns districts for a given `province` query param                                    |
+| `/api/locations/ds-divisions`          | GET    | `LocationController@dsDivisions`             | Returns DS divisions for a given `district` query param                                 |
+| `/api/registry/single`                 | POST   | `RegistryController@storeSingle`             | Validates and stages a single manually-entered record                                   |
+| `/api/registry/upload`                 | POST   | `RegistryController@uploadExcel`             | Parses, normalizes, deduplicates, validates, and bulk-stages rows from an uploaded file |
+| `/api/registry/template`               | GET    | `RegistryController@downloadTemplate`        | Streams a pre-formatted CSV template with headers + example rows for Agent download     |
+| `/api/registry/instructions-pdf`       | GET    | `RegistryController@downloadInstructionsPdf` | Streams a PDF listing Sri Lanka province/district/DS division names for Agent reference |
+| `/api/registry/rejected`               | GET    | `RegistryController@getRejected`             | Returns paginated list (15/page) of the current user's rejected staging records         |
+| `/api/registry/rejected/{id}`          | GET    | `RegistryController@getRejectedRecord`       | Returns the full payload of a single rejected record owned by the current user          |
+| `/api/registry/rejected/{id}/resubmit` | POST   | `RegistryController@resubmitRejected`        | Validates, duplicate-checks, and resets a rejected record back to Pending state         |
 
 ### 6.7 Key Backend Service: Phone Number Normalizer
 
@@ -225,3 +229,20 @@ The `RegistryController::normalizePhoneNumber()` private method is applied to `c
 | `94771234567`          | `0771234567`      | Replaced `94` with `0`      |
 | `077 123-4567`         | `0771234567`      | Stripped spaces/dashes      |
 | `0771234567`           | `0771234567`      | No change (already correct) |
+
+### 6.8 Rejection Dashboard (Data Entry — Rejected Records)
+
+The Rejection Dashboard allows Data Entry Operators to view and correct their rejected staging records from the Maker-Checker workflow. Three endpoints support this feature, all scoped to the currently authenticated user (`uploaded_by = Current::id()`) and limited to `validation_status = 'Rejected'`.
+
+**Listing** (`GET /api/registry/rejected`): Returns a paginated list (15 records per page) of the user's rejected records, ordered by `updated_at DESC` (most recently rejected first).
+
+**Detail** (`GET /api/registry/rejected/{id}`): Returns the full `StagingData` record (including `data_payload`, `rejection_reason`, `submission_type`, `target_record_id`) for a specific rejected record. Used to pre-fill the edit form.
+
+**Resubmit** (`POST /api/registry/rejected/{id}/resubmit`): Accepts corrected field data. The pipeline mirrors `storeSingle`:
+
+1. **Category field stripping:** Cross-category null fields are unset before validation.
+2. **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — enforces all field and location rules.
+3. **Main Registry Duplicate Check:** `MainRegistry::where('contact_number', ...)`. For `UPDATE` submissions, `target_record_id` is excluded from the check.
+4. **Staging Duplicate Check:** `StagingData::where('validation_status', 'Pending')->where('id', '!=', $staging->id)` — ensures no other pending record shares the contact number.
+5. **Status Reset:** Updates `data_payload`, sets `validation_status = 'Pending'`, clears `rejection_reason = null`. The original `batch_id` and `submission_type` are preserved.
+6. **Response:** Returns `200 OK` with `{ message, staging_id }`.
