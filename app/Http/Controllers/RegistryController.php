@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Validator;
 use App\Models\MainRegistry;
-use Barryvdh\DomPDF\Facade\Pdf;
+
 use App\Models\StagingData;
 use App\Services\RegistryValidator;
 use App\Helpers\Current;
@@ -100,17 +100,6 @@ class RegistryController extends Controller
         ]);
     }
 
-    /**
-     * Download the PDF containing instructions and location lists.
-     */
-    public function downloadInstructionsPdf()
-    {
-        $hierarchy = config('srilanka.hierarchy');
-
-        $pdf = Pdf::loadView('pdf.location_instructions', compact('hierarchy'));
-        
-        return $pdf->download('location_instructions.pdf');
-    }
 
     /**
      * Parse Excel, validate rows, check duplicates efficiently, and stage valid rows.
