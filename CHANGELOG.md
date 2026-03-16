@@ -2,7 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2026-03-16
+
+### Changed
+
+- **Bulk Upload — Instructions Download:** Replaced the dynamic PDF generation feature (`GET /api/registry/instructions-pdf` via `barryvdh/laravel-dompdf`) with a **static Excel file download**.
+    - `public/ds.xlsx` — pre-built Excel file listing all Sri Lankan provinces, districts, and DS divisions with exact spellings required by the system.
+    - The **"Instructions (Excel)"** button in `DataEntry.vue` (Bulk Upload tab) is now a plain `<a href="/ds.xlsx" download>` anchor tag. No API call, no server-side generation.
+    - `user-manual.md` updated: added Section 6.0 "Location Reference: Instructions (Excel)" documenting the new download flow for Agents.
+
+### Removed
+
+- **PDF Generation (`barryvdh/laravel-dompdf`):** Removed the package and all related code.
+    - Deleted `RegistryController@downloadInstructionsPdf` method and `GET /api/registry/instructions-pdf` route.
+    - Deleted `resources/views/pdf/location_instructions.blade.php` Blade template.
+    - Removed `barryvdh/laravel-dompdf ^3.1` from `composer.json` (also removed 6 transitive packages: `dompdf/dompdf`, `dompdf/php-font-lib`, `dompdf/php-svg-lib`, `masterminds/html5`, `sabberworm/php-css-parser`, `thecodingmachine/safe`).
+
+---
+
 ## [Unreleased] - 2026-02-23
+
 
 ### Added
 
