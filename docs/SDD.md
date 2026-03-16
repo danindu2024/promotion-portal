@@ -213,7 +213,7 @@ resources/
 | `/api/registry/single`                 | POST   | `RegistryController@storeSingle`             | Validates and stages a single manually-entered record                                   |
 | `/api/registry/upload`                 | POST   | `RegistryController@uploadExcel`             | Parses, normalizes, deduplicates, validates, and bulk-stages rows from an uploaded file |
 | `/api/registry/template`               | GET    | `RegistryController@downloadTemplate`        | Streams a pre-formatted CSV template with headers + example rows for Agent download     |
-| `/api/registry/instructions-pdf`       | GET    | `RegistryController@downloadInstructionsPdf` | Streams a PDF listing Sri Lanka province/district/DS division names for Agent reference |
+| `/ds.xlsx` *(static public file)*      | GET    | — *(no controller)*                          | Static Excel file listing Sri Lanka province/district/DS division names for Agent download. Served directly from `public/ds.xlsx` via the web server. Linked from the "Instructions (Excel)" button in `DataEntry.vue` using a plain `<a href="/ds.xlsx" download>` anchor tag. |
 | `/api/registry/rejected`               | GET    | `RegistryController@getRejected`             | Returns paginated list (15/page) of the current user's rejected staging records         |
 | `/api/registry/rejected/{id}`          | GET    | `RegistryController@getRejectedRecord`       | Returns the full payload of a single rejected record owned by the current user          |
 | `/api/registry/rejected/{id}/resubmit` | POST   | `RegistryController@resubmitRejected`        | Validates, duplicate-checks, and resets a rejected record back to Pending state         |
