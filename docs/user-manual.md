@@ -105,6 +105,19 @@ Even if a form is filled out perfectly, the system must enforce business rules�
 
 The Excel Bulk Upload feature significantly speeds up data entry by allowing Agents to upload hundreds of records simultaneously via a `.csv`, `.xls`, or `.xlsx` file.
 
+### 6.0 Location Reference: Instructions (Excel)
+
+Before filling in the upload template, Agents must use the **exact** provincial spellings recognised by the system. A pre-built reference file is provided for this purpose.
+
+1.  **Open the Bulk Upload tab.**
+2.  Click the **"Instructions (Excel)"** button (top-right, beside "Download Template").
+3.  The browser will immediately download `ds.xlsx` — a static Excel file listing every Province, District, and DS Division name in the exact spelling the system accepts.
+4.  Keep this file open as a reference while entering location data into your upload template.
+
+> **Technical note:** `ds.xlsx` is a static file served directly from `public/ds.xlsx` by the web server — no API call or server-side generation is involved.
+
+---
+
 ### 6.1 Preparing the Data
 
 1.  **Download Template:** Navigate to the "Bulk Upload" tab and click the **"Download Template"** button in the top right.
