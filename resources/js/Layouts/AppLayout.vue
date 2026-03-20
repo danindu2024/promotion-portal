@@ -32,12 +32,17 @@
                 >
                     Review Queue
                 </Link>
-                <a
-                    href="#"
-                    class="block px-6 py-3 hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent"
+                <Link
+                    href="/dashboard"
+                    :class="[
+                        $page.url.startsWith('/dashboard')
+                            ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
+                            : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
+                        'block px-6 py-3'
+                    ]"
                 >
                     Dashboard
-                </a>
+                </Link>
             </nav>
             <div class="p-4 border-t border-primary-600 text-sm opacity-80">
                 Demo Agent View

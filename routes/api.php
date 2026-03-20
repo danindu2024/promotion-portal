@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\RegistryController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\AnalyticsController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -36,4 +37,14 @@ Route::prefix('reviews')->middleware('throttle:30,1')->group(function () {
     Route::get('/batch/{batchId}', [ReviewController::class, 'batchDetails']);
     Route::post('/batch/{batchId}/approve', [ReviewController::class, 'approveBatch']);
     Route::post('/{id}/reject', [ReviewController::class, 'reject']);
+});
+
+// Analytics Dashboard — read-only, generous limit
+Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {
+    Route::get('/kpis', [AnalyticsController::class, 'getKPIs']);
+    Route::get('/sectors', [AnalyticsController::class, 'getSectorDistribution']);
+    Route::get('/field-of-work', [AnalyticsController::class, 'getFieldOfWorkDistribution']);
+    Route::get('/heatmap', [AnalyticsController::class, 'getHeatmapData']);
+    Route::get('/ds-heatmap', [AnalyticsController::class, 'getDsHeatmapData']);
+    Route::get('/search', [AnalyticsController::class, 'advancedSearch']);
 });
