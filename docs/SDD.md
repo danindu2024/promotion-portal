@@ -50,10 +50,10 @@ A DFD maps how information travels. We will create two levels:
 This diagram shows the system as a single "Black Box" and who interacts with it.
 
 - **External Entities:**
-    - **Agent:** Provides raw Excel files.
-    - **Validator:** Provides decisions (Approve/Reject).
-    - **Existing DB:** Provides User Credentials (Login).
-    - **Management:** Consumes Analytics
+    - **Agent / Data Entry Operator:** Provides raw Excel files and single-form entries.
+    - **Validator:** Provides decisions (Approve/Reject) on staged records.
+    - **Admin:** Manages users and views full analytics.
+    - **Management:** Consumes analytics and reports.
 
 #### **DFD Level 1: Detailed Process Flow**
 
@@ -61,12 +61,28 @@ This breaks the "Black Box" into the actual processes. It explicitly visualizes 
 
 **Key Processes:**
 
-1.  **Authenticate:** Checks users against the Legacy DB.
+1.  **Authenticate:** Checks user credentials against the portal's own `users` table using BCrypt password verification.
 2.  **Validate & Split:** The critical logic that separates good data from bad.
 3.  **Manage Review:** The "Maker-Checker" status updates.
 4.  **Generate Analytics:** Live querying for the dashboard.
+5.  **Manage Users:** Admin creates, edits, and deletes user accounts via the User Management module.
 
 ## 5. Database Schema Definition
+
+### 5.0 Users (`users`)
+
+Stores all portal user accounts. Managed exclusively by administrators via the User Management module.
+
+| Column | Type | Nullable | Description |
+| :--- | :--- | :--- | :--- |
+| `user_id` | BigInt | No | Primary Key (auto-increment) |
+| `name` | String | No | Full name of the user |
+| `username` | String | No | Login username (Unique) |
+| `password` | String | No | BCrypt-hashed password |
+| `province` | String | No | User's assigned province |
+| `district` | String | No | User's assigned district |
+| `ds_division` | String | No | User's assigned DS Division |
+| `access_level` | String | No | `admin`, `decision maker`, `validator`, `data entry` |
 
 ### 5.1 Main Registry (`main_registry`)
 
@@ -183,8 +199,12 @@ resources/
 │   ├── Layouts/
 │   │   └── AppLayout.vue           # Sidebar + main content wrapper (Royal Blue theme)
 │   └── Pages/
-│       └── Registry/
-│           └── DataEntry.vue       # Single Form Entry + Bulk Upload tabs
+│       ├── Registry/
+│       │   ├── DataEntry.vue       # Single Form Entry + Bulk Upload tabs
+│       │   ├── Review.vue          # Maker-Checker review queue
+│       │   └── Dashboard.vue       # Analytics & filtering dashboard
+│       └── Admin/
+│           └── UserManagement.vue  # Admin user CRUD with location dropdowns
 └── views/
     └── app.blade.php               # Root Blade template
 ```
@@ -198,25 +218,32 @@ resources/
 
 ### 6.5 Web Routes (Inertia Pages)
 
-| Route             | Vue Component                  | Description                          |
-| ----------------- | ------------------------------ | ------------------------------------ |
-| `GET /`           | —                              | Redirects to `/data-entry`           |
+| Route | Vue Component | Description |
+| --- | --- | --- |
+| `GET /` | — | Redirects to `/data-entry` |
 | `GET /data-entry` | `Pages/Registry/DataEntry.vue` | Single Form Entry + Bulk Upload tabs |
+| `GET /review` | `Pages/Registry/Review.vue` | Maker-Checker review queue |
+| `GET /dashboard` | `Pages/Registry/Dashboard.vue` | Analytics & filtering dashboard |
+| `GET /admin/users` | `Pages/Admin/UserManagement.vue` | Admin user management page |
 
 ### 6.6 API Routes (JSON Endpoints)
 
-| Route                                  | Method | Controller Method                            | Description                                                                             |
-| -------------------------------------- | ------ | -------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `/api/locations/provinces`             | GET    | `LocationController@provinces`               | Returns all 9 Sri Lankan provinces                                                      |
-| `/api/locations/districts`             | GET    | `LocationController@districts`               | Returns districts for a given `province` query param                                    |
-| `/api/locations/ds-divisions`          | GET    | `LocationController@dsDivisions`             | Returns DS divisions for a given `district` query param                                 |
-| `/api/registry/single`                 | POST   | `RegistryController@storeSingle`             | Validates and stages a single manually-entered record                                   |
-| `/api/registry/upload`                 | POST   | `RegistryController@uploadExcel`             | Parses, normalizes, deduplicates, validates, and bulk-stages rows from an uploaded file |
-| `/api/registry/template`               | GET    | `RegistryController@downloadTemplate`        | Streams a pre-formatted CSV template with headers + example rows for Agent download     |
-| `/ds.xlsx` *(static public file)*      | GET    | — *(no controller)*                          | Static Excel file listing Sri Lanka province/district/DS division names for Agent download. Served directly from `public/ds.xlsx` via the web server. Linked from the "Instructions (Excel)" button in `DataEntry.vue` using a plain `<a href="/ds.xlsx" download>` anchor tag. |
-| `/api/registry/rejected`               | GET    | `RegistryController@getRejected`             | Returns paginated list (15/page) of the current user's rejected staging records         |
-| `/api/registry/rejected/{id}`          | GET    | `RegistryController@getRejectedRecord`       | Returns the full payload of a single rejected record owned by the current user          |
-| `/api/registry/rejected/{id}/resubmit` | POST   | `RegistryController@resubmitRejected`        | Validates, duplicate-checks, and resets a rejected record back to Pending state         |
+| Route | Method | Controller Method | Description |
+| --- | --- | --- | --- |
+| `/api/locations/provinces` | GET | `LocationController@provinces` | Returns all 9 Sri Lankan provinces |
+| `/api/locations/districts` | GET | `LocationController@districts` | Returns districts for a given `province` |
+| `/api/locations/ds-divisions` | GET | `LocationController@dsDivisions` | Returns DS divisions for a given `district` |
+| `/api/registry/single` | POST | `RegistryController@storeSingle` | Validates and stages a single record |
+| `/api/registry/upload` | POST | `RegistryController@uploadExcel` | Bulk-stages rows from an uploaded Excel/CSV file |
+| `/api/registry/template` | GET | `RegistryController@downloadTemplate` | Streams a CSV template for Agent download |
+| `/ds.xlsx` *(static)* | GET | — | Static Excel file with location names. Served from `public/ds.xlsx`. |
+| `/api/registry/rejected` | GET | `RegistryController@getRejected` | Returns paginated list of current user's rejected records |
+| `/api/registry/rejected/{id}` | GET | `RegistryController@getRejectedRecord` | Returns payload of a specific rejected record |
+| `/api/registry/rejected/{id}/resubmit` | POST | `RegistryController@resubmitRejected` | Resubmits a corrected record back to Pending state |
+| `/api/users` | GET | `UserManagementController@index` | Returns all users as JSON |
+| `/api/users` | POST | `UserManagementController@store` | Creates a new user with hashed password |
+| `/api/users/{id}` | PUT | `UserManagementController@update` | Updates a user; re-hashes password only if provided |
+| `/api/users/{id}` | DELETE | `UserManagementController@destroy` | Deletes a user |
 
 ### 6.7 Key Backend Service: Phone Number Normalizer
 
