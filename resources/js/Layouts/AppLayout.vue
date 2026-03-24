@@ -43,6 +43,17 @@
                 >
                     Dashboard
                 </Link>
+                <Link
+                    href="/admin/users"
+                    :class="[
+                        $page.url.startsWith('/admin/users')
+                            ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
+                            : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
+                        'block px-6 py-3'
+                    ]"
+                >
+                    User Management
+                </Link>
             </nav>
             <div class="p-4 border-t border-primary-600 text-sm opacity-80">
                 Demo Agent View

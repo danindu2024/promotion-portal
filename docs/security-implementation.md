@@ -2,14 +2,14 @@
 
 **Project:** Targeted Promotion & Data Management Portal  
 **Prepared by:** Development Team  
-**Date:** 2026-03-05  
+**Date:** 2026-03-24  
 **Status:** Active — Implemented
 
 ---
 
 ## 1. Overview
 
-This document describes all security controls currently active in the Promotion Portal. The application is a **Laravel 12 + Vue/Inertia.js** monolith. Since authentication against the legacy system is not yet integrated (see `authentication-strategy.md`), the controls below protect the publicly accessible API and UI surfaces.
+This document describes all security controls currently active in the Promotion Portal. The application is a **Laravel 12 + Vue/Inertia.js** monolith with a self-contained user management system.
 
 ---
 
@@ -187,30 +187,30 @@ The Validation Module groups all staging records by `batch_id` into **Upload Eve
 
 ---
 
-## 4. Planned Controls (Pending Authentication Integration)
+## 4. Implemented Password Security Controls
 
-The following controls are documented in `authentication-strategy.md` and will be implemented once the legacy system integration is confirmed:
+The following security controls are active as part of the User Management system:
 
-| Control                          | Status     | Depends On                             |
-| -------------------------------- | ---------- | -------------------------------------- |
-| Role-based access control (RBAC) | ⏳ Pending | Legacy user roles mapping              |
-| Auth middleware on all routes    | ⏳ Pending | Legacy authentication integration      |
-| Session timeout                  | ⏳ Pending | SSE session policy confirmation        |
-| Login attempt lockout            | ⏳ Pending | Auth + audit_logs integration          |
-| Single-session enforcement       | ⏳ Pending | SSE policy confirmation                |
-| Stricter CSP (nonce-based)       | ⏳ Pending | Production deployment                  |
-| API authentication (Sanctum)     | ⏳ Pending | Architecture decision from SSE meeting |
+| Control | Status | Detail |
+| --- | --- | --- |
+| BCrypt password hashing | ✅ Active | `Hash::make()` called on `store`; model auto-hashes via `'password' => 'hashed'` cast |
+| No plain-text storage | ✅ Active | Password is hidden from all API serialization via `$hidden` on the `User` model |
+| Admin-only user creation | ✅ Active | No self-registration endpoint exists; only admin can create users |
+| Password excluded from sanitization | ✅ Active | `SanitizesInput` middleware explicitly skips `password` and `password_confirmation` |
+| Optional password on edit | ✅ Active | Empty/whitespace password on edit leaves the existing hash unchanged |
 
 ---
 
 ## 5. Key Files Reference
 
-| File                                          | Purpose                            |
-| --------------------------------------------- | ---------------------------------- |
-| `app/Http/Middleware/SecurityHeaders.php`     | HTTP security headers middleware   |
-| `app/Http/Middleware/SanitizesInput.php`      | Input sanitization middleware      |
-| `bootstrap/app.php`                           | Middleware registration            |
-| `routes/api.php`                              | Rate limiting per route group      |
-| `app/Services/RegistryValidator.php`          | Category-aware input validation    |
-| `app/Http/Controllers/RegistryController.php` | File upload MIME validation        |
-| `app/Http/Controllers/ReviewController.php`   | Maker-Checker batch approval logic |
+| File | Purpose |
+| --- | --- |
+| `app/Http/Middleware/SecurityHeaders.php` | HTTP security headers middleware |
+| `app/Http/Middleware/SanitizesInput.php` | Input sanitization middleware |
+| `bootstrap/app.php` | Middleware registration |
+| `routes/api.php` | Rate limiting per route group |
+| `app/Services/RegistryValidator.php` | Category-aware input validation |
+| `app/Http/Controllers/RegistryController.php` | File upload MIME validation |
+| `app/Http/Controllers/ReviewController.php` | Maker-Checker batch approval logic |
+| `app/Http/Controllers/UserManagementController.php` | User CRUD with BCrypt password hashing |
+| `app/Models/User.php` | User model with `$hidden` and password cast |

@@ -2,7 +2,7 @@
 
 **Project Name:** Data Management & Analytics Portal 
 
-**Version:** 1.0 (Draft)
+**Version:** 1.0 (Active)
 
 ## **1\. Introduction**
 
@@ -42,8 +42,13 @@ Reviewing pending data, approving/rejecting entries, managing master data, viewi
 
 ### **2.1 User Management Strategy**
 
-- **R-INT-01 Legacy Integration:** The system shall not maintain a separate user registry for authentication. Instead, it must connect to the **Existing Database** to fetch and validate user credentials.
-- **R-INT-02 Account Provisioning:** New user accounts are not created within this portal. All users (Agents and Validators) must exist in the source database prior to accessing this system.
+The portal maintains its **own user registry**. There is no integration with any external or legacy database. User accounts are created and managed by administrators via the **User Management** module.
+
+- **R-USR-01 Self-Contained Registry:** The system shall maintain a `users` table within the portal's own database containing all user credentials and location assignments.
+- **R-USR-02 Admin Provisioning:** New user accounts are created by administrators only, through the User Management UI. There is no self-registration capability.
+- **R-USR-03 Password Security:** All passwords must be stored using BCrypt hashing. Plain-text passwords must never be persisted to the database.
+- **R-USR-04 Password Reset:** To reset a user's forgotten password, an administrator edits the user record and sets a new password. Users cannot reset their own passwords.
+- **R-USR-05 User Fields:** Each user must have: Full Name, Username (unique), Password, Province, District, DS Division, and Access Level.
 
 **Data Entry Logic** The system shall support two distinct categories of data entry with the following specific requirements:
 
