@@ -20,9 +20,13 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'name',
         'username',
-        'password_hash',
-        'role',
+        'password',
+        'province',
+        'district',
+        'ds_division',
+        'access_level',
     ];
 
     /**
@@ -31,7 +35,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password_hash',
+        'password',
         'remember_token',
     ];
 
@@ -43,12 +47,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password_hash' => 'hashed',
+            'password' => 'hashed',
         ];
-    }
-
-    public function getAuthPassword()
-    {
-        return $this->password_hash;
     }
 }
