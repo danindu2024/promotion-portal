@@ -157,6 +157,16 @@ All web routes (`/data-entry`, `/review`) are protected by Laravel's CSRF middle
 
 ---
 
+### 2.9 Session-Based Authentication
+
+**Controller:** `App\Http\Controllers\Auth\AuthenticatedSessionController`  
+**Routes:** `GET /login`, `POST /login`, `POST /logout`  
+**View:** `resources/js/Pages/Auth/Login.vue`
+
+Login uses Laravel's built-in session authentication with username and password. On success, the session is regenerated to prevent fixation and the user is redirected to the intended page (default `/dashboard`). Failed attempts return a 422 response with validation errors and a flash message for the UI. Logout invalidates the session and regenerates the CSRF token.
+
+---
+
 ## 3. Duplicate Record Detection
 
 While not strictly a security control, duplicate detection prevents data integrity attacks:
@@ -191,26 +201,29 @@ The Validation Module groups all staging records by `batch_id` into **Upload Eve
 
 The following security controls are active as part of the User Management system:
 
-| Control | Status | Detail |
-| --- | --- | --- |
-| BCrypt password hashing | ✅ Active | `Hash::make()` called on `store`; model auto-hashes via `'password' => 'hashed'` cast |
-| No plain-text storage | ✅ Active | Password is hidden from all API serialization via `$hidden` on the `User` model |
-| Admin-only user creation | ✅ Active | No self-registration endpoint exists; only admin can create users |
-| Password excluded from sanitization | ✅ Active | `SanitizesInput` middleware explicitly skips `password` and `password_confirmation` |
-| Optional password on edit | ✅ Active | Empty/whitespace password on edit leaves the existing hash unchanged |
+| Control                             | Status    | Detail                                                                                |
+| ----------------------------------- | --------- | ------------------------------------------------------------------------------------- |
+| BCrypt password hashing             | ✅ Active | `Hash::make()` called on `store`; model auto-hashes via `'password' => 'hashed'` cast |
+| No plain-text storage               | ✅ Active | Password is hidden from all API serialization via `$hidden` on the `User` model       |
+| Admin-only user creation            | ✅ Active | No self-registration endpoint exists; only admin can create users                     |
+| Password excluded from sanitization | ✅ Active | `SanitizesInput` middleware explicitly skips `password` and `password_confirmation`   |
+| Optional password on edit           | ✅ Active | Empty/whitespace password on edit leaves the existing hash unchanged                  |
 
 ---
 
 ## 5. Key Files Reference
 
-| File | Purpose |
-| --- | --- |
-| `app/Http/Middleware/SecurityHeaders.php` | HTTP security headers middleware |
-| `app/Http/Middleware/SanitizesInput.php` | Input sanitization middleware |
-| `bootstrap/app.php` | Middleware registration |
-| `routes/api.php` | Rate limiting per route group |
-| `app/Services/RegistryValidator.php` | Category-aware input validation |
-| `app/Http/Controllers/RegistryController.php` | File upload MIME validation |
-| `app/Http/Controllers/ReviewController.php` | Maker-Checker batch approval logic |
-| `app/Http/Controllers/UserManagementController.php` | User CRUD with BCrypt password hashing |
-| `app/Models/User.php` | User model with `$hidden` and password cast |
+| File                                                           | Purpose                                     |
+| -------------------------------------------------------------- | ------------------------------------------- |
+| `app/Http/Middleware/SecurityHeaders.php`                      | HTTP security headers middleware            |
+| `app/Http/Middleware/SanitizesInput.php`                       | Input sanitization middleware               |
+| `bootstrap/app.php`                                            | Middleware registration                     |
+| `routes/api.php`                                               | Rate limiting per route group               |
+| `app/Services/RegistryValidator.php`                           | Category-aware input validation             |
+| `app/Http/Controllers/RegistryController.php`                  | File upload MIME validation                 |
+| `app/Http/Controllers/ReviewController.php`                    | Maker-Checker batch approval logic          |
+| `app/Http/Controllers/UserManagementController.php`            | User CRUD with BCrypt password hashing      |
+| `app/Models/User.php`                                          | User model with `$hidden` and password cast |
+| `app/Http/Controllers/Auth/AuthenticatedSessionController.php` | Login and logout handling                   |
+| `resources/js/Pages/Auth/Login.vue`                            | Login page UI                               |
+| `routes/web.php`                                               | Login and logout route definitions          |
