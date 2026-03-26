@@ -6,10 +6,14 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\RegistryController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 
 // Location Dropdowns — read-only, generous limit
 Route::prefix('locations')->middleware('throttle:60,1')->group(function () {
