@@ -11,6 +11,7 @@
             </div>
             <nav class="flex-1 py-4">
                 <Link
+                    v-if="['data entry', 'validator', 'decision maker', 'admin'].includes(user?.access_level)"
                     href="/data-entry"
                     :class="[
                         $page.url.startsWith('/data-entry')
@@ -22,6 +23,7 @@
                     Data Entry
                 </Link>
                 <Link
+                    v-if="['validator', 'decision maker', 'admin'].includes(user?.access_level)"
                     href="/review"
                     :class="[
                         $page.url.startsWith('/review')
@@ -33,6 +35,7 @@
                     Review Queue
                 </Link>
                 <Link
+                    v-if="['decision maker', 'admin'].includes(user?.access_level)"
                     href="/dashboard"
                     :class="[
                         $page.url.startsWith('/dashboard')
@@ -44,6 +47,7 @@
                     Dashboard
                 </Link>
                 <Link
+                    v-if="user?.access_level === 'admin'"
                     href="/admin/users"
                     :class="[
                         $page.url.startsWith('/admin/users')
@@ -56,7 +60,7 @@
                 </Link>
             </nav>
             <div class="p-4 border-t border-primary-600 flex flex-col gap-4">
-                <div class="text-sm opacity-80">Demo Agent View</div>
+                <div class="text-sm opacity-80" v-if="user?.name">Welcome {{ lastName }} ({{ user.access_level }})</div>
                 <Link
                     href="/logout"
                     method="post"
@@ -76,6 +80,15 @@
 </template>
 
 <script setup>
-import { Link } from "@inertiajs/vue3";
-// Main Layout containing Royal Blue styling per UI specs
+import { Link, usePage } from "@inertiajs/vue3";
+import { computed } from "vue";
+
+const page = usePage();
+const user = computed(() => page.props.auth?.user);
+
+const lastName = computed(() => {
+    if (!user.value?.name) return "";
+    const names = user.value.name.trim().split(/\s+/);
+    return names[names.length - 1];
+});
 </script>

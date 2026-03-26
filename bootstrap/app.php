@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
 
     ->withMiddleware(function (Middleware $middleware): void {
+        // dd('Middleware Closure Running');
         // Web group: Inertia + Security Headers
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
@@ -24,9 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\SanitizesInput::class,
         ]);
-    })
 
-    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->alias([
+            'access' => \App\Http\Middleware\EnsureAccessLevel::class,
+        ]);
+
         $middleware->statefulApi();
     })
     

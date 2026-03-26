@@ -31,7 +31,16 @@ class AuthenticatedSessionController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended('/dashboard');
+            $user = Auth::user();
+            $home = match ($user->access_level) {
+                'data entry' => '/data-entry',
+                'validator' => '/review',
+                'decision maker' => '/dashboard',
+                'admin' => '/admin/users',
+                default => '/dashboard',
+            };
+
+            return redirect()->intended($home);
         }
 
         $message = 'Invalid Username or Password';

@@ -25,5 +25,5 @@
 
 <script setup>
 import { Link } from "@inertiajs/vue3";
-import logoUrl from "../assets/organization_logo.png";
+const logoUrl = "/assets/organization_logo.png";
 </script>
