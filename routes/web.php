@@ -29,11 +29,9 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Registry/Review');
     });
 
-    Route::middleware('admin')->group(function () {
-        Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
-        Route::get('/api/users', [UserManagementController::class, 'index']);
-        Route::post('/api/users', [UserManagementController::class, 'store']);
-        Route::put('/api/users/{id}', [UserManagementController::class, 'update']);
-        Route::delete('/api/users/{id}', [UserManagementController::class, 'destroy']);
-    });
+    Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+    Route::get('/api/users', [UserManagementController::class, 'index']);
+    Route::post('/api/users', [UserManagementController::class, 'store']);
+    Route::put('/api/users/{id}', [UserManagementController::class, 'update']);
+    Route::delete('/api/users/{id}', [UserManagementController::class, 'destroy']);
 });
