@@ -16,7 +16,7 @@
                         $page.url.startsWith('/data-entry')
                             ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
                             : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
-                        'block px-6 py-3'
+                        'block px-6 py-3',
                     ]"
                 >
                     Data Entry
@@ -27,7 +27,7 @@
                         $page.url.startsWith('/review')
                             ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
                             : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
-                        'block px-6 py-3'
+                        'block px-6 py-3',
                     ]"
                 >
                     Review Queue
@@ -38,7 +38,7 @@
                         $page.url.startsWith('/dashboard')
                             ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
                             : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
-                        'block px-6 py-3'
+                        'block px-6 py-3',
                     ]"
                 >
                     Dashboard
@@ -49,14 +49,22 @@
                         $page.url.startsWith('/admin/users')
                             ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
                             : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
-                        'block px-6 py-3'
+                        'block px-6 py-3',
                     ]"
                 >
                     User Management
                 </Link>
             </nav>
-            <div class="p-4 border-t border-primary-600 text-sm opacity-80">
-                Demo Agent View
+            <div class="p-4 border-t border-primary-600 flex flex-col gap-4">
+                <div class="text-sm opacity-80">Demo Agent View</div>
+                <Link
+                    href="/logout"
+                    method="post"
+                    as="button"
+                    class="w-full text-center px-4 py-2 bg-primary-600 border border-white/60 rounded text-sm font-medium text-white hover:bg-primary-700 hover:border-white focus:outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-primary"
+                >
+                    Log Out
+                </Link>
             </div>
         </aside>
 
@@ -68,6 +76,6 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link } from "@inertiajs/vue3";
 // Main Layout containing Royal Blue styling per UI specs
 </script>
