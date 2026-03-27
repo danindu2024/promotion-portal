@@ -84,7 +84,7 @@ class RegistryValidator
 
         } elseif ($category === 'Trade') {
             $rules = array_merge($rules, [
-                'contact_person' => 'nullable|string|max:255',
+                'contact_person' => 'required|string|max:255',
                 'members_count' => 'nullable|integer|min:0',
 
                 // Forbidden fields for Trade
