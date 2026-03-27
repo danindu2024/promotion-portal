@@ -10,6 +10,8 @@ use App\Models\MainRegistry;
 use App\Models\StagingData;
 use App\Services\RegistryValidator;
 use App\Helpers\Current;
+use App\Imports\RegistryImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
 {
@@ -29,18 +31,21 @@ class RegistryController extends Controller
         // if fails, throw exception. Laravel will automatically convert it to 422 response
         $validator->validate();
 
-        // DB Duplicate Check — main_registry
-        $exists = MainRegistry::where('contact_number', $data['contact_number'])->exists();
+        // DB Duplicate Check — main_registry (category-aware)
+        $exists = MainRegistry::where('contact_number', $data['contact_number'])
+            ->where('category', $data['category'])
+            ->exists();
         if ($exists) {
             return response()->json([
-                'message' => 'A record with this contact number already exists. Use the Update Data tab to modify existing records.',
-                'errors' => ['contact_number' => ['Contact number already exists.']]
+                'message' => "A record for this contact number as {$data['category']} already exists.",
+                'errors' => ['contact_number' => ['Contact number already exists for this category.']]
             ], 409);
         }
         
-        // Also check staging_data for pending duplicates
+        // Also check staging_data for pending duplicates (category-aware)
         $pendingDuplicate = StagingData::where('validation_status', StagingData::STATUS_PENDING)
-            ->whereJsonContains('data_payload->contact_number', $data['contact_number']) //modern sql can store json object in columns
+            ->whereJsonContains('data_payload->contact_number', $data['contact_number'])
+            ->whereJsonContains('data_payload->category', $data['category'])
             ->exists();
         if ($pendingDuplicate) {
             return response()->json([
@@ -136,155 +141,28 @@ class RegistryController extends Controller
             ],
         ]);
 
-        // efficient for <1000 raws. Not suitable for larger files
-        $rows = \Maatwebsite\Excel\Facades\Excel::toArray(new class implements \Maatwebsite\Excel\Concerns\ToArray {
-            public function array(array $array) {}
-        }, $request->file('file'))[0]; // Get the first sheet
+        // Using Chunked Reading to prevent memory overloading (prevents crashes on large files)
+        $import = new RegistryImport();
+        Excel::import($import, $request->file('file'));
 
-        // Discard header row — column order is fixed by template
-        array_shift($rows);
-
-        // Initializing Counters and Storage
-        $totalRows = 0;
-        $validCount = 0; // count of valid rows — no need to store full payloads
-        $invalidRows = [];
-        $contactNumbersInFile = []; // use to check duplicate in file
-        $uniqueNumbersForDbCheck = []; // use to check duplicate in db
-
-        // In-file duplicate check & structural mapping
-        foreach ($rows as $index => $row) {
-            // remove completely empty rows
-            if (empty(array_filter($row, function($value) { return $value !== null && $value !== ''; }))) {
-                unset($rows[$index]);
-                continue;
-            }
-            $totalRows++;
-
-            // create data array with mapped values
-            $data = [
-                'category' => $row[0] ?? null,
-                'full_name' => $row[1] ?? null,
-                'national_id_number' => $row[2] ?? null,
-                'contact_number' => $this->normalizePhoneNumber($row[3] ?? null),
-                'province' => $row[4] ?? null,
-                'district' => $row[5] ?? null,
-                'ds_division' => $row[6] ?? null,
-                'field_of_work' => isset($row[7]) && (string)$row[7] !== '' ? $row[7] : null,
-                'age' => isset($row[8]) && (string)$row[8] !== '' ? (int)$row[8] : null,
-                'address' => $row[9] ?? null,
-                'whatsapp_number' => $this->normalizePhoneNumber($row[10] ?? null),
-                'email' => $row[11] ?? null,
-                'contact_person' => isset($row[12]) && (string)$row[12] !== '' ? $row[12] : null,
-                'members_count' => isset($row[13]) && (string)$row[13] !== '' ? (int)$row[13] : null,
-                'employees_count' => isset($row[14]) && (string)$row[14] !== '' ? (int)$row[14] : null,
-            ];
-
-            $contactNumber = $data['contact_number'];
-
-            // remove row if contact number is missing
-            if (empty($contactNumber)) {
-                $data['error'] = 'Contact number is missing.';
-                $invalidRows[] = $data;
-                unset($rows[$index]);
-                continue;
-            }
-
-            // remove row if contact number is duplicate in file
-            if (in_array($contactNumber, $contactNumbersInFile)) {
-                $data['error'] = 'Duplicate contact number found within this Excel file.';
-                $invalidRows[] = $data;
-                unset($rows[$index]);
-                continue;
-            }
-
-            // add contact number to arrays
-            $contactNumbersInFile[] = $contactNumber;
-            $uniqueNumbersForDbCheck[] = $contactNumber;
-
-            // Store mapped data instead of raw numeric array for later
-            $rows[$index] = $data; 
-        }
-
-        // Database duplicate check — main_registry
-        $existingNumbers = !empty($uniqueNumbersForDbCheck)
-            ? MainRegistry::whereIn('contact_number', $uniqueNumbersForDbCheck)
-                ->pluck('contact_number') // only get the contact numbers
-                ->toArray()
-            : [];
-
-        // Check staging_data for pending duplicates
-        // Use SQL JSON extraction to avoid loading full payloads into memory
-        $pendingNumbers = !empty($uniqueNumbersForDbCheck)
-            ? StagingData::where('validation_status', StagingData::STATUS_PENDING)
-                ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck)
-                ->get(['data_payload'])
-                ->pluck('data_payload.contact_number')
-                ->filter()
-                ->toArray()
-            : [];
-        $existingNumbers = array_unique(array_merge($existingNumbers, $pendingNumbers));
-
-        $batchId = 'BATCH-' . uniqid('', true);
-        $stagedInsertData = [];
-
-        // Full Validation for remaining rows
-        foreach ($rows as $data) {
-            // Skip empty rows
-            if (!is_array($data) || !array_key_exists('contact_number', $data)) {
-                continue;
-            }
-
-            if (in_array($data['contact_number'], $existingNumbers)) {
-                $data['error'] = 'Contact number already exists in either pending or main database';
-                $invalidRows[] = $data;
-                continue;
-            }
-
-            // Strip cross-category null fields before validation to prevent
-            // the 'prohibited' rule from firing on empty template columns.
-            $category = $data['category'] ?? null;
-            if ($category === 'Self-Employed') {
-                unset($data['contact_person'], $data['members_count']);
-            } elseif ($category === 'Trade') {
-                unset($data['field_of_work'], $data['age'], $data['employees_count']);
-            }
-
-            // Run through Category Validator
-            $validator = RegistryValidator::validate($data);
-
-            if ($validator->fails()) {
-                $data['error'] = implode(' | ', $validator->errors()->all()); // join multiple array elements to single string
-                $invalidRows[] = $data;
-            } else {
-                // Ensure correct types before insert
-                $stagedInsertData[] = [
-                    'batch_id' => $batchId,
-                    'data_payload' => json_encode($data),
-                    'validation_status' => StagingData::STATUS_PENDING,
-                    'submission_type' => 'NEW',
-                    'uploaded_by' => Current::id(),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-                $validCount++;
-            }
-        }
-
-        // Step 4: Bulk Insert valid records
-        if (!empty($stagedInsertData)) {
-            StagingData::insert($stagedInsertData);
+        // If a DB transaction failed mid-import, the chunk was rolled back — surface to user
+        if ($import->dbError) {
+            return response()->json([
+                'message' => 'Upload failed due to a server error. Any data already processed has been rolled back. Please try again in a few minutes.',
+            ], 503);
         }
 
         return response()->json([
             'summary' => [
-                'total_processed' => $totalRows,
-                'valid_count' => $validCount,
-                'invalid_count' => count($invalidRows),
+                'total_processed' => $import->totalRows,
+                'valid_count'     => $import->validCount,
+                'invalid_count'   => count($import->invalidRows),
             ],
-            'invalid_rows' => $invalidRows,
-            // Only provide batch_id if records were actually staged
-            'batch_id' => $validCount > 0 ? $batchId : null
+            'invalid_rows' => $import->invalidRows,
+            'batch_id'     => $import->validCount > 0 ? $import->batchId : null
         ], 200);
+
+
     }
 
     /**
@@ -327,18 +205,8 @@ class RegistryController extends Controller
         return response()->json($records);
     }
     
-    /**
-     * Get a specific rejected record by ID
-     */
-    public function getRejectedRecord($id)
-    {
-        $record = StagingData::where('uploaded_by', Current::id())
-            ->where('validation_status', StagingData::STATUS_REJECTED)
-            ->findOrFail($id);
-            
-        return response()->json($record);
-    }
-    
+
+
     /**
      * Resubmit a corrected rejected record
      */
@@ -369,8 +237,9 @@ class RegistryController extends Controller
         $validator = RegistryValidator::validate($data);
         $validator->validate();
         
-        // Check for duplicates in main_registry
-        $query = MainRegistry::where('contact_number', $data['contact_number']);
+        // Check for duplicates in main_registry (category-aware)
+        $query = MainRegistry::where('contact_number', $data['contact_number'])
+            ->where('category', $data['category']);
         // exclude the target record if this was an update
         if ($staging->submission_type === 'UPDATE' && $staging->target_record_id) {
             $query->where('id', '!=', $staging->target_record_id);
@@ -378,15 +247,16 @@ class RegistryController extends Controller
         
         if ($query->exists()) {
             return response()->json([
-                'message' => 'A record with this contact number already exists.',
-                'errors' => ['contact_number' => ['Contact number already exists.']]
+                'message' => "A record for this contact number as {$data['category']} already exists.",
+                'errors' => ['contact_number' => ["Contact number already exists for category {$data['category']}."]]
             ], 409);
         }
 
-        // Check staging_data for pending duplicates (excluding this very record)
+        // Check staging_data for pending duplicates (category-aware)
         $pendingDuplicate = StagingData::where('validation_status', StagingData::STATUS_PENDING)
             ->where('id', '!=', $staging->id)
             ->whereJsonContains('data_payload->contact_number', $data['contact_number'])
+            ->whereJsonContains('data_payload->category', $data['category'])
             ->exists();
             
         if ($pendingDuplicate) {
