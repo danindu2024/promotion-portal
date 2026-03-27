@@ -2,7 +2,7 @@
     <AppLayout>
         <div class="max-w-5xl mx-auto">
             <h1 class="text-3xl font-bold text-gray-800 mb-6">
-                Data Entry Module
+                Data Entry Page
             </h1>
 
             <!-- Tabs Navigation -->
@@ -140,30 +140,26 @@
                         class="mb-6 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-md shadow-sm"
                     >
                         <div class="flex">
-                            <svg
-                                class="h-5 w-5 text-orange-400 mr-2"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                    clip-rule="evenodd"
-                                />
-                            </svg>
-                            <div>
-                                <h3 class="text-sm font-medium text-orange-800">
-                                    Fixing Rejected Record
-                                </h3>
-                                <div class="mt-2 text-sm text-orange-700">
-                                    <p>
-                                        Reason:
-                                        <span class="font-semibold">{{
-                                            currentRejectionReason
-                                        }}</span>
-                                    </p>
+                            
+                            <div class="flex items-center flex-1">
+                                <svg
+                                    class="h-5 w-5 text-orange-400 mr-2 flex-shrink-0"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                                <div class="text-sm text-orange-700">
+                                    <span class="font-bold">Reason: </span>
+                                    <span class="font-semibold">{{
+                                        currentRejectionReason
+                                    }}</span>
                                 </div>
                             </div>
                             <div class="ml-auto">
@@ -231,12 +227,16 @@
                             <div>
                                 <label
                                     class="block text-sm font-medium text-gray-700"
-                                    >Full Name
+                                    >{{
+                                        form.category === "Trade"
+                                            ? "Trade Name"
+                                            : "Full Name"
+                                    }}
                                     <span class="text-red-500">*</span></label
                                 >
                                 <input
                                     type="text"
-                                    v-model="form.full_name"
+                                    v-model.trim="form.full_name"
                                     :class="inputClass(fieldErrors.full_name)"
                                 />
                                 <p
@@ -254,7 +254,7 @@
                                 >
                                 <input
                                     type="text"
-                                    v-model="form.national_id_number"
+                                    v-model.trim="form.national_id_number"
                                     :class="
                                         inputClass(
                                             fieldErrors.national_id_number,
@@ -353,11 +353,12 @@
                                 <div>
                                     <label
                                         class="block text-sm font-medium text-gray-700"
-                                        >Contact Person</label
+                                        >Contact Person Name
+                                        <span class="text-red-500">*</span></label
                                     >
                                     <input
                                         type="text"
-                                        v-model="form.contact_person"
+                                        v-model.trim="form.contact_person"
                                         :class="
                                             inputClass(
                                                 fieldErrors.contact_person,
@@ -541,7 +542,7 @@
                                     >Address Details</label
                                 >
                                 <textarea
-                                    v-model="form.address"
+                                    v-model.trim="form.address"
                                     rows="2"
                                     :class="inputClass()"
                                 ></textarea>
@@ -564,7 +565,7 @@
                             >
                             <input
                                 type="tel"
-                                v-model="form.contact_number"
+                                v-model.trim="form.contact_number"
                                 placeholder="07XXXXXXXX"
                                 :class="inputClass(fieldErrors.contact_number)"
                             />
@@ -585,7 +586,7 @@
                             >
                             <input
                                 type="tel"
-                                v-model="form.whatsapp_number"
+                                v-model.trim="form.whatsapp_number"
                                 placeholder="07XXXXXXXX"
                                 :class="inputClass(fieldErrors.whatsapp_number)"
                             />
@@ -606,7 +607,8 @@
                             >
                             <input
                                 type="email"
-                                v-model="form.email"
+                                v-model.trim="form.email"
+                                placeholder="email@example.com"
                                 :class="inputClass(fieldErrors.email)"
                             />
                             <p
@@ -658,7 +660,7 @@
                                     ? "Saving..."
                                     : editingRejectedId
                                       ? "Resubmit Correction"
-                                      : "Save Registry"
+                                      : "Submit Form"
                             }}
                         </button>
                     </div>
@@ -678,7 +680,7 @@
                     </h2>
                     <div class="flex space-x-3">
                         <a
-                            href="/ds.xlsx"
+                            href="/instructions.xlsx"
                             target="_blank"
                             download
                             class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
@@ -931,7 +933,7 @@
                                 {{ bulkResults.summary.valid_count }}
                             </p>
                             <p class="mt-1 text-xs text-green-600">
-                                Sent to Staging
+                                Sent for Review
                             </p>
                         </div>
                         <div
@@ -948,7 +950,7 @@
                                 {{ bulkResults.summary.invalid_count }}
                             </p>
                             <p class="mt-1 text-xs text-orange-600">
-                                Requires correction
+                                Requires Correction
                             </p>
                         </div>
                     </div>
@@ -959,8 +961,7 @@
                     >
                         <strong>Success:</strong>
                         {{ bulkResults.summary.valid_count }} records
-                        successfully queued for review under batch ID:
-                        <code>{{ bulkResults.batch_id }}</code>
+                        successfully submitted for review
                     </div>
 
                     <div
@@ -1432,6 +1433,10 @@ function validateForm() {
         }
     }
     if (form.category === "Trade") {
+        if (!form.contact_person || !form.contact_person.trim()) {
+            fieldErrors.contact_person = "Contact person name is required.";
+            valid = false;
+        }
         if (
             form.members_count !== null &&
             form.members_count !== "" &&
@@ -1557,15 +1562,19 @@ const fetchDsDivisions = async () => {
 };
 
 // ─── Submission ─────────────────────────────────────────────────────
-const resetForm = (clearRejectionState = true) => {
+const resetForm = (clearRejectionState = true, keepMessages = false) => {
     Object.assign(form, getInitialForm());
     // Bug 13: Clear dropdown option lists
     districts.value = [];
     dsDivisions.value = [];
-    // Clear messages & field errors
-    successMsg.value = "";
-    errorMsg.value = "";
+    
+    // Clear field-level errors
     Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+
+    if (!keepMessages) {
+        successMsg.value = "";
+        errorMsg.value = "";
+    }
 
     if (clearRejectionState) {
         editingRejectedId.value = null;
@@ -1612,8 +1621,7 @@ const submitSingleForm = async () => {
             if (form.employees_count !== null && form.employees_count !== "")
                 payload.employees_count = Number(form.employees_count);
         } else {
-            if (form.contact_person)
-                payload.contact_person = form.contact_person;
+            payload.contact_person = form.contact_person;
             if (form.members_count !== null && form.members_count !== "")
                 payload.members_count = Number(form.members_count);
         }
@@ -1624,19 +1632,19 @@ const submitSingleForm = async () => {
                 `/api/registry/rejected/${editingRejectedId.value}/resubmit`,
                 payload,
             );
-            successMsg.value = `Resubmitted successfully! Back in the pending queue.`;
+            successMsg.value = "Record Successfully Added for Review";
             // Refresh rejection count
             fetchRejectedRecords();
             // Bug 13: Clear all dropdowns AND form values on success (also clears rejection editing state)
-            resetForm();
+            resetForm(true, true);
             // Switch back to rejected tab automatically
             activeTab.value = "rejected";
         } else {
             // Standard new single submission
             const { data } = await axios.post("/api/registry/single", payload);
-            successMsg.value = `Record queued for review! Staging ID: ${data.staging_id}`;
+            successMsg.value = "Record Successfully Added for Review";
             // Bug 13: Clear all dropdowns AND form values on success
-            resetForm();
+            resetForm(true, true);
         }
 
         scrollToAlert();
@@ -1728,10 +1736,20 @@ const submitBulkUpload = async () => {
             });
         }
     } catch (err) {
-        bulkErrorMsg.value =
-            err.response?.data?.message ||
-            err.response?.data?.error ||
-            "An error occurred during upload. Please try again.";
+        const status = err.response?.status;
+        if (status === 429) {
+            bulkErrorMsg.value =
+                "Upload limit reached. You can upload up to 10 files per minute. Please wait a moment and try again.";
+        } else if (status === 503) {
+            bulkErrorMsg.value =
+                err.response?.data?.message ||
+                "The upload could not be completed due to a server error. Any data sent has been rolled back. Please try again in a few minutes.";
+        } else {
+            bulkErrorMsg.value =
+                err.response?.data?.message ||
+                err.response?.data?.error ||
+                "An unexpected error occurred during upload. Please try again.";
+        }
         console.error("Bulk upload failed", err);
         if (bulkAlertArea.value) {
             bulkAlertArea.value.scrollIntoView({

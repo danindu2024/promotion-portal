@@ -88,12 +88,12 @@ The following describes the complete data flow for the Single Form Entry feature
 
 1. **Page Load:** Vue component mounts and calls `GET /api/locations/provinces` to populate the Province dropdown. A loading spinner is shown while fetching.
 2. **User Interaction:** User selects category (Self-Employed/Trade), fills in fields. Cascading dropdowns trigger additional API calls for districts and DS divisions. Loading indicators appear during each fetch.
-3. **Pre-Submit Client-Side Validation:** On "Save Registry" click, the `validateForm()` function checks:
+3. **Pre-Submit Client-Side Validation:** On "Submit Form" click, the `validateForm()` function checks:
     - All required fields are filled (full_name, province, district, ds_division, contact_number)
     - Contact number matches regex `^0\d{9}$`
     - WhatsApp number matches format if provided
     - Email format is valid if provided
-    - Category-specific required fields (e.g., `field_of_work` for Self-Employed)
+    - Category-specific required fields (e.g., `field_of_work` for Self-Employed, `contact_person` for Trade)
     - If validation fails: red borders + inline error messages appear. Page auto-scrolls to top error banner. No API call is made.
 4. **Payload Construction:** Irrelevant category fields are excluded entirely from the payload (not sent as empty strings). Only filled optional fields are included.
 
@@ -121,7 +121,7 @@ The following describes the complete data flow for the Excel Bulk Upload feature
 **Backend (Laravel — `RegistryController@uploadExcel`):**
 
 4. **File Validation:** Extension-based validation rejects files that are not `.csv`, `.xls`, or `.xlsx`. Size limit enforced at 10MB.
-5. **Parsing:** `Maatwebsite\Excel::toArray()` reads the first sheet. The header row is discarded.
+5. **Parsing:** `RegistryImport` class (implements `WithChunkReading`) reads the file in chunks of **500 rows** at a time. The header row is discarded on the first chunk only.
 6. **Empty Row Filtering:** Completely empty rows are skipped and not counted toward `total_processed`.
 7. **Phone Normalization (per row):** `normalizePhoneNumber()` is applied to `contact_number` and `whatsapp_number`:
     - Strips non-digit characters.
@@ -137,10 +137,10 @@ The following describes the complete data flow for the Excel Bulk Upload feature
 
 **Frontend (Post-Processing):**
 
-14. **Results UI:** Displays the 3-card summary. A success banner shows the `batch_id` for Validator reference.
+14. **Results UI:** Displays the 3-card summary (total processed, sent for review, requires correction). A success banner confirms records were submitted.
 15. **Error Sheet Generation (client-side, 0 network calls):** If `invalid_count > 0`, the "Download Error Sheet" button is shown. Clicking it builds a CSV in-browser from `invalid_rows`, appends an "Error Message" column, and triggers a download via a temporary object URL.
 
-**Total DB Calls Per Upload:** 3 (main_registry check + staging_data check + bulk insert).
+**Total DB Calls Per Upload:** Variable — 3 operations (main_registry check + staging_data check + bulk insert) are performed **per 500-row chunk**.
 
 #### **Rejection Dashboard Flow (Frontend → Backend)**
 

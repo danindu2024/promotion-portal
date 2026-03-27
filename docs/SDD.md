@@ -101,9 +101,9 @@ The central table storing all beneficiary data.
 | `whatsapp_number` | String    | Yes      | WhatsApp contact                                            |
 | `email`           | String    | Yes      | Email address                                               |
 | `age`             | Integer   | Yes      | Age (Self-Employed only)                                    |
-| `field_of_work`   | Enum      | **Yes**  | Business sector — 10 categories (Self-Employed only)        |
+| `field_of_work`   | Enum      | **Yes**  | Business sector — 10 categories (Self-Employed only, **required when category = Self-Employed**) |
 | `employees_count` | Integer   | Yes      | Number of employees (Self-Employed only)                    |
-| `contact_person`  | String    | Yes      | Contact person name (Trade only)                            |
+| `contact_person`  | String    | Yes      | Contact person name (Trade only, **required when category = Trade**) |
 | `members_count`   | Integer   | Yes      | Number of members (Trade only)                              |
 | `approved_by`     | BigInt    | **No**   | ID of the Validator (Foreign Key -> users.user_id)          |
 | `approved_at`     | Timestamp | **No**   | Time of approval                                            |
@@ -228,22 +228,23 @@ resources/
 
 ### 6.6 API Routes (JSON Endpoints)
 
-| Route | Method | Controller Method | Description |
-| --- | --- | --- | --- |
-| `/api/locations/provinces` | GET | `LocationController@provinces` | Returns all 9 Sri Lankan provinces |
-| `/api/locations/districts` | GET | `LocationController@districts` | Returns districts for a given `province` |
-| `/api/locations/ds-divisions` | GET | `LocationController@dsDivisions` | Returns DS divisions for a given `district` |
-| `/api/registry/single` | POST | `RegistryController@storeSingle` | Validates and stages a single record |
-| `/api/registry/upload` | POST | `RegistryController@uploadExcel` | Bulk-stages rows from an uploaded Excel/CSV file |
-| `/api/registry/template` | GET | `RegistryController@downloadTemplate` | Streams a CSV template for Agent download |
-| `/ds.xlsx` *(static)* | GET | — | Static Excel file with location names. Served from `public/ds.xlsx`. |
-| `/api/registry/rejected` | GET | `RegistryController@getRejected` | Returns paginated list of current user's rejected records |
-| `/api/registry/rejected/{id}` | GET | `RegistryController@getRejectedRecord` | Returns payload of a specific rejected record |
-| `/api/registry/rejected/{id}/resubmit` | POST | `RegistryController@resubmitRejected` | Resubmits a corrected record back to Pending state |
-| `/api/users` | GET | `UserManagementController@index` | Returns all users as JSON |
-| `/api/users` | POST | `UserManagementController@store` | Creates a new user with hashed password |
-| `/api/users/{id}` | PUT | `UserManagementController@update` | Updates a user; re-hashes password only if provided |
-| `/api/users/{id}` | DELETE | `UserManagementController@destroy` | Deletes a user |
+All routes below (except `/login` / `/logout`) are protected by `auth:sanctum` middleware.
+
+| Route | Method | Rate Limit | Controller Method | Description |
+| --- | --- | --- | --- | --- |
+| `/api/locations/provinces` | GET | 60/min | `LocationController@provinces` | Returns all 9 Sri Lankan provinces |
+| `/api/locations/districts` | GET | 60/min | `LocationController@districts` | Returns districts for a given `province` |
+| `/api/locations/ds-divisions` | GET | 60/min | `LocationController@dsDivisions` | Returns DS divisions for a given `district` |
+| `/api/registry/single` | POST | 30/min | `RegistryController@storeSingle` | Validates and stages a single record |
+| `/api/registry/upload` | POST | **5/min** | `RegistryController@uploadExcel` | Bulk-stages rows from an uploaded Excel/CSV file |
+| `/api/registry/template` | GET | 30/min | `RegistryController@downloadTemplate` | Streams a CSV template for Agent download |
+| `/instructions.xlsx` *(static)* | GET | — | — | Static Excel file with location names. Served from `public/instructions.xlsx`. |
+| `/api/registry/rejected` | GET | 30/min | `RegistryController@getRejected` | Returns paginated list of current user's rejected records |
+| `/api/registry/rejected/{id}/resubmit` | POST | 30/min | `RegistryController@resubmitRejected` | Resubmits a corrected record back to Pending state |
+| `/api/users` | GET | — | `UserManagementController@index` | Returns all users as JSON |
+| `/api/users` | POST | — | `UserManagementController@store` | Creates a new user with hashed password |
+| `/api/users/{id}` | PUT | — | `UserManagementController@update` | Updates a user; re-hashes password only if provided |
+| `/api/users/{id}` | DELETE | — | `UserManagementController@destroy` | Deletes a user |
 
 ### 6.7 Key Backend Service: Phone Number Normalizer
 

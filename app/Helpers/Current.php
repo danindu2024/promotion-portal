@@ -8,12 +8,11 @@ use Illuminate\Support\Facades\Auth;
 class Current
 {
     /**
-     * Get the currently authenticated user (or mock user).
+     * Get the currently authenticated user.
      */
     public static function user()
     {
-        // TODO: Replace with Auth::user() once authentication is integrated
-        return User::find(1) ?? User::first(); 
+        return Auth::user(); 
     }
 
     /**
@@ -21,7 +20,6 @@ class Current
      */
     public static function id()
     {
-        // TODO: Replace with Auth::id() once authentication is integrated
-        return 1;
+        return Auth::id();
     }
 }
