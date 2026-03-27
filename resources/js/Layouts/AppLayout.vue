@@ -32,7 +32,7 @@
                         'block px-6 py-3',
                     ]"
                 >
-                    Review Queue
+                    Data Validation
                 </Link>
                 <Link
                     v-if="['decision maker', 'admin'].includes(user?.access_level)"
