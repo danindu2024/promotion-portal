@@ -15,40 +15,48 @@ Route::get('/user', function (Request $request) {
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 
-// Location Dropdowns — read-only, generous limit
-Route::prefix('locations')->middleware('throttle:60,1')->group(function () {
-    Route::get('/provinces', [LocationController::class, 'provinces']);
-    Route::get('/districts', [LocationController::class, 'districts']);
-    Route::get('/ds-divisions', [LocationController::class, 'dsDivisions']);
+// All data routes require authentication
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Location Dropdowns — read-only, generous limit
+    Route::prefix('locations')->middleware('throttle:60,1')->group(function () {
+        Route::get('/provinces', [LocationController::class, 'provinces']);
+        Route::get('/districts', [LocationController::class, 'districts']);
+        Route::get('/ds-divisions', [LocationController::class, 'dsDivisions']);
+    });
+
+    // Registry Data Entry — write operations
+    Route::prefix('registry')->group(function () {
+        // Standard form submission - 30/min
+        Route::post('/single', [RegistryController::class, 'storeSingle'])->middleware('throttle:30,1');
+
+        // Bulk upload - strict 5/min to prevent abuse
+        Route::post('/upload', [RegistryController::class, 'uploadExcel'])->middleware('throttle:10,1');
+
+        // Template download - read-only, generous
+        Route::get('/template', [RegistryController::class, 'downloadTemplate'])->middleware('throttle:30,1');
+
+        // Rejected Records Management
+        Route::get('/rejected', [RegistryController::class, 'getRejected'])->middleware('throttle:30,1');
+        Route::post('/rejected/{id}/resubmit', [RegistryController::class, 'resubmitRejected'])->middleware('throttle:30,1');
+    });
+
+    // Maker-Checker Reviews — sensitive actions, strict limit
+    Route::prefix('reviews')->middleware('throttle:30,1')->group(function () {
+        Route::get('/pending', [ReviewController::class, 'pending']);
+        Route::get('/batch/{batchId}', [ReviewController::class, 'batchDetails']);
+        Route::post('/batch/{batchId}/approve', [ReviewController::class, 'approveBatch']);
+        Route::post('/{id}/reject', [ReviewController::class, 'reject']);
+    });
+
+    // Analytics Dashboard — read-only, generous limit
+    Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {
+        Route::get('/kpis', [AnalyticsController::class, 'getKPIs']);
+        Route::get('/sectors', [AnalyticsController::class, 'getSectorDistribution']);
+        Route::get('/field-of-work', [AnalyticsController::class, 'getFieldOfWorkDistribution']);
+        Route::get('/heatmap', [AnalyticsController::class, 'getHeatmapData']);
+        Route::get('/ds-heatmap', [AnalyticsController::class, 'getDsHeatmapData']);
+        Route::get('/search', [AnalyticsController::class, 'advancedSearch']);
+    });
 });
 
-// Registry Data Entry — write operations, tighter limit
-Route::prefix('registry')->middleware('throttle:30,1')->group(function () {
-    Route::post('/single', [RegistryController::class, 'storeSingle']);
-    Route::post('/upload', [RegistryController::class, 'uploadExcel']);
-    Route::get('/template', [RegistryController::class, 'downloadTemplate']);
-
-    
-    // Rejected Records Management
-    Route::get('/rejected', [RegistryController::class, 'getRejected']);
-    Route::get('/rejected/{id}', [RegistryController::class, 'getRejectedRecord']);
-    Route::post('/rejected/{id}/resubmit', [RegistryController::class, 'resubmitRejected']);
-});
-
-// Maker-Checker Reviews — sensitive actions, strict limit
-Route::prefix('reviews')->middleware('throttle:30,1')->group(function () {
-    Route::get('/pending', [ReviewController::class, 'pending']);
-    Route::get('/batch/{batchId}', [ReviewController::class, 'batchDetails']);
-    Route::post('/batch/{batchId}/approve', [ReviewController::class, 'approveBatch']);
-    Route::post('/{id}/reject', [ReviewController::class, 'reject']);
-});
-
-// Analytics Dashboard — read-only, generous limit
-Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {
-    Route::get('/kpis', [AnalyticsController::class, 'getKPIs']);
-    Route::get('/sectors', [AnalyticsController::class, 'getSectorDistribution']);
-    Route::get('/field-of-work', [AnalyticsController::class, 'getFieldOfWorkDistribution']);
-    Route::get('/heatmap', [AnalyticsController::class, 'getHeatmapData']);
-    Route::get('/ds-heatmap', [AnalyticsController::class, 'getDsHeatmapData']);
-    Route::get('/search', [AnalyticsController::class, 'advancedSearch']);
-});
