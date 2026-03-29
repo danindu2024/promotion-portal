@@ -4,13 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected $primaryKey = 'user_id';
 
@@ -27,6 +28,7 @@ class User extends Authenticatable
         'district',
         'ds_division',
         'access_level',
+        'is_active',
     ];
 
     /**
@@ -47,7 +49,30 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'   => 'hashed',
+            'is_active'  => 'boolean',
+            'deleted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Scope: only return active (non-deactivated) users.
+     * Usage: User::active()->get()
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    // Relationships -------------------------------------------------------
+
+    public function uploadedData()
+    {
+        return $this->hasMany(StagingData::class, 'uploaded_by', 'user_id');
+    }
+
+    public function reviewedData()
+    {
+        return $this->hasMany(StagingData::class, 'reviewed_by', 'user_id');
     }
 }
