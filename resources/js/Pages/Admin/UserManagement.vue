@@ -207,37 +207,41 @@
                                     <input type="text" id="username" v-model="form.username" required class="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2.5 px-3">
                                 </div>
                                 <div>
-                                    <label for="province" class="block text-sm font-medium text-gray-700">Province</label>
-                                    <select id="province" v-model="form.province" @change="fetchModalDistricts" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-                                        <option value="" disabled>Select province</option>
-                                        <option v-for="prov in provinces" :key="prov" :value="prov">{{ prov }}</option>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="district" class="block text-sm font-medium text-gray-700">District</label>
-                                        <select id="district" v-model="form.district" @change="fetchModalDsDivisions" :disabled="!form.province || loadingModalDistricts" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm disabled:bg-gray-100">
-                                            <option value="" disabled>{{ loadingModalDistricts ? 'Loading...' : 'Select district' }}</option>
-                                            <option v-for="dist in modalDistricts" :key="dist" :value="dist">{{ dist }}</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label for="ds_division" class="block text-sm font-medium text-gray-700">DS Division</label>
-                                        <select id="ds_division" v-model="form.ds_division" :disabled="!form.district || loadingModalDsDivisions" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm disabled:bg-gray-100">
-                                            <option value="" disabled>{{ loadingModalDsDivisions ? 'Loading...' : 'Select division' }}</option>
-                                            <option v-for="ds in modalDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="access_level" class="block text-sm font-medium text-gray-700">Access Level</label>
-                                    <select id="access_level" v-model="form.access_level" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                    <label for="access_level" class="block text-sm font-medium text-gray-700">Access Level <span class="text-red-500">*</span></label>
+                                    <select id="access_level" v-model="form.access_level" @change="handleAccessLevelChange" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                                         <option value="" disabled>Select access level</option>
                                         <option v-for="level in accessLevels" :key="level.value" :value="level.value">
                                             {{ level.label }}
                                         </option>
                                     </select>
                                 </div>
+
+                                <!-- Location Selection (Dynamic based on Access Level) -->
+                                <template v-if="form.access_level === 'data entry' || form.access_level === 'validator'">
+                                    <div>
+                                        <label for="province" class="block text-sm font-medium text-gray-700">Province <span class="text-red-500">*</span></label>
+                                        <select id="province" v-model="form.province" @change="fetchModalDistricts" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                            <option value="" disabled>Select province</option>
+                                            <option v-for="prov in provinces" :key="prov" :value="prov">{{ prov }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="grid" :class="form.access_level === 'data entry' ? 'grid-cols-2 gap-4' : 'grid-cols-1'">
+                                        <div>
+                                            <label for="district" class="block text-sm font-medium text-gray-700">District <span class="text-red-500">*</span></label>
+                                            <select id="district" v-model="form.district" @change="fetchModalDsDivisions" :disabled="!form.province || loadingModalDistricts" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm disabled:bg-gray-100">
+                                                <option value="" disabled>{{ loadingModalDistricts ? 'Loading...' : 'Select district' }}</option>
+                                                <option v-for="dist in modalDistricts" :key="dist" :value="dist">{{ dist }}</option>
+                                            </select>
+                                        </div>
+                                        <div v-if="form.access_level === 'data entry'">
+                                            <label for="ds_division" class="block text-sm font-medium text-gray-700">DS Division <span class="text-red-500">*</span></label>
+                                            <select id="ds_division" v-model="form.ds_division" :disabled="!form.district || loadingModalDsDivisions" required class="mt-1 block w-full py-2.5 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm disabled:bg-gray-100">
+                                                <option value="" disabled>{{ loadingModalDsDivisions ? 'Loading...' : 'Select division' }}</option>
+                                                <option v-for="ds in modalDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </template>
                                 <div>
                                     <label for="password" class="block text-sm font-medium text-gray-700">
                                         {{ form.user_id ? 'Reset Password (optional)' : 'Password' }}
@@ -476,6 +480,21 @@ const openAddModal = () => {
     modalDistricts.value = [];
     modalDsDivisions.value = [];
     isModalOpen.value = true;
+};
+
+const handleAccessLevelChange = () => {
+    const level = form.value.access_level;
+    // Clear values if they are no longer required/visible for the selected level
+    if (level === 'admin' || level === 'decision maker') {
+        form.value.province = '';
+        form.value.district = '';
+        form.value.ds_division = '';
+        modalDistricts.value = [];
+        modalDsDivisions.value = [];
+    } else if (level === 'validator') {
+        form.value.ds_division = '';
+        modalDsDivisions.value = [];
+    }
 };
 
 const openEditModal = async (user) => {
