@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\ValidationException;
+use App\Helpers\Logger;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -32,6 +33,10 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
+
+            // Log successful login to database
+            Logger::log('AUTH_SUCCESS', 'User logged in successfully', 'AUTH', "Access Level: {$user->access_level}");
+
             $home = match ($user->access_level) {
                 'data entry' => '/data-entry',
                 'validator' => '/review',
@@ -44,6 +49,9 @@ class AuthenticatedSessionController extends Controller
         }
 
         $message = 'Invalid Username or Password';
+
+        // Log failed login attempt to audit file
+        Logger::log('AUTH_FAILURE', "Failed login attempt for username: {$request->username}", 'AUTH');
 
         if ($request->header('X-Inertia')) {
             return Inertia::render('Auth/Login', [
@@ -66,6 +74,9 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request)
     {
+        // Log logout to database before destroying session
+        Logger::log('AUTH_LOGOUT', 'User logged out', 'AUTH');
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
