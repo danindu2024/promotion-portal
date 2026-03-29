@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('main_registry', function (Blueprint $table) {
             // Drop existing unique constraint
-            // Laravel default name for $table->string('x')->unique() is [table]_x_unique
             $table->dropUnique(['contact_number']);
             
             // Add composite unique constraint
