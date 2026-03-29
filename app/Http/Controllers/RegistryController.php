@@ -10,13 +10,14 @@ use App\Models\MainRegistry;
 use App\Models\StagingData;
 use App\Services\RegistryValidator;
 use App\Helpers\Current;
+use App\Helpers\Logger;
 use App\Imports\RegistryImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
 {
-    /**
-     * Submit a single new record for Maker-Checker review.
+    /**n
+     * Submit a single new record for validator review
      */
     public function storeSingle(Request $request)
     {
@@ -66,12 +67,13 @@ class RegistryController extends Controller
         $fullValidator->validate();
 
         // Insert to Staging
-        $staging = StagingData::create([
-            'batch_id' => 'SINGLE-' . uniqid('', true),
-            'data_payload' => $data,
-            'validation_status' => StagingData::STATUS_PENDING,
-            'submission_type' => 'NEW',
             'uploaded_by' => Current::id(), // Use mocked user until real Auth
+        ]);
+
+        // Log single submission to database
+        Logger::log('REGISTRY_ENTRY', "New {$data['category']} record submitted", 'REGISTRY', "Staging ID: {$staging->id}", [
+            'category' => $data['category'],
+            'contact_number' => $data['contact_number']
         ]);
 
         return response()->json([
@@ -151,6 +153,14 @@ class RegistryController extends Controller
                 'message' => 'Upload failed due to a server error. Any data already processed has been rolled back. Please try again in a few minutes.',
             ], 503);
         }
+
+        // Log bulk upload attempt to database
+        Logger::log('REGISTRY_BULK_UPLOAD', 'Excel bulk upload processed', 'REGISTRY', "Batch ID: {$import->batchId}", [
+            'total_rows' => $import->totalRows,
+            'valid_count' => $import->validCount,
+            'invalid_count' => count($import->invalidRows),
+            'filename' => $request->file('file')->getClientOriginalName()
+        ]);
 
         return response()->json([
             'summary' => [

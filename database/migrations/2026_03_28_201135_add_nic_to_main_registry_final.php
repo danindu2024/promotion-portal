@@ -12,11 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('main_registry', function (Blueprint $table) {
-            // Drop existing unique constraint
-            $table->dropUnique(['contact_number']);
-            
-            // Add composite unique constraint
-            $table->unique(['contact_number', 'category']);
+            $table->string('national_id_number')->nullable()->after('full_name');
         });
     }
 
@@ -26,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('main_registry', function (Blueprint $table) {
-            $table->dropUnique(['contact_number', 'category']);
-            $table->unique('contact_number');
+            $table->dropColumn('national_id_number');
         });
     }
 };

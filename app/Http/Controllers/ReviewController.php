@@ -1,12 +1,6 @@
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Models\StagingData;
 use App\Models\MainRegistry;
 use App\Helpers\Current;
+use App\Helpers\Logger;
 
 class ReviewController extends Controller
 {
@@ -125,13 +119,32 @@ class ReviewController extends Controller
                         $errors[] = "Row ID {$staging->id}: {$reason}";
                         continue;
                     }
-                    $mainRecord->update($payload);
+
+                    // Optimization: Identify only dirty fields to minimize log payload
+                    $mainRecord->fill($payload);
+                    $oldValues = array_intersect_key($mainRecord->getOriginal(), $mainRecord->getDirty());
+                    $dirtyFields = array_keys($mainRecord->getDirty());
+
+                    $mainRecord->save();
+
+                    // Log the update with original values of changed fields to database
+                    Logger::log('REGISTRY_UPDATE_APPROVED', "Approved update for record", 'REGISTRY', json_encode($oldValues), [
+                        'staging_id' => $staging->id,
+                        'target_id' => $staging->target_record_id,
+                        'changed_fields' => $dirtyFields
+                    ]);
                 }
 
                 $staging->approve();
                 $approvedCount++;
             }
         });
+
+        // Log general batch approval event
+        Logger::log('VALIDATION_BATCH_APPROVED', "Approved batch of records", 'REVIEW', "Batch ID: {$batchId}", [
+            'approved_count' => $approvedCount,
+            'skipped_count' => count($errors)
+        ]);
 
         $message = "Successfully approved $approvedCount records.";
         if (count($errors) > 0) {
@@ -160,6 +173,12 @@ class ReviewController extends Controller
         }
 
         $staging->reject($request->input('reason'));
+
+        // Log rejection to database
+        Logger::log('VALIDATION_REJECT', "Rejected record", 'REVIEW', "Staging ID: {$id}", [
+            'reason' => $request->input('reason'),
+            'category' => $staging->data_payload['category'] ?? 'N/A'
+        ]);
 
         return response()->json(['message' => 'Record rejected.']);
     }

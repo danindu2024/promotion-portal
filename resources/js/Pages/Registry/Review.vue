@@ -2,7 +2,7 @@
     <AppLayout>
         <div class="max-w-7xl mx-auto">
             <h1 class="text-3xl font-bold text-gray-800 mb-6">
-                Validation Module (Maker-Checker)
+                Data Validation Page
             </h1>
 
             <!-- Alerts (scroll target) -->
@@ -179,7 +179,7 @@
                 <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
                     <h2 class="text-xl font-medium text-gray-800">Pending Review Queue</h2>
                     <span class="bg-primary-100 text-primary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                        {{ pendingBatches.total || 0 }} Upload Events
+                        {{ pendingBatches.total || 0 }} Upload Batches
                     </span>
                 </div>
                 

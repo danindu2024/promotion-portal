@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\MainRegistry;
 use App\Models\StagingData;
+use App\Helpers\Logger;
 
 class AnalyticsController extends Controller
 {
@@ -157,6 +158,12 @@ class AnalyticsController extends Controller
         }
 
         $results = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        // Log search query to audit file
+        Logger::log('SEARCH_QUERY', 'Demographic search performed', 'ANALYTICS', null, [
+            'filters' => $request->only(['province', 'district', 'ds_division', 'category', 'field_of_work']),
+            'results_count' => $results->total()
+        ]);
 
         return response()->json($results);
     }
