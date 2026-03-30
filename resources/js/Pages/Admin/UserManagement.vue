@@ -124,10 +124,12 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700">
                                     <div v-if="user.district">
                                         {{ user.district }}
-                                        <span class="mx-1 text-gray-400">|</span>
-                                        <span class="text-sm text-gray-600">{{ user.ds_division }}</span>
+                                        <template v-if="user.ds_division">
+                                            <span class="mx-1 text-gray-400">|</span>
+                                            <span class="text-sm text-gray-600">{{ user.ds_division }}</span>
+                                        </template>
                                     </div>
-                                    <span v-else class="text-gray-400 italic">No Location</span>
+                                    <span v-else class="text-gray-400 italic">Main Office</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize" 
