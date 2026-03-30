@@ -16,12 +16,18 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
 {
-    /**n
+    /*
      * Submit a single new record for validator review
      */
     public function storeSingle(Request $request)
     {
         $data = $request->all();
+
+        foreach ($data as $key => $value) {
+            if (is_string($value)) {
+                $data[$key] = trim($value);
+            }
+        }
 
         // Initial format check
         $validator = Validator::make($data, [
@@ -67,7 +73,11 @@ class RegistryController extends Controller
         $fullValidator->validate();
 
         // Insert to Staging
-            'uploaded_by' => Current::id(), // Use mocked user until real Auth
+        $staging = StagingData::create([
+            'batch_id' => 'SINGLE-' . uniqid('', true),
+            'data_payload' => $data,
+            'submission_type' => 'NEW',
+            'uploaded_by' => Current::id(),
         ]);
 
         // Log single submission to database
@@ -229,6 +239,12 @@ class RegistryController extends Controller
             
         $data = $request->all();
 
+        foreach ($data as $key => $value) {
+            if (is_string($value)) {
+                $data[$key] = trim($value);
+            }
+        }
+
         // Initial format check before expensive db checks
         $preCheck = Validator::make($data, [
             'category'       => 'required|in:Self-Employed,Trade',
@@ -291,5 +307,139 @@ class RegistryController extends Controller
             'message'    => 'Record resubmitted successfully.',
             'staging_id' => $staging->id
         ], 200);
+    }
+
+    /**
+     * List records from main registry that can be updated.
+     * Scoped by User Location (DS Division for Data Entry, District for Validator).
+     */
+    public function listUpdateable(Request $request)
+    {
+        $user = Current::user();
+        $query = MainRegistry::query();
+
+        // 1. Enforce Location Scoping
+        if ($user->access_level === 'data entry') {
+            $query->where('ds_division', $user->ds_division);
+        } elseif ($user->access_level === 'validator') {
+            $query->where('district', $user->district);
+        }
+
+        // 2. Apply Filters (Reusing logic from AnalyticsController)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('contact_number', 'like', "%{$search}%")
+                  ->orWhere('national_id_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('province')) {
+            $query->where('province', $request->province);
+        }
+        if ($request->filled('district') && $user->access_level !== 'validator' && $user->access_level !== 'data entry') {
+             $query->where('district', $request->district);
+        }
+        if ($request->filled('ds_division') && $user->access_level !== 'data entry') {
+            $query->where('ds_division', $request->ds_division);
+        }
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        // 3. Check for Pending Updates
+        $query->addSelect(['main_registry.*']);
+        $query->selectSub(function($q) {
+            $q->from('staging_data')
+              ->selectRaw('1')
+              ->whereColumn('target_record_id', 'main_registry.id')
+              ->where('validation_status', StagingData::STATUS_PENDING)
+              ->limit(1);
+        }, 'has_pending_update');
+
+        $results = $query->orderBy('full_name', 'asc')->paginate(15);
+
+        return response()->json($results);
+    }
+
+    /**
+     * Submit an update request for an existing record.
+     */
+    public function submitUpdate(Request $request, $id)
+    {
+        $mainRecord = MainRegistry::findOrFail($id);
+        $user = Current::user();
+
+        // Security: Ensure user has permission to update this record based on location
+        if ($user->access_level === 'data entry' && $mainRecord->ds_division !== $user->ds_division) {
+            return response()->json(['message' => 'Unauthorized: This record is outside your assigned DS Division.'], 403);
+        }
+        if ($user->access_level === 'validator' && $mainRecord->district !== $user->district) {
+            return response()->json(['message' => 'Unauthorized: This record is outside your assigned District.'], 403);
+        }
+
+        // Check if a pending update already exists
+        $pendingExists = StagingData::where('target_record_id', $id)
+            ->where('validation_status', StagingData::STATUS_PENDING)
+            ->exists();
+        
+        if ($pendingExists) {
+            return response()->json(['message' => 'This record already has a pending update request.'], 409);
+        }
+
+        $data = $request->all();
+
+        // Server-side trim
+        foreach ($data as $key => $value) {
+            if (is_string($value)) {
+                $data[$key] = trim($value);
+            }
+        }
+
+        // Category-Aware Validation
+        $data['category'] = $mainRecord->category; // Force original category
+        
+        // Strip cross-category null fields
+        if ($data['category'] === 'Self-Employed') {
+            unset($data['contact_person'], $data['members_count']);
+        } elseif ($data['category'] === 'Trade') {
+            unset($data['field_of_work'], $data['age'], $data['employees_count']);
+        }
+
+        $validator = RegistryValidator::validate($data);
+        $validator->validate();
+
+        // Check for contact number duplicates (excluding the current record)
+        $existsInMain = MainRegistry::where('contact_number', $data['contact_number'])
+            ->where('category', $data['category'])
+            ->where('id', '!=', $id)
+            ->exists();
+        
+        if ($existsInMain) {
+            return response()->json([
+                'message' => 'Contact number already exists for this category.',
+                'errors' => ['contact_number' => ['Contact number already exists for this category.']]
+            ], 409);
+        }
+
+        $staging = StagingData::create([
+            'batch_id' => 'UPDATE-' . strtoupper(uniqid()),
+            'data_payload' => $data,
+            'submission_type' => 'UPDATE',
+            'target_record_id' => $id,
+            'uploaded_by' => Current::id(),
+            'validation_status' => StagingData::STATUS_PENDING
+        ]);
+
+        Logger::log('REGISTRY_UPDATE_SUBMITTED', "Update request submitted for {$data['category']} record", 'REGISTRY', "Staging ID: {$staging->id} | Target ID: {$id}", [
+            'category' => $data['category'],
+            'contact_number' => $data['contact_number']
+        ]);
+
+        return response()->json([
+            'message' => 'Update request submitted for review successfully.',
+            'staging_id' => $staging->id
+        ], 201);
     }
 }

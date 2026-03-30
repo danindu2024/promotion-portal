@@ -58,7 +58,7 @@ class RegistryImport implements ToCollection, WithChunkReading
             $data = [
                 'category'           => $rowData[0] ?? null,
                 'full_name'          => $rowData[1] ?? null,
-                'national_id_number' => $rowData[2] ?? null,
+                'national_id_number' => $this->normalizeNationalId($rowData[2] ?? null),
                 'contact_number'     => $this->normalizePhoneNumber($rowData[3] ?? null),
                 'province'           => $rowData[4] ?? null,
                 'district'           => $rowData[5] ?? null,
@@ -72,6 +72,12 @@ class RegistryImport implements ToCollection, WithChunkReading
                 'members_count'      => isset($rowData[13]) && (string)$rowData[13] !== '' ? (int)$rowData[13] : null,
                 'employees_count'    => isset($rowData[14]) && (string)$rowData[14] !== '' ? (int)$rowData[14] : null,
             ];
+
+            foreach ($data as $key => $value) {
+                if (is_string($value)) {
+                    $data[$key] = trim($value);
+                }
+            }
 
             $contactNumber = $data['contact_number'];
 
@@ -189,5 +195,17 @@ class RegistryImport implements ToCollection, WithChunkReading
             }
         }
         return $number;
+    }
+
+    private function normalizeNationalId($id)
+    {
+        if (empty($id)) return null;
+
+        // If Excel loaded it as float (e.g. 200228002270.0), convert to plain string without scientific notation
+        if (is_numeric($id)) {
+            return number_format((float) $id, 0, '', '');
+        }
+
+        return trim((string) $id);
     }
 }

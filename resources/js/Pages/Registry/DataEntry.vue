@@ -31,6 +31,17 @@
                         Excel Bulk Upload
                     </button>
                     <button
+                        @click="activeTab = 'update'"
+                        :class="[
+                            activeTab === 'update'
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                            'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-lg flex items-center',
+                        ]"
+                    >
+                        Update Records
+                    </button>
+                    <button
                         @click="activeTab = 'rejected'"
                         :class="[
                             activeTab === 'rejected'
@@ -140,7 +151,6 @@
                         class="mb-6 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-md shadow-sm"
                     >
                         <div class="flex">
-                            
                             <div class="flex items-center flex-1">
                                 <svg
                                     class="h-5 w-5 text-orange-400 mr-2 flex-shrink-0"
@@ -171,6 +181,28 @@
                                     Cancel Editing
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Update Record Alert Banner -->
+                    <div
+                        v-if="editingUpdateId"
+                        class="mb-6 p-4 bg-primary-50 text-primary-800 border border-primary-200 rounded-md shadow-sm"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <svg class="h-5 w-5 text-primary-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                <div class="text-sm">
+                                    You are currently <span class="font-bold">Updating</span> an existing record for <span class="font-bold">{{ form.full_name }}</span>.
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                @click="cancelUpdate"
+                                class="text-sm font-medium text-primary-700 hover:text-primary-800 underline focus:outline-none"
+                            >
+                                Cancel & Reset
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -250,7 +282,11 @@
                             <div>
                                 <label
                                     class="block text-sm font-medium text-gray-700"
-                                    >National ID Number</label
+                                    >{{
+                                        form.category === "Trade"
+                                            ? "National ID Number of Contact Person"
+                                            : "National ID Number"
+                                    }}</label
                                 >
                                 <input
                                     type="text"
@@ -1267,14 +1303,148 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Updateable Records Tab -->
+            <div
+                v-show="activeTab === 'update'"
+                class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden"
+            >
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4 items-end">
+                    <!-- Search -->
+                    <div class="flex-1 min-w-[240px]">
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Search Name / NIC</label>
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                v-model="updateFilters.search" 
+                                @keyup.enter="fetchUpdateableRecords" 
+                                placeholder="Search Name/NIC..." 
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3 pl-9"
+                            >
+                            <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Category Filter (Always visible for Data Entry and above) -->
+                    <div class="w-44">
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+                        <select 
+                            v-model="updateFilters.category"
+                            @change="fetchUpdateableRecords"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2"
+                        >
+                            <option value="">All Categories</option>
+                            <option value="Self-Employed">Self-Employed</option>
+                            <option value="Trade">Trade</option>
+                        </select>
+                    </div>
+
+                    <!-- Location Filters for Admin/Decision Maker -->
+                    <template v-if="['admin', 'decision maker'].includes(user.access_level)">
+                        <div class="w-44">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Province</label>
+                            <select 
+                                v-model="updateFilters.province"
+                                @change="onFilterProvinceChange"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2"
+                            >
+                                <option value="">All Provinces</option>
+                                <option v-for="p in filterProvinces" :key="p" :value="p">{{ p }}</option>
+                            </select>
+                        </div>
+                        <div class="w-44">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">District</label>
+                            <select 
+                                v-model="updateFilters.district"
+                                @change="onFilterDistrictChange"
+                                :disabled="!updateFilters.province || loadingFilterDistricts"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100"
+                            >
+                                <option value="">All Districts</option>
+                                <option v-for="d in filterDistricts" :key="d" :value="d">{{ d }}</option>
+                            </select>
+                        </div>
+                    </template>
+
+                    <!-- DS Division Filter (Admin/Decision Maker OR Validator) -->
+                    <div class="w-44" v-if="['admin', 'decision maker', 'validator'].includes(user.access_level)">
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">DS Division</label>
+                        <select 
+                            v-model="updateFilters.ds_division"
+                            @change="fetchUpdateableRecords"
+                            :disabled="(['admin', 'decision maker'].includes(user.access_level) && !updateFilters.district) || (user.access_level === 'validator' && !user.district) || loadingFilterDsDivisions"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100"
+                        >
+                            <option value="">All divisions</option>
+                            <option v-for="ds in filterDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
+                        </select>
+                    </div>
+
+                    <button 
+                        @click="fetchUpdateableRecords"
+                        class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium transition h-[38px]"
+                    >
+                        Filter
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & NIC</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-if="loadingUpdate" class="animate-pulse">
+                                <td colspan="3" class="px-6 py-12 text-center text-gray-400 italic">Loading records...</td>
+                            </tr>
+                            <tr v-else-if="updateRecords.length === 0">
+                                <td colspan="3" class="px-6 py-12 text-center text-gray-400 italic">No records found.</td>
+                            </tr>
+                            <tr v-for="record in updateRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-bold text-gray-900">{{ record.full_name }}</div>
+                                    <div class="text-xs text-gray-500">{{ record.national_id_number || 'No NIC' }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-xs text-gray-900">{{ record.district }}</div>
+                                    <div class="text-xs text-gray-500">{{ record.ds_division }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button 
+                                        @click="startUpdate(record)"
+                                        :disabled="record.has_pending_update"
+                                        :class="record.has_pending_update 
+                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                            : 'bg-primary-600 hover:bg-primary-700 shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-primary-500'"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white transition-colors focus:outline-none"
+                                    >
+                                        <svg v-if="record.has_pending_update" class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        <svg v-else class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        {{ record.has_pending_update ? 'Pending Review' : 'Update Record' }}
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from "vue";
+import { ref, reactive, onMounted, nextTick, watch } from "vue";
 import axios from "axios";
+import { usePage } from '@inertiajs/vue3';
 import AppLayout from "@/Layouts/AppLayout.vue";
+
+const user = usePage().props.auth.user;
 
 const activeTab = ref("single");
 // ... Single Form state
@@ -1289,6 +1459,26 @@ const loadingRejected = ref(false);
 const rejectedPagination = ref(null);
 const editingRejectedId = ref(null);
 const currentRejectionReason = ref("");
+
+// Update Record state
+const updateRecords = ref([]);
+const loadingUpdate = ref(false);
+const editingUpdateId = ref(null);
+const updateFilters = reactive({
+    search: '',
+    category: '',
+    province: '',
+    district: '',
+    ds_division: '',
+    page: 1
+});
+
+// Additional Filter Option Refs (to keep separate from form)
+const filterProvinces = ref([]);
+const filterDistricts = ref([]);
+const filterDsDivisions = ref([]);
+const loadingFilterDistricts = ref(false);
+const loadingFilterDsDivisions = ref(false);
 
 // File Input Ref
 const fileInput = ref(null);
@@ -1469,6 +1659,24 @@ onMounted(async () => {
     }
 
     fetchRejectedRecords();
+    fetchUpdateableRecords();
+
+    // Load filter options
+    if (['admin', 'decision maker'].includes(user.access_level)) {
+        try {
+            const { data } = await axios.get("/api/locations/provinces");
+            filterProvinces.value = data;
+        } catch (e) { console.error(e); }
+    } else if (user.access_level === 'validator' && user.district) {
+        updateFilters.district = user.district;
+        // Load DS Divisions for validator's district
+        loadingFilterDsDivisions.value = true;
+        try {
+            const { data } = await axios.get(`/api/locations/ds-divisions?district=${encodeURIComponent(user.district)}`);
+            filterDsDivisions.value = data;
+        } catch (e) { console.error(e); }
+        finally { loadingFilterDsDivisions.value = false; }
+    }
 });
 
 const fetchRejectedRecords = async () => {
@@ -1580,6 +1788,114 @@ const resetForm = (clearRejectionState = true, keepMessages = false) => {
         editingRejectedId.value = null;
         currentRejectionReason.value = "";
     }
+
+    editingUpdateId.value = null;
+};
+
+// ─── Filter Cascaded Loading ──────────────────────────────────────────
+const onFilterProvinceChange = async () => {
+    updateFilters.district = "";
+    updateFilters.ds_division = "";
+    filterDistricts.value = [];
+    filterDsDivisions.value = [];
+    fetchUpdateableRecords();
+
+    if (!updateFilters.province) return;
+
+    loadingFilterDistricts.value = true;
+    try {
+        const { data } = await axios.get(`/api/locations/districts?province=${encodeURIComponent(updateFilters.province)}`);
+        filterDistricts.value = data;
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loadingFilterDistricts.value = false;
+    }
+};
+
+const onFilterDistrictChange = async () => {
+    updateFilters.ds_division = "";
+    filterDsDivisions.value = [];
+    fetchUpdateableRecords();
+
+    if (!updateFilters.district) return;
+
+    loadingFilterDsDivisions.value = true;
+    try {
+        const { data } = await axios.get(`/api/locations/ds-divisions?district=${encodeURIComponent(updateFilters.district)}`);
+        filterDsDivisions.value = data;
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loadingFilterDsDivisions.value = false;
+    }
+};
+
+const cancelUpdate = () => {
+    resetForm(true, false);
+};
+
+const fetchUpdateableRecords = async () => {
+    loadingUpdate.value = true;
+    try {
+        const { data } = await axios.get("/api/registry/updateable", {
+            params: updateFilters,
+        });
+        updateRecords.value = data.data;
+    } catch (e) {
+        console.error("Failed to fetch updateable records", e);
+    } finally {
+        loadingUpdate.value = false;
+    }
+};
+
+const startUpdate = async (record) => {
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Reset form first
+    resetForm(true, true);
+
+    // Fill form
+    editingUpdateId.value = record.id;
+    
+    // Basic fields
+    form.category = record.category;
+    form.full_name = record.full_name;
+    form.national_id_number = record.national_id_number || "";
+    form.province = record.province;
+    form.district = record.district;
+    form.ds_division = record.ds_division;
+    form.address = record.address || "";
+    form.contact_number = record.contact_number;
+    form.whatsapp_number = record.whatsapp_number || "";
+    form.email = record.email || "";
+
+    // Category specific
+    if (record.category === "Self-Employed") {
+        form.age = record.age;
+        form.field_of_work = record.field_of_work;
+        form.employees_count = record.employees_count;
+    } else {
+        form.contact_person = record.contact_person;
+        form.members_count = record.members_count;
+    }
+
+    // Load locations
+    if (form.province) {
+        loadingDistricts.value = true;
+        const { data: d } = await axios.get(`/api/locations/districts?province=${encodeURIComponent(form.province)}`);
+        districts.value = d;
+        loadingDistricts.value = false;
+    }
+    if (form.district) {
+        loadingDsDivisions.value = true;
+        const { data: ds } = await axios.get(`/api/locations/ds-divisions?district=${encodeURIComponent(form.district)}`);
+        dsDivisions.value = ds;
+        loadingDsDivisions.value = false;
+    }
+
+    activeTab.value = "single";
 };
 
 const submitSingleForm = async () => {
@@ -1639,6 +1955,19 @@ const submitSingleForm = async () => {
             resetForm(true, true);
             // Switch back to rejected tab automatically
             activeTab.value = "rejected";
+        } else if (editingUpdateId.value) {
+            // Processing an update submission
+            await axios.post(
+                `/api/registry/updateable/${editingUpdateId.value}/submit`,
+                payload,
+            );
+            successMsg.value = "Update Request Submitted for Review";
+            // Refresh updateable list
+            fetchUpdateableRecords();
+            // Reset
+            resetForm(true, true);
+            // Switch back to update tab
+            activeTab.value = "update";
         } else {
             // Standard new single submission
             const { data } = await axios.post("/api/registry/single", payload);

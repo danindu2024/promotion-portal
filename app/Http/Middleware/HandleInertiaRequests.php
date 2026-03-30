@@ -46,6 +46,9 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'username' => $request->user()->username,
                     'access_level' => $request->user()->access_level,
+                    'province' => $request->user()->province,
+                    'district' => $request->user()->district,
+                    'ds_division' => $request->user()->ds_division,
                 ] : null,
             ],
             'errors' => function () use ($request) {

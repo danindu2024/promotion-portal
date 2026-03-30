@@ -65,14 +65,19 @@
                         <p class="text-sm text-gray-500 mt-1">
                             Uploaded by <span class="font-semibold">{{ selectedBatch.uploader?.name || 'Unknown' }}</span> 
                             on {{ new Date(selectedBatch.created_at.replace(' ', 'T')).toLocaleString() }} 
-                            (Batch: <span class="font-mono text-xs">{{ selectedBatch.batch_id }}</span>)
                         </p>
                     </div>
                     <div class="text-right">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
-                              :class="selectedBatch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
-                            {{ selectedBatch.submission_type }} BATCH
-                        </span>
+                        <div class="flex flex-col gap-2 items-end">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
+                                  :class="selectedBatch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
+                                {{ selectedBatch.batch_id.startsWith('SINGLE-') ? 'SINGLE' : 'BULK' }} UPLOAD
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
+                                  :class="selectedBatch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
+                                {{ selectedBatch.submission_type }} SUBMISSION
+                            </span>
+                        </div>
                         <p class="text-sm text-gray-500 mt-2">
                             Total Records: <span class="font-bold text-gray-800">{{ batchRecords.length }}</span>
                         </p>
@@ -92,56 +97,222 @@
                     All records in this batch have been processed.
                 </div>
 
-                <div v-else class="overflow-x-auto border border-gray-200 rounded-md mb-8">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identity</th>
-                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="record in batchRecords" :key="record.id" class="hover:bg-red-50 transition-colors group">
-                                <td class="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                    <span class="font-medium">{{ record.data_payload.category }}</span>
-                                    <template v-if="record.data_payload.category === 'Self-Employed'">
-                                        <div class="text-xs text-gray-500 mt-1">Age: {{ record.data_payload.age || 'N/A' }}</div>
-                                        <div class="text-xs text-gray-500">Emp: {{ record.data_payload.employees_count !== null && record.data_payload.employees_count !== undefined && record.data_payload.employees_count !== '' ? record.data_payload.employees_count : 'N/A' }}</div>
-                                    </template>
-                                    <template v-if="record.data_payload.category === 'Trade'">
-                                        <div class="text-xs text-gray-500 mt-1">Mem: {{ record.data_payload.members_count !== null && record.data_payload.members_count !== undefined && record.data_payload.members_count !== '' ? record.data_payload.members_count : 'N/A' }}</div>
-                                    </template>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-900 border-r border-gray-100">
-                                    <div class="font-medium text-gray-900">{{ record.data_payload.full_name }}</div>
-                                    <div class="text-xs text-gray-500 mt-0.5" v-if="record.data_payload.national_id_number">NIC: {{ record.data_payload.national_id_number }}</div>
-                                    <div class="text-xs text-gray-500 mt-0.5" v-if="record.data_payload.category === 'Self-Employed'">{{ record.data_payload.field_of_work }}</div>
-                                    <div class="text-xs text-gray-500 mt-0.5" v-if="record.data_payload.category === 'Trade'">CP: {{ record.data_payload.contact_person }}</div>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-500 border-r border-gray-100">
-                                    <div class="text-gray-900">{{ record.data_payload.district }} &rarr; {{ record.data_payload.ds_division }}</div>
-                                    <div class="text-xs truncate max-w-xs mt-0.5" :title="record.data_payload.address">{{ record.data_payload.address || 'N/A' }}</div>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">
-                                    <div class="font-mono text-gray-900">{{ record.data_payload.contact_number }}</div>
-                                    <div class="text-xs" v-if="record.data_payload.whatsapp_number"><span class="text-green-600">WA:</span> {{ record.data_payload.whatsapp_number }}</div>
-                                    <div class="text-xs truncate max-w-[150px]" v-if="record.data_payload.email">{{ record.data_payload.email }}</div>
-                                </td>
-                                <td class="px-4 py-3 text-right text-sm font-medium whitespace-nowrap">
-                                    <button 
-                                        @click="triggerRowReject(record)" 
-                                        class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md shadow-sm border border-red-200 transition-colors"
-                                        title="Reject this specific row"
-                                    >
-                                        Reject
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div v-else class="space-y-8">
+                    <template v-for="record in batchRecords" :key="record.id">
+                        <!-- Case 1: UPDATE Submission (Two Tables) -->
+                        <div v-if="record.submission_type === 'UPDATE'" class="space-y-4 pb-8">
+                            <!-- New Version Table -->
+                            <div class="border border-amber-200 rounded-lg overflow-hidden shadow-sm">
+                                <div class="bg-amber-50 px-4 py-2 border-b border-amber-200 flex justify-between items-center">
+                                    <h3 class="text-xs font-bold text-amber-800 uppercase tracking-wider">Proposed New Version</h3>
+                                    <span class="text-[10px] text-amber-600 font-medium italic">Highlighted fields indicate changes</span>
+                                </div>
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50 uppercase">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-black tracking-wider w-[15%]">Category</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black tracking-wider w-[25%]">Identity</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black tracking-wider w-[30%]">Location</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black tracking-wider w-[20%]">Contact</th>
+                                            <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-black tracking-wider w-24">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr class="hover:bg-gray-50 transition-colors">
+                                            <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                                <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'category')}">{{ record.data_payload.category }}</span>
+                                                <template v-if="record.data_payload.category === 'Self-Employed'">
+                                                    <div class="text-xs text-black mt-1">
+                                                        Age: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'age')}">{{ record.data_payload.age || 'N/A' }}</span>
+                                                    </div>
+                                                    <div class="text-xs text-black">
+                                                        Emp: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'employees_count')}">{{ record.data_payload.employees_count ?? 'N/A' }}</span>
+                                                    </div>
+                                                </template>
+                                                <template v-if="record.data_payload.category === 'Trade'">
+                                                    <div class="text-xs text-black mt-1">
+                                                        Mem: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'members_count')}">{{ record.data_payload.members_count ?? 'N/A' }}</span>
+                                                    </div>
+                                                </template>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                                <div class="text-black">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'full_name')}">{{ record.data_payload.full_name }}</span>
+                                                </div>
+                                                <div class="text-xs text-black mt-0.5" v-if="record.data_payload.national_id_number">
+                                                    NIC: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'national_id_number')}">{{ record.data_payload.national_id_number }}</span>
+                                                </div>
+                                                <div class="text-xs text-black mt-0.5" v-if="record.data_payload.category === 'Self-Employed'">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'field_of_work')}">{{ record.data_payload.field_of_work }}</span>
+                                                </div>
+                                                <div class="text-xs text-black mt-0.5" v-if="record.data_payload.category === 'Trade'">
+                                                    CP: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'contact_person')}">{{ record.data_payload.contact_person }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                                <div class="text-black">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'district') || isFieldChanged(record, 'ds_division')}">
+                                                        {{ record.data_payload.district }} &rarr; {{ record.data_payload.ds_division }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs truncate max-w-xs mt-0.5" :title="record.data_payload.address">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'address')}">{{ record.data_payload.address || 'N/A' }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-black">
+                                                <div class="font-mono text-black">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'contact_number')}">{{ record.data_payload.contact_number }}</span>
+                                                </div>
+                                                <div class="text-xs" v-if="record.data_payload.whatsapp_number">
+                                                    <span class="text-green-600 font-bold">WA:</span> 
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'whatsapp_number')}">{{ record.data_payload.whatsapp_number }}</span>
+                                                </div>
+                                                <div class="text-xs truncate max-w-[150px]" v-if="record.data_payload.email">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'email')}">{{ record.data_payload.email }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-right text-sm font-medium whitespace-nowrap">
+                                                <button 
+                                                    @click="triggerRowReject(record)" 
+                                                    class="text-red-700 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md shadow-sm border border-red-200 transition-colors"
+                                                    title="Reject this update"
+                                                >
+                                                    Reject
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Old Version Table -->
+                            <div v-if="record.target_record" class="border border-blue-200 rounded-lg overflow-hidden shadow-sm">
+                                <div class="bg-blue-50 px-4 py-2 border-b border-blue-200">
+                                    <h3 class="text-xs font-bold text-blue-800 uppercase tracking-wider">Current Registry Version (Reference)</h3>
+                                </div>
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-blue-50 uppercase">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-blue-800 tracking-wider w-[15%]">Category</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-blue-800 tracking-wider w-[25%]">Identity</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-blue-800 tracking-wider w-[30%]">Location</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-blue-800 tracking-wider w-[20%]">Contact</th>
+                                            <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-blue-800 tracking-wider w-24"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr class="bg-blue-50/5 transition-colors">
+                                            <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                                <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'category')}">{{ record.target_record.category }}</span>
+                                                <template v-if="record.target_record.category === 'Self-Employed'">
+                                                    <div class="text-xs mt-1">
+                                                        Age: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'age')}">{{ record.target_record.age || 'N/A' }}</span>
+                                                    </div>
+                                                    <div class="text-xs">
+                                                        Emp: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'employees_count')}">{{ record.target_record.employees_count ?? 'N/A' }}</span>
+                                                    </div>
+                                                </template>
+                                                <template v-if="record.target_record.category === 'Trade'">
+                                                    <div class="text-xs mt-1">
+                                                        Mem: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'members_count')}">{{ record.target_record.members_count ?? 'N/A' }}</span>
+                                                    </div>
+                                                </template>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                                <div>
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'full_name')}">{{ record.target_record.full_name }}</span>
+                                                </div>
+                                                <div class="text-xs mt-0.5" v-if="record.target_record.national_id_number">
+                                                    NIC: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'national_id_number')}">{{ record.target_record.national_id_number }}</span>
+                                                </div>
+                                                <div class="text-xs mt-0.5" v-if="record.target_record.category === 'Self-Employed'">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'field_of_work')}">{{ record.target_record.field_of_work }}</span>
+                                                </div>
+                                                <div class="text-xs mt-0.5" v-if="record.target_record.category === 'Trade'">
+                                                    CP: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'contact_person')}">{{ record.target_record.contact_person }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                                <div>
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'district') || isFieldChanged(record, 'ds_division')}">
+                                                        {{ record.target_record.district }} &rarr; {{ record.target_record.ds_division }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs truncate max-w-xs mt-0.5" :title="record.target_record.address">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'address')}">{{ record.target_record.address || 'N/A' }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-black">
+                                                <div class="font-mono">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'contact_number')}">{{ record.target_record.contact_number }}</span>
+                                                </div>
+                                                <div class="text-xs" v-if="record.target_record.whatsapp_number">
+                                                    WA: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'whatsapp_number')}">{{ record.target_record.whatsapp_number }}</span>
+                                                </div>
+                                                <div class="text-xs truncate max-w-[150px]" v-if="record.target_record.email">
+                                                    <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'email')}">{{ record.target_record.email }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 w-24"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Case 2: NEW Submission (Single Table Row as usual) -->
+                        <div v-else class="overflow-x-auto border border-gray-200 rounded-md">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Category</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Identity</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Location</th>
+                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Contact</th>
+                                        <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-black uppercase tracking-wider w-24">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="hover:bg-red-50 transition-colors group">
+                                        <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                            <span class="font-medium text-black">{{ record.data_payload.category }}</span>
+                                            <template v-if="record.data_payload.category === 'Self-Employed'">
+                                                <div class="text-xs text-black mt-1">Age: {{ record.data_payload.age || 'N/A' }}</div>
+                                                <div class="text-xs text-black">Emp: {{ record.data_payload.employees_count ?? 'N/A' }}</div>
+                                            </template>
+                                            <template v-if="record.data_payload.category === 'Trade'">
+                                                <div class="text-xs text-black mt-1">Mem: {{ record.data_payload.members_count ?? 'N/A' }}</div>
+                                            </template>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                            <div class="font-medium text-black">{{ record.data_payload.full_name }}</div>
+                                            <div class="text-xs text-black mt-0.5" v-if="record.data_payload.national_id_number">NIC: {{ record.data_payload.national_id_number }}</div>
+                                            <div class="text-xs text-black mt-0.5" v-if="record.data_payload.category === 'Self-Employed'">{{ record.data_payload.field_of_work }}</div>
+                                            <div class="text-xs text-black mt-0.5" v-if="record.data_payload.category === 'Trade'">CP: {{ record.data_payload.contact_person }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
+                                            <div class="text-black">{{ record.data_payload.district }} &rarr; {{ record.data_payload.ds_division }}</div>
+                                            <div class="text-xs text-black truncate max-w-xs mt-0.5" :title="record.data_payload.address">{{ record.data_payload.address || 'N/A' }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-black">
+                                            <div class="font-mono text-black">{{ record.data_payload.contact_number }}</div>
+                                            <div class="text-xs text-black" v-if="record.data_payload.whatsapp_number"><span class="text-green-600 font-bold">WA:</span> {{ record.data_payload.whatsapp_number }}</div>
+                                            <div class="text-xs text-black truncate max-w-[150px]" v-if="record.data_payload.email">{{ record.data_payload.email }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-right text-sm font-medium whitespace-nowrap">
+                                            <button 
+                                                @click="triggerRowReject(record)" 
+                                                class="text-red-700 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md shadow-sm border border-red-200 transition-colors"
+                                                title="Reject this specific row"
+                                            >
+                                                Reject
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- Actions -->
@@ -189,7 +360,6 @@
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploader</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category & District</th>
                                 <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Record Count</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
@@ -197,7 +367,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-if="isLoadingQueue">
-                                <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-500">
                                     <svg class="animate-spin h-8 w-8 text-primary-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -206,7 +376,7 @@
                                 </td>
                             </tr>
                             <tr v-else-if="!pendingBatches.data || pendingBatches.data.length === 0">
-                                <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-500">
                                     No pending records in the queue. You're all caught up!
                                 </td>
                             </tr>
@@ -217,18 +387,17 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900">{{ batch.uploader?.name || 'Unknown' }}</div>
-                                    <div class="text-xs text-gray-500 font-mono" :title="batch.batch_id">{{ batch.batch_id.substring(0, 8) }}...</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ batch.category }}</div>
-                                    <div class="text-sm text-gray-500">{{ batch.district }} - {{ batch.ds_division }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-800 min-w-[2.5rem]">
                                         {{ batch.record_count }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4 whitespace-nowrap flex gap-2">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                                          :class="batch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
+                                        {{ batch.batch_id.startsWith('SINGLE-') ? 'Single' : 'Bulk' }} Upload
+                                    </span>
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
                                           :class="batch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
                                         {{ batch.submission_type }}
@@ -278,7 +447,7 @@
             <!-- Single Row Rejection Modal -->
             <div v-if="showRejectModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                 <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeRejectModal"></div>
+                    <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeRejectModal"></div>
 
                     <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
@@ -511,6 +680,27 @@ const rejectSingleRecord = async () => {
         isProcessing.value = false;
         if (currentAction.value === 'reject') currentAction.value = null;
     }
+};
+
+const isFieldChanged = (record, field) => {
+    if (record.submission_type !== 'UPDATE' || !record.target_record) return false;
+    
+    const newValue = record.data_payload[field];
+    const oldValue = record.target_record[field];
+    
+    // Handle special case for locations which might be concatenated in UI but checked separately
+    if (field === 'location') {
+        return newValue.district !== record.target_record.district || 
+               newValue.ds_division !== record.target_record.ds_division;
+    }
+
+    // Loose equality to handle string vs number (e.g. age: "25" vs 25)
+    if (newValue == oldValue) return false;
+    
+    // Handle both being empty-ish
+    if (!newValue && !oldValue) return false;
+    
+    return true;
 };
 
 const scrollToAlert = () => {
