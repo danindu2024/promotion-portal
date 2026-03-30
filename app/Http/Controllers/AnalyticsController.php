@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\MainRegistry;
 use App\Models\StagingData;
 use App\Helpers\Logger;
+use App\Exports\FilteredAudienceExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AnalyticsController extends Controller
 {
@@ -166,5 +168,19 @@ class AnalyticsController extends Controller
         ]);
 
         return response()->json($results);
+    }
+
+    /**
+     * Export the filtered audience to Excel using the same filters.
+     */
+    public function exportAudience(Request $request)
+    {
+        $filters = $request->only(['province', 'district', 'ds_division', 'category', 'field_of_work']);
+
+        Logger::log('EXPORT_EXCEL', 'Base demographic export generated', 'ANALYTICS', null, [
+            'filters' => $filters
+        ]);
+
+        return Excel::download(new FilteredAudienceExport($filters), 'Filtered_Audience_' . now()->format('Ymd_Hi') . '.xlsx');
     }
 }
