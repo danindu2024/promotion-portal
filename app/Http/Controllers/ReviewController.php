@@ -1,3 +1,10 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\StagingData;
 use App\Models\MainRegistry;
 use App\Helpers\Current;
 use App\Helpers\Logger;
@@ -9,10 +16,18 @@ class ReviewController extends Controller
      */
     public function pending()
     {
+        $user = Current::user();
+        $query = StagingData::where('validation_status', StagingData::STATUS_PENDING);
+
+        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
+            $query->whereHas('uploader', function ($q) use ($user) {
+                $q->where('district', $user->district);
+            });
+        }
+
         // Get unique pending batch IDs, their counts, and the MIN(id) as a stable
         // representative row to avoid N+1 queries later.
-        $paginated = StagingData::where('validation_status', StagingData::STATUS_PENDING)
-            ->select(
+        $paginated = $query->select(
                 'batch_id',
                 DB::raw('MIN(created_at) as batch_created_at'),
                 DB::raw('COUNT(id) as record_count'),
@@ -53,11 +68,19 @@ class ReviewController extends Controller
      */
     public function batchDetails($batchId)
     {
-        $records = StagingData::where('batch_id', $batchId)
+        $user = Current::user();
+        $query = StagingData::where('batch_id', $batchId)
             ->where('validation_status', StagingData::STATUS_PENDING)
             ->with(['uploader', 'targetRecord'])
-            ->orderBy('id', 'asc')
-            ->get();
+            ->orderBy('id', 'asc');
+
+        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
+            $query->whereHas('uploader', function ($q) use ($user) {
+                $q->where('district', $user->district);
+            });
+        }
+
+        $records = $query->get();
 
         if ($records->isEmpty()) {
             return response()->json(['message' => 'Batch not found or has no pending records.'], 404);
@@ -74,9 +97,17 @@ class ReviewController extends Controller
      */
     public function approveBatch($batchId)
     {
-        $records = StagingData::where('batch_id', $batchId)
-            ->where('validation_status', StagingData::STATUS_PENDING)
-            ->get();
+        $user = Current::user();
+        $query = StagingData::where('batch_id', $batchId)
+            ->where('validation_status', StagingData::STATUS_PENDING);
+
+        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
+            $query->whereHas('uploader', function ($q) use ($user) {
+                $q->where('district', $user->district);
+            });
+        }
+
+        $records = $query->get();
 
         if ($records->isEmpty()) {
             return response()->json(['message' => 'No pending records found in this batch.'], 400);
@@ -91,8 +122,17 @@ class ReviewController extends Controller
 
                 // Final duplicate guard — auto-reject duplicates so they don't stay PENDING
                 $contactNumber = $payload['contact_number'] ?? null;
-                if ($contactNumber && MainRegistry::where('contact_number', $contactNumber)->exists()) {
-                    $reason = "Auto-rejected: contact number {$contactNumber} was already approved by another validator.";
+                $category = $payload['category'] ?? null;
+                
+                $duplicateQuery = MainRegistry::where('contact_number', $contactNumber)
+                    ->where('category', $category);
+                
+                if ($staging->submission_type === 'UPDATE') {
+                    $duplicateQuery->where('id', '!=', $staging->target_record_id);
+                }
+
+                if ($contactNumber && $duplicateQuery->exists()) {
+                    $reason = "Auto-rejected: contact number {$contactNumber} for category {$category} was already approved by another validator.";
                     $staging->reject($reason);
                     $errors[] = "Row ID {$staging->id} ({$contactNumber}): {$reason}";
                     continue;
@@ -166,7 +206,16 @@ class ReviewController extends Controller
             'reason' => 'required|string|max:1000'
         ]);
 
-        $staging = StagingData::findOrFail($id);
+        $user = Current::user();
+        $query = StagingData::where('id', $id);
+
+        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
+            $query->whereHas('uploader', function ($q) use ($user) {
+                $q->where('district', $user->district);
+            });
+        }
+
+        $staging = $query->firstOrFail();
 
         if ($staging->validation_status !== StagingData::STATUS_PENDING) {
             return response()->json(['message' => 'Record is not in pending state.'], 400);
