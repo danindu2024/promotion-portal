@@ -223,9 +223,9 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ record.contact_number }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a href="#" class="text-primary-600 hover:text-primary-900" title="View Details">
+                                        <button @click="openDetails(record.id)" class="text-primary-600 hover:text-primary-900" title="View Details">
                                             <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3-9c-7 0-10.5 9-10.5 9s3.5 9 10.5 9 10.5-9 10.5-9-3.5-9-10.5-9z"></path></svg>
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -245,12 +245,21 @@
                 </div>
             </div>
         </div>
+        <!-- View Details Modal -->
+        <ViewDetailsModal 
+            :show="showDetailsModal" 
+            :recordId="selectedRecordId" 
+            @close="closeDetails" 
+            @updated="onDetailsUpdated" 
+            @deleted="onDetailsDeleted" 
+        />
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import ViewDetailsModal from '@/Components/Registry/ViewDetailsModal.vue';
 import axios from 'axios';
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Pie, Bar } from 'vue-chartjs';
@@ -662,7 +671,37 @@ const performSearch = async (page = 1) => {
 };
 
 const exportToExcel = () => {
-    alert('Excel Export functionality to be implemented in the future.');
+    const params = new URLSearchParams();
+    if (filters.value.province) params.append('province', filters.value.province);
+    if (filters.value.district) params.append('district', filters.value.district);
+    if (filters.value.ds_division) params.append('ds_division', filters.value.ds_division);
+    if (filters.value.category) params.append('category', filters.value.category);
+    if (filters.value.category === 'Self-Employed' && filters.value.field_of_work) {
+        params.append('field_of_work', filters.value.field_of_work);
+    }
+    
+    window.location.href = `/api/analytics/search/export?${params.toString()}`;
+};
+
+// View Details Modal Logic
+const showDetailsModal = ref(false);
+const selectedRecordId = ref(null);
+
+const openDetails = (id) => {
+    selectedRecordId.value = id;
+    showDetailsModal.value = true;
+};
+const closeDetails = () => {
+    showDetailsModal.value = false;
+    setTimeout(() => { selectedRecordId.value = null; }, 300); // Wait for transition
+};
+const onDetailsUpdated = (updatedRecord) => {
+    // Refresh the search list to show updated data
+    performSearch(searchData.value.current_page || 1);
+};
+const onDetailsDeleted = (deletedId) => {
+    // Refresh the search list to remove deleted item
+    performSearch(searchData.value.current_page || 1);
 };
 
 onMounted(() => {
