@@ -23,6 +23,7 @@ class RegistryController extends Controller
     {
         $data = $request->all();
 
+        // trim leading and trailing spaces from all string values
         foreach ($data as $key => $value) {
             if (is_string($value)) {
                 $data[$key] = trim($value);
@@ -93,28 +94,11 @@ class RegistryController extends Controller
     }
 
     /**
-     * Download the CSV template for bulk uploads
+     * Download the Excel template for bulk uploads
      */
     public function downloadTemplate()
     {
-        $headers = [
-            'Category', 'Full Name', 'National ID Number', 'Contact Number', 'Province', 'District', 'DS Division', 
-            'Field of Work', 'Age', 'Address', 'WhatsApp Number', 'Email Address', 'Contact Person', 'Members Count', 'Employees Count'
-        ];
-
-        $callback = function() use ($headers) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $headers);
-            fputcsv($file, ['Self-Employed', 'John Doe', '199012345678', '0771234567', 'Western', 'Colombo', 'Colombo', 'Information Technology and Modern Services', '30', '123 Main St', '0771234567', 'john@example.com', '', '', '5']);
-            fputcsv($file, ['Trade', 'Acme Corp', '198512345678', '0719876543', 'Central', 'Kandy', 'Kandy', '', '', '456 Market St', '', '', 'Jane Smith', '10', '']);
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, [
-            'Content-Type' => 'text/csv',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Content-Disposition' => 'attachment; filename="registry_upload_template.csv"',
-        ]);
+        return Excel::download(new \App\Exports\RegistryTemplateExport, 'registry_upload_template.xlsx');
     }
 
 
