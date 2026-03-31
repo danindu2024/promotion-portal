@@ -1392,22 +1392,30 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & NIC</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-if="loadingUpdate" class="animate-pulse">
-                                <td colspan="3" class="px-6 py-12 text-center text-gray-400 italic">Loading records...</td>
+                                <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">Loading records...</td>
                             </tr>
                             <tr v-else-if="updateRecords.length === 0">
-                                <td colspan="3" class="px-6 py-12 text-center text-gray-400 italic">No records found.</td>
+                                <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">No records found.</td>
                             </tr>
                             <tr v-for="record in updateRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-bold text-gray-900">{{ record.full_name }}</div>
-                                    <div class="text-xs text-gray-500">{{ record.national_id_number || 'No NIC' }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span 
+                                        :class="record.category === 'Self-Employed' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'"
+                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                    >
+                                        {{ record.category }}
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-xs text-gray-900">{{ record.district }}</div>

@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'deploy_token' => env('APP_DEPLOY_TOKEN', 'default_secret_token_123'),
+
 ];

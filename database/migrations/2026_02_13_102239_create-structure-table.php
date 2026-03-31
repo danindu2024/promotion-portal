@@ -46,7 +46,7 @@ return new class extends Migration
             $table->integer('employees_count')->nullable();
 
             // Trade Specific (Nullable)
-            $table->string('contact_person')->nullable();
+            $table->string('contact_person')->nullable(); // keep contact number string as number type automatically strip leading 0
             $table->integer('members_count')->nullable();
 
             // Soft Deletes & Approval Audit

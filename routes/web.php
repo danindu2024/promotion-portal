@@ -32,6 +32,8 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Registry/DataEntry');
     })->middleware('access:data entry,validator,decision maker,admin');
 
+
+
     Route::get('/review', function () {
         return Inertia::render('Registry/Review');
     })->middleware('access:validator,decision maker,admin');
@@ -43,4 +45,28 @@ Route::middleware('auth')->group(function () {
         Route::put('/api/users/{id}', [UserManagementController::class, 'update']);
         Route::delete('/api/users/{id}', [UserManagementController::class, 'destroy']);
     });
+});
+
+// Deployment helper for cPanel (Shared Hosting without SSH)
+Route::get('/maintenance/deploy-migrations/{token}', function ($token) {
+    // Basic security token check
+    if ($token !== config('app.deploy_token', 'default_secret_token_123')) {
+        abort(403, 'Unauthorized deployment access.');
+    }
+
+    try {
+        echo "Running migrations...<br>";
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        echo "Migrations completed successfully.<br>";
+        
+        echo "Clearing cache...<br>";
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        echo "Cache cleared.<br>";
+
+        return "System update successful.";
+    } catch (\Exception $e) {
+        return "Error during update: " . $e->getMessage();
+    }
 });

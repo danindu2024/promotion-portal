@@ -39,6 +39,17 @@ Route::middleware('auth:sanctum')->group(function () {
         // Rejected Records Management
         Route::get('/rejected', [RegistryController::class, 'getRejected'])->middleware('throttle:30,1');
         Route::post('/rejected/{id}/resubmit', [RegistryController::class, 'resubmitRejected'])->middleware('throttle:30,1');
+
+        // Updateable Records
+        Route::get('/updateable', [RegistryController::class, 'listUpdateable'])->middleware('throttle:30,1');
+        Route::post('/updateable/{id}/submit', [RegistryController::class, 'submitUpdate'])->middleware('throttle:30,1');
+
+        // Main Registry Actions
+        Route::prefix('main')->group(function () {
+            Route::get('/{id}', [\App\Http\Controllers\MainRegistryController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\MainRegistryController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\MainRegistryController::class, 'destroy']);
+        });
     });
 
     // Maker-Checker Reviews — sensitive actions, strict limit
@@ -57,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/heatmap', [AnalyticsController::class, 'getHeatmapData']);
         Route::get('/ds-heatmap', [AnalyticsController::class, 'getDsHeatmapData']);
         Route::get('/search', [AnalyticsController::class, 'advancedSearch']);
+        Route::get('/search/export', [AnalyticsController::class, 'exportAudience']);
     });
 });
 
