@@ -29,6 +29,7 @@ class OptionsSheet implements FromCollection, WithTitle, WithHeadings, WithEvent
             'Small-scale Trading'
         ];
 
+        // add a loop to select the range of data. Null cells become empty values
         $data = [];
         $max = max(count($categories), count($provinces), count($fields));
 
