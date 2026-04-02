@@ -21,8 +21,9 @@ class SelfEmployedSheetImport implements ToCollection, WithChunkReading
 
     public function collection(Collection $rows)
     {
-        // Skip header
+        // Skip header and limit to first 1000 data rows (matching template capacity)
         $rows->shift();
+        $rows = $rows->take(1000);
 
         $mappedRows = $rows->map(function ($row) {
             $rowData = $row->toArray();
