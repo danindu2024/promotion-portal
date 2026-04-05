@@ -63,27 +63,10 @@ class TradeTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEven
                     ],
                 ]);
 
-                // --- 2. INTERACTIVE DATA RANGE STYLING (A2:L1001) ---
-                $sheet->getStyle('A2:L1001')->applyFromArray([
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'F8F9FA'], // Website Background
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['rgb' => '0056b3'], // Website Primary Blue
-                        ],
-                    ],
-                ]);
-
-                // --- 3. AUTO FILTER ---
-                $sheet->setAutoFilter('A1:L1');
-
                 // --- 4. DATA VALIDATION (1000 Rows) ---
                 
-                // Category (A2:A1001)
-                $validationCategory = $sheet->getDataValidation('A2:A1001');
+                // Category (A2:A201)
+                $validationCategory = $sheet->getDataValidation('A2:A201');
                 $validationCategory->setType(DataValidation::TYPE_LIST);
                 $validationCategory->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationCategory->setAllowBlank(false);
@@ -92,11 +75,15 @@ class TradeTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEven
                 $validationCategory->setShowDropDown(true);
                 $validationCategory->setFormula1("'Options'!\$A\$2:\$A\$3");
 
-                // Province (E2:E1001)
-                $validationProvince = $sheet->getDataValidation('E2:E1001');
+                // Province (E2:E201)
+                $validationProvince = $sheet->getDataValidation('E2:E201');
                 $validationProvince->setType(DataValidation::TYPE_LIST);
-                $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
+                $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
+                $validationProvince->setAllowBlank(false);
+                $validationProvince->setShowInputMessage(true);
+                $validationProvince->setShowErrorMessage(true);
                 $validationProvince->setShowDropDown(true);
+                $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
             },
         ];
     }
