@@ -98,7 +98,7 @@ class RegistryController extends Controller
      */
     public function downloadTemplate()
     {
-        return Excel::download(new \App\Exports\RegistryTemplateExport, 'registry_upload_template.xlsx');
+        return Excel::download(new \App\Exports\RegistryTemplateExport, 'bulk_upload_template.xlsx');
     }
 
 
