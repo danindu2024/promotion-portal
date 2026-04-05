@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEvents, ShouldAutoSize
 {
+    // add sample data to excel
     public function array(): array
     {
         return [
@@ -21,6 +22,7 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
         ];
     }
 
+    // add headings to the sheet 
     public function headings(): array
     {
         return [
@@ -40,6 +42,7 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
         ];
     }
 
+    // add tab name 
     public function title(): string
     {
         return 'Self-Employed';
@@ -52,7 +55,7 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                 /** @var \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet */
                 $sheet = $event->sheet->getDelegate();
                 
-                // --- 1. HEADER STYLING (A1:M1) ---
+                // --- HEADER STYLING (A1:M1) ---
                 $sheet->getStyle('A1:M1')->applyFromArray([
                     'font' => [
                         'bold' => true,
@@ -63,29 +66,11 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                         'startColor' => ['rgb' => '0056b3'], // Website Primary Blue
                     ],
                 ]);
-
-                // --- 2. INTERACTIVE DATA RANGE STYLING (A2:M1001) ---
-                // Apply a light background and branded borders to 1000 data rows
-                $sheet->getStyle('A2:M1001')->applyFromArray([
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'F8F9FA'], // Website Background
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['rgb' => '0056b3'], // Website Primary Blue
-                        ],
-                    ],
-                ]);
-
-                // --- 3. AUTO FILTER ---
-                $sheet->setAutoFilter('A1:M1');
                 
-                // --- 4. DATA VALIDATION (1000 Rows) ---
+                // --- DATA VALIDATION (1000 Rows) ---
                 
-                // Category (A2:A1001)
-                $validationCategory = $sheet->getDataValidation('A2:A1001');
+                // Category (A2:A201)
+                $validationCategory = $sheet->getDataValidation('A2:A201');
                 $validationCategory->setType(DataValidation::TYPE_LIST);
                 $validationCategory->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationCategory->setAllowBlank(false);
@@ -94,17 +79,25 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                 $validationCategory->setShowDropDown(true);
                 $validationCategory->setFormula1("'Options'!\$A\$2:\$A\$3");
 
-                // Province (E2:E1001)
-                $validationProvince = $sheet->getDataValidation('E2:E1001');
+                // Province (E2:E201)
+                $validationProvince = $sheet->getDataValidation('E2:E201');
                 $validationProvince->setType(DataValidation::TYPE_LIST);
-                $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
+                $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
+                $validationProvince->setAllowBlank(false);
+                $validationProvince->setShowInputMessage(true);
+                $validationProvince->setShowErrorMessage(true);
                 $validationProvince->setShowDropDown(true);
+                $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
 
-                // Field of Work (H2:H1001)
-                $validationField = $sheet->getDataValidation('H2:H1001');
+                // Field of Work (H2:H201)
+                $validationField = $sheet->getDataValidation('H2:H201');
                 $validationField->setType(DataValidation::TYPE_LIST);
-                $validationField->setFormula1("'Options'!\$C\$2:\$C\$11");
+                $validationField->setErrorStyle(DataValidation::STYLE_STOP);
+                $validationField->setAllowBlank(false);
+                $validationField->setShowInputMessage(true);
+                $validationField->setShowErrorMessage(true);
                 $validationField->setShowDropDown(true);
+                $validationField->setFormula1("'Options'!\$C\$2:\$C\$11");
             },
         ];
     }
