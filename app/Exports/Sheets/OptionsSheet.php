@@ -2,17 +2,16 @@
 
 namespace App\Exports\Sheets;
 
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Illuminate\Support\Collection;
 
-class OptionsSheet implements FromCollection, WithTitle, WithHeadings, WithEvents
+class OptionsSheet implements FromArray, WithTitle, WithHeadings, WithEvents
 {
-    public function collection()
+    public function array(): array
     {
         $categories = ['Self-Employed', 'Trade'];
         $provinces = config('srilanka.provinces');
@@ -41,7 +40,7 @@ class OptionsSheet implements FromCollection, WithTitle, WithHeadings, WithEvent
             ];
         }
 
-        return new Collection($data);
+        return $data;
     }
 
     public function headings(): array

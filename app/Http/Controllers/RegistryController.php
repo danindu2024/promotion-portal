@@ -12,6 +12,7 @@ use App\Services\RegistryValidator;
 use App\Helpers\Current;
 use App\Helpers\Logger;
 use App\Imports\RegistryImport;
+use App\Exports\RegistryTemplateExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
@@ -28,6 +29,10 @@ class RegistryController extends Controller
             if (is_string($value)) {
                 $data[$key] = trim($value);
             }
+        }
+        // Normalize NIC if present (uppercase v/x)
+        if (isset($data['national_id_number'])) {
+            $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
         }
 
         // Initial format check
@@ -98,7 +103,7 @@ class RegistryController extends Controller
      */
     public function downloadTemplate()
     {
-        return Excel::download(new \App\Exports\RegistryTemplateExport, 'registry_upload_template.xlsx');
+        return Excel::download(new RegistryTemplateExport, 'bulk_upload_template.xlsx');
     }
 
 
@@ -106,9 +111,9 @@ class RegistryController extends Controller
      * Parse Excel, validate rows, check duplicates efficiently, and stage valid rows.
      */
 
-    // validate file type and size
     public function uploadExcel(Request $request)
     {
+        // validate file type and size
         $request->validate([
             'file' => [
                 'required',
@@ -137,7 +142,7 @@ class RegistryController extends Controller
             ],
         ]);
 
-        // Using Chunked Reading to prevent memory overloading (prevents crashes on large files)
+        // parse the multiple sheets in the excel file
         $import = new RegistryImport();
         Excel::import($import, $request->file('file'));
 
@@ -197,6 +202,21 @@ class RegistryController extends Controller
     }
 
     /**
+     * Normalize National ID numbers from Excel uploads or single entries
+     * Handles scientific notation and ensures letters (v/x) are uppercase
+     */
+    private function normalizeNationalId($id)
+    {
+        if (empty($id)) return null;
+
+        if (is_numeric($id)) {
+            return number_format((float) $id, 0, '', '');
+        }
+
+        return strtoupper(trim((string) $id));
+    }
+
+    /**
      * Get rejected records for the current Data Entry user
      */
     public function getRejected()
@@ -227,6 +247,11 @@ class RegistryController extends Controller
             if (is_string($value)) {
                 $data[$key] = trim($value);
             }
+        }
+ 
+        // Normalize NIC if present (uppercase v/x)
+        if (isset($data['national_id_number'])) {
+            $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
         }
 
         // Initial format check before expensive db checks
@@ -379,6 +404,11 @@ class RegistryController extends Controller
             if (is_string($value)) {
                 $data[$key] = trim($value);
             }
+        }
+
+        // Normalize NIC if present (uppercase v/x)
+        if (isset($data['national_id_number'])) {
+            $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
         }
 
         // Category-Aware Validation

@@ -14,7 +14,7 @@ class RegistryImport implements WithMultipleSheets
     public $batchId;
     public $dbError = null;
     
-    // Shared state across all sheets to find duplicates within the entire Excel file
+    // Shared state across all sheets to find duplicates within the same sheet/category
     protected $contactNumbersInFile = [];
 
     public function __construct()
@@ -35,18 +35,19 @@ class RegistryImport implements WithMultipleSheets
     }
 
     /**
-     * Get the global list of contact numbers already seen in the current file.
+     * Check if a contact number has already been seen for this category in the current file.
      */
-    public function getContactNumbersInFile(): array
+    public function isContactNumberInFile(string $number, string $category): bool
     {
-        return $this->contactNumbersInFile;
+        return isset($this->contactNumbersInFile["{$number}:{$category}"]);
     }
 
     /**
-     * Add a contact number to the global file list.
+     * Add a contact number for a specific category to the file's seen list.
      */
-    public function addContactNumberToFile(string $number): void
+    public function addContactNumberToFile(string $number, string $category): void
     {
-        $this->contactNumbersInFile[] = $number;
+        // We just assign true (or any value) to the key
+        $this->contactNumbersInFile["{$number}:{$category}"] = true;
     }
 }

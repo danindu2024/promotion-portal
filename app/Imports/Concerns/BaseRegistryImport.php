@@ -33,23 +33,27 @@ trait BaseRegistryImport
 
             $contactNumber = $data['contact_number'];
 
+            // throw error if the contact number is missing
             if (empty($contactNumber)) {
                 $data['error'] = 'Contact number is missing.';
                 $importer->invalidRows[] = $data;
                 continue;
             }
 
-            if (in_array($contactNumber, $importer->getContactNumbersInFile())) {
-                $data['error'] = 'Duplicate contact number found within this Excel file.';
+            // category aware duplicate check inside the excel sheet
+            if ($importer->isContactNumberInFile($contactNumber, $data['category'])) {
+                $data['error'] = 'Duplicate contact number found for this category within this Excel file.';
                 $importer->invalidRows[] = $data;
                 continue;
             }
 
-            $importer->addContactNumberToFile($contactNumber);
+            // add unique numbers to hashmap for future reference
+            $importer->addContactNumberToFile($contactNumber, $data['category']);
             $uniqueNumbersForDbCheck[] = $contactNumber;
             $chunkDataRows[] = $data;
         }
 
+        // do nothing if the data row is empty
         if (empty($chunkDataRows)) {
             return;
         }
@@ -136,6 +140,6 @@ trait BaseRegistryImport
         if (is_numeric($id)) {
             return number_format((float) $id, 0, '', '');
         }
-        return trim((string) $id);
+        return strtoupper(trim((string) $id));
     }
 }
