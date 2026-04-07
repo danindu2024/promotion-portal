@@ -10,7 +10,6 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEvents, ShouldAutoSize
 {
@@ -18,7 +17,7 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
     public function array(): array
     {
         return [
-            ['Self-Employed', 'Danindu Ransika', '199012345678', '0771234567', 'Western', 'Colombo', 'Thimbirigasyaya', 'Information Technology and Modern Services', '30', '123 Main St, Colombo 05', '0771234567', 'danindu@gmail.com', '5']
+            ['Danindu Ransika', '199012345678', '0771234567', 'Western', 'Colombo', 'Thimbirigasyaya', 'Information Technology and Modern Services', '30', '123 Main St, Colombo 05', '0771234567', 'danindu@gmail.com', '5']
         ];
     }
 
@@ -26,7 +25,6 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
     public function headings(): array
     {
         return [
-            'Category',
             'Full Name',
             'National ID Number',
             'Contact Number',
@@ -55,8 +53,8 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                 /** @var \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet */
                 $sheet = $event->sheet->getDelegate();
                 
-                // --- HEADER STYLING (A1:M1) ---
-                $sheet->getStyle('A1:M1')->applyFromArray([
+                // --- HEADER STYLING (A1:L1) ---
+                $sheet->getStyle('A1:L1')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['rgb' => 'FFFFFF'],
@@ -67,35 +65,25 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                     ],
                 ]);
                 
-                // --- DATA VALIDATION (1000 Rows) ---
+                // --- DATA VALIDATION (500 Rows) ---
                 
-                // Category (A2:A201)
-                $validationCategory = $sheet->getDataValidation('A2:A201');
-                $validationCategory->setType(DataValidation::TYPE_LIST);
-                $validationCategory->setErrorStyle(DataValidation::STYLE_STOP);
-                $validationCategory->setAllowBlank(false);
-                $validationCategory->setShowInputMessage(true);
-                $validationCategory->setShowErrorMessage(true);
-                $validationCategory->setShowDropDown(true);
-                $validationCategory->setFormula1("'Options'!\$A\$2:\$A\$3");
-
-                // Province (E2:E201)
-                $validationProvince = $sheet->getDataValidation('E2:E201');
+                // Province (D2:D501)
+                $validationProvince = $sheet->getDataValidation('D2:D501');
                 $validationProvince->setType(DataValidation::TYPE_LIST);
                 $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
-                $validationProvince->setAllowBlank(false);
-                $validationProvince->setShowInputMessage(true);
                 $validationProvince->setShowErrorMessage(true);
+                $validationProvince->setErrorTitle('Invalid Input');
+                $validationProvince->setError('Please select a correct province from the dropdown.');
                 $validationProvince->setShowDropDown(true);
                 $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
 
-                // Field of Work (H2:H201)
-                $validationField = $sheet->getDataValidation('H2:H201');
+                // Field of Work (G2:G501)
+                $validationField = $sheet->getDataValidation('G2:G501');
                 $validationField->setType(DataValidation::TYPE_LIST);
                 $validationField->setErrorStyle(DataValidation::STYLE_STOP);
-                $validationField->setAllowBlank(false);
-                $validationField->setShowInputMessage(true);
                 $validationField->setShowErrorMessage(true);
+                $validationField->setErrorTitle('Invalid Input');
+                $validationField->setError('Please select a correct field of work from the dropdown.');
                 $validationField->setShowDropDown(true);
                 $validationField->setFormula1("'Options'!\$C\$2:\$C\$11");
             },
