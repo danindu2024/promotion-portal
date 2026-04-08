@@ -246,9 +246,11 @@ All routes below (except `/login` / `/logout`) are protected by `auth:sanctum` m
 | `/api/users/{id}` | PUT | — | `UserManagementController@update` | Updates a user; re-hashes password only if provided |
 | `/api/users/{id}` | DELETE | — | `UserManagementController@destroy` | Deletes a user |
 
-### 6.7 Key Backend Service: Phone Number Normalizer
+### 6.7 Key Backend Services: Data Normalizers
 
-The `RegistryController::normalizePhoneNumber()` private method is applied to `contact_number` and `whatsapp_number` during every bulk Excel upload. It handles the common "Excel strips leading zeros" problem by detecting and correcting these patterns:
+Two normalizer methods live in the `BaseRegistryImport` trait and are applied to every row during Excel bulk upload inside the sheet importer classes (`SelfEmployedSheetImport`, `TradeSheetImport`). They are **not** applied during single form entry — the frontend enforces strict format rules, so single-entry data is always in canonical form on arrival.
+
+**`normalizePhoneNumber()`** — Handles the common "Excel strips leading zeros" problem:
 
 | Raw Input (from Excel) | Normalized Output | Transformation Applied      |
 | ---------------------- | ----------------- | --------------------------- |
@@ -257,6 +259,14 @@ The `RegistryController::normalizePhoneNumber()` private method is applied to `c
 | `94771234567`          | `0771234567`      | Replaced `94` with `0`      |
 | `077 123-4567`         | `0771234567`      | Stripped spaces/dashes      |
 | `0771234567`           | `0771234567`      | No change (already correct) |
+
+**`normalizeNationalId()`** — Applied during **both** bulk upload and single entry (`RegistryController` calls this directly for single/resubmit flows):
+
+| Raw Input | Normalized Output | Transformation Applied |
+| --------- | ----------------- | ---------------------- |
+| `9.00123E+11` (scientific) | `900123456789` | Converts float to integer string |
+| `199012345v` | `199012345V` | Uppercases `v`/`x` suffix |
+| `199012345678` | `199012345678` | No change (already correct) |
 
 ### 6.8 Rejection Dashboard (Data Entry — Rejected Records)
 
@@ -270,7 +280,7 @@ The Rejection Dashboard allows Data Entry Operators to view and correct their re
 
 1. **Category field stripping:** Cross-category null fields are unset before validation.
 2. **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — enforces all field and location rules.
-3. **Main Registry Duplicate Check:** `MainRegistry::where('contact_number', ...)`. For `UPDATE` submissions, `target_record_id` is excluded from the check.
-4. **Staging Duplicate Check:** `StagingData::where('validation_status', 'Pending')->where('id', '!=', $staging->id)` — ensures no other pending record shares the contact number.
+3. **Main Registry Duplicate Check:** `MainRegistry::where('contact_number', ...)->where('category', ...)`. For `UPDATE` submissions, `target_record_id` is excluded from the check.
+4. **Staging Duplicate Check:** `StagingData::where('validation_status', 'Pending')->where('id', '!=', $staging->id)->where('data_payload->contact_number', ...)->where('data_payload->category', ...)` — uses JSON path arrow syntax (not `whereJsonContains`). Ensures no other pending record shares the same contact number and category.
 5. **Status Reset:** Updates `data_payload`, sets `validation_status = 'Pending'`, clears `rejection_reason = null`. The original `batch_id` and `submission_type` are preserved.
 6. **Response:** Returns `200 OK` with `{ message, staging_id }`.
