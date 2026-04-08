@@ -99,12 +99,14 @@ The following describes the complete data flow for the Single Form Entry feature
 
 **Backend (Laravel — `RegistryController@storeSingle`):**
 
-5. **Initial Format Check:** Validates `category` (in: Self-Employed, Trade) and `contact_number` (regex: `^0\d{9}$`).
-6. **Main Registry Duplicate Check (1 DB call):** `MainRegistry::where('contact_number', $data['contact_number'])->exists()`.
-7. **Staging Duplicate Check (1 DB call):** `StagingData::where('validation_status', 'Pending')->whereJsonContains('data_payload->contact_number', ...)->exists()`.
-8. **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — includes hierarchical location validation.
-9. **Insert to Staging (1 DB call):** `StagingData::create(...)` with `submission_type = 'NEW'` and `batch_id = 'SINGLE-{timestamp}'`.
-10. **Response:** Returns `201 Created` with `staging_id`. Frontend shows green success banner, resets form and dropdown option lists, auto-scrolls to banner.
+5. **Trim & Normalize:** Leading/trailing whitespace is stripped from all string fields. `normalizeNationalId()` is applied to `national_id_number` (uppercases `v`/`x`, handles scientific notation from Excel paste). Phone numbers are **not** normalized here — the form enforces strict format (`^0\d{9}$`) via client-side and server-side validation, so raw input is always canonical.
+6. **Initial Format Check:** Validates `category` (in: Self-Employed, Trade) and `contact_number` (regex: `^0\d{9}$`) before any expensive DB operations.
+7. **Main Registry Duplicate Check (1 DB call):** `MainRegistry::where('contact_number', ...)->where('category', ...)->exists()` — category-aware.
+8. **Staging Duplicate Check (1 DB call):** `StagingData::where('validation_status', 'Pending')->where('data_payload->contact_number', ...)->where('data_payload->category', ...)->exists()` — uses JSON path arrow syntax (correct for scalar string values).
+9. **Cross-Category Field Stripping:** Irrelevant fields are `unset()` before validation to prevent the `prohibited` rule from firing on empty fields passed from the form.
+10. **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — includes hierarchical location validation.
+11. **Insert to Staging (1 DB call):** `StagingData::create(...)` with `submission_type = 'NEW'` and `batch_id = 'SINGLE-{timestamp}'`.
+12. **Response:** Returns `201 Created` with `staging_id`. Frontend shows green success banner, resets form and dropdown option lists, auto-scrolls to banner.
 
 **Total DB Calls Per Submission:** 3 (main_registry check + staging check + insert).
 
@@ -120,27 +122,31 @@ The following describes the complete data flow for the Excel Bulk Upload feature
 
 **Backend (Laravel — `RegistryController@uploadExcel`):**
 
-4. **File Validation:** Extension-based validation rejects files that are not `.csv`, `.xls`, or `.xlsx`. Size limit enforced at 10MB.
-5. **Parsing:** `RegistryImport` class (implements `WithChunkReading`) reads the file in chunks of **500 rows** at a time. The header row is discarded on the first chunk only.
-6. **Empty Row Filtering:** Completely empty rows are skipped and not counted toward `total_processed`.
-7. **Phone Normalization (per row):** `normalizePhoneNumber()` is applied to `contact_number` and `whatsapp_number`:
-    - Strips non-digit characters.
-    - `771234567` (9 digits, no leading `0`) → `0771234567`
-    - `+94771234567` → `0771234567`
-    - `94771234567` → `0771234567`
-8. **In-Batch Duplicate Check (0 DB calls):** All `contact_number` values in the file are tracked. Subsequent duplicates within the same file are immediately flagged with `error = 'Duplicate contact number found within this Excel file.'`.
-9. **DB Duplicate Check — Main Registry (1 DB call):** `MainRegistry::whereIn('contact_number', $uniqueNumbers)->pluck('contact_number')`.
-10. **DB Duplicate Check — Staging (1 DB call):** `StagingData::where('validation_status', 'Pending')->whereIn('data_payload->contact_number', $uniqueNumbers)->pluck('data_payload->contact_number')`. Uses Laravel's JSON column shorthand — MySQL filters in SQL, only matched numbers are fetched (no full payloads loaded into memory). Both result sets are merged via `array_unique(array_merge(...))`.
-11. **Category-Aware Validation (per row, 0 DB calls):** `RegistryValidator::validate($data)` enforces all field rules. Failing rows are flagged with concatenated error messages.
-12. **Bulk Insert (1 DB call):** All valid rows are batch-inserted into `staging_data` with `batch_id = 'BATCH-{timestamp}'` and `submission_type = 'NEW'`.
-13. **Response:** Returns JSON with `summary` (total_processed, valid_count, invalid_count), `invalid_rows` array (with error messages), and `batch_id`.
+4. **File Validation:** Extension + real MIME type validation rejects files that are not `.csv`, `.xls`, or `.xlsx`. Size limit enforced at 10MB. MIME check prevents renamed malicious files from bypassing extension validation.
+5. **Parsing — Multi-Sheet with `WithHeadingRow`:** `RegistryImport` (implements `WithMultipleSheets`) delegates to `SelfEmployedSheetImport` and `TradeSheetImport`. Both implement `WithHeadingRow` — the header row (row 1) is automatically consumed as the column key map. Rows are read in chunks of **500** via `WithChunkReading`.
+6. **Column Mapping (by Header Name):** Each sheet maps columns by the **Excel header name** (lowercased, spaces → underscores) rather than by numeric index. This makes the mapping resilient to column reordering.
+    - Self-Employed headers: `full_name`, `national_id_number`, `contact_number`, `province`, `district`, `ds_division`, `field_of_work`, `age`, `address`, `whatsapp_number`, `email`, `employees_count`.
+    - Trade headers: `trade_name`, `national_id_number_of_contact_person`, `contact_number`, `province`, `district`, `ds_division`, `address`, `whatsapp_number`, `email`, `contact_person_name`, `members_count`.
+7. **Empty Row Filtering:** Completely empty rows are skipped and not counted toward `total_processed`.
+8. **Per-Row Normalization (in sheet importers):**
+    - `normalizePhoneNumber()` applied to `contact_number` and `whatsapp_number` — strips non-digits, converts `94xxxxxxxxx` → `0xxxxxxxxx`, prepends `0` to 9-digit numbers.
+    - `normalizeNationalId()` applied to `national_id_number` — converts Excel scientific notation to string, uppercases `v`/`x` suffix.
+9. **In-File Duplicate Check (0 DB calls):** `RegistryImport` maintains a shared hash map (`contactNumbersInFile`) across all sheets and chunks. Each unique key is `"{contact_number}:{category}"`. Duplicates within the file are rejected immediately without a DB call.
+10. **DB Duplicate Check — Hash Map Approach (2 DB calls per chunk):**
+    - `MainRegistry::whereIn('contact_number', $chunk)->get(['contact_number','category'])->mapWithKeys(fn($r) => ["{$r->contact_number}:{$r->category}" => true])` — uses `toBase()` pattern for low-memory stdClass objects.
+    - `StagingData::where('validation_status', 'Pending')->whereIn('data_payload->contact_number', $chunk)->pluck('data_payload')->mapWithKeys(...)` — uses `pluck()` to avoid hydrating full Eloquent models.
+    - Both results are merged with the `+` array union operator (faster than `array_merge` for associative arrays). Duplicate check uses `isset()` — O(1) hash map lookup vs. O(n) `in_array()`.
+11. **Cross-Category Field Stripping:** `unset()` removes irrelevant fields per category before running `RegistryValidator`, preventing the `prohibited` validation rule from failing on legitimately absent fields.
+12. **Category-Aware Validation (per row, 0 DB calls):** `RegistryValidator::validate($data)` enforces all field, format, and hierarchical location rules. Failing rows are collected in `$importer->invalidRows` with concatenated error messages.
+13. **Bulk Insert (1 DB call per chunk):** All valid rows in a chunk are batch-inserted into `staging_data` in a single `INSERT` statement. Wrapped in `DB::transaction()` — if a DB error occurs, the entire chunk is rolled back atomically.
+14. **Response:** Returns JSON with `summary` (total_processed, valid_count, invalid_count), `invalid_rows` array (with error messages), and `batch_id`.
 
 **Frontend (Post-Processing):**
 
-14. **Results UI:** Displays the 3-card summary (total processed, sent for review, requires correction). A success banner confirms records were submitted.
-15. **Error Sheet Generation (client-side, 0 network calls):** If `invalid_count > 0`, the "Download Error Sheet" button is shown. Clicking it builds a CSV in-browser from `invalid_rows`, appends an "Error Message" column, and triggers a download via a temporary object URL.
+15. **Results UI:** Displays the 3-card summary (total processed, sent for review, requires correction). A success banner confirms records were submitted.
+16. **Error Sheet Generation (client-side, 0 network calls):** If `invalid_count > 0`, the "Download Error Sheet" button is shown. Clicking it builds a CSV in-browser from `invalid_rows`, appends an "Error Message" column, and triggers a download via a temporary object URL.
 
-**Total DB Calls Per Upload:** Variable — 3 operations (main_registry check + staging_data check + bulk insert) are performed **per 500-row chunk**.
+**Total DB Calls Per Upload:** Variable — per 500-row chunk: 2 reads (main_registry + staging_data) + 1 bulk insert.
 
 #### **Rejection Dashboard Flow (Frontend → Backend)**
 
@@ -158,8 +164,8 @@ The following describes the complete data flow for the Rejection Dashboard featu
 5.  **Ownership + Status Guard:** Queries `staging_data` with `uploaded_by = Current::id()` AND `validation_status = 'Rejected'` + `findOrFail($id)`. Returns 404 if not found or not owned.
 6.  **Category Field Stripping:** Cross-category null fields are unset before validation (same logic as `storeSingle`).
 7.  **Full Category-Aware Validation:** `RegistryValidator::validate($data)` — enforces all field and location rules. Returns 422 on failure.
-8.  **Main Registry Duplicate Check (1 DB call):** `MainRegistry::where('contact_number', ...)`. If `submission_type = 'UPDATE'`, the `target_record_id` row is excluded from the check.
-9.  **Staging Pending Duplicate Check (1 DB call):** `StagingData::where('validation_status', 'Pending')->where('id', '!=', $staging->id)->whereJsonContains(...)`. The `id !=` guard ensures the current record (which is `Rejected`, not `Pending`) is not accidentally matched.
+8.  **Main Registry Duplicate Check (1 DB call):** `MainRegistry::where('contact_number', ...)->where('category', ...)`. If `submission_type = 'UPDATE'`, the `target_record_id` row is excluded from the check.
+9.  **Staging Pending Duplicate Check (1 DB call):** `StagingData::where('validation_status', 'Pending')->where('id', '!=', $staging->id)->where('data_payload->contact_number', ...)->where('data_payload->category', ...)`. Uses JSON path arrow syntax (not `whereJsonContains`). The `id !=` guard ensures the current record (which is `Rejected`, not `Pending`) is not accidentally matched.
 10. **Status Reset (1 DB call):** Updates `data_payload = $data`, `validation_status = 'Pending'`, `rejection_reason = null`. Original `batch_id` and `submission_type` are preserved.
 11. **Response:** Returns `200 OK` with `{ message: 'Record resubmitted successfully.', staging_id }`.
 

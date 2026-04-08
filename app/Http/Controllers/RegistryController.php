@@ -57,8 +57,8 @@ class RegistryController extends Controller
         
         // Also check staging_data for pending duplicates (category-aware)
         $pendingDuplicate = StagingData::where('validation_status', StagingData::STATUS_PENDING)
-            ->whereJsonContains('data_payload->contact_number', $data['contact_number'])
-            ->whereJsonContains('data_payload->category', $data['category'])
+            ->where('data_payload->contact_number', $data['contact_number'])
+            ->where('data_payload->category', $data['category'])
             ->exists();
         if ($pendingDuplicate) {
             return response()->json([
@@ -175,33 +175,6 @@ class RegistryController extends Controller
     }
 
     /**
-     * Normalize phone numbers from Excel uploads
-     * Handles stripped leading zeros and Sri Lankan country codes (+94 or 94)
-     */
-    private function normalizePhoneNumber($number)
-    {
-        if (empty($number)) return null;
-
-        // Convert to string
-        $number = trim((string) $number);
-        // Strip all non-digit characters (spaces, dashes, dots, plus)
-        $number = preg_replace('/\D/', '', $number);
-
-        // Handle country code 94 (11 digits)
-        if (str_starts_with($number, '94') && strlen($number) === 11) {
-            $number = '0' . substr($number, 2);
-        }
-        else {
-            // Handle Excel stripped leading zero (exactly 9 digits, doesn't start with 0)
-            if (strlen($number) === 9 && !str_starts_with($number, '0')) {
-                $number = '0' . $number;
-            }
-        }
-
-        return $number;
-    }
-
-    /**
      * Normalize National ID numbers from Excel uploads or single entries
      * Handles scientific notation and ensures letters (v/x) are uppercase
      */
@@ -290,8 +263,8 @@ class RegistryController extends Controller
         // Check staging_data for pending duplicates (category-aware)
         $pendingDuplicate = StagingData::where('validation_status', StagingData::STATUS_PENDING)
             ->where('id', '!=', $staging->id)
-            ->whereJsonContains('data_payload->contact_number', $data['contact_number'])
-            ->whereJsonContains('data_payload->category', $data['category'])
+            ->where('data_payload->contact_number', $data['contact_number'])
+            ->where('data_payload->category', $data['category'])
             ->exists();
             
         if ($pendingDuplicate) {

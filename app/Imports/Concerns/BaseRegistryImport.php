@@ -53,30 +53,36 @@ trait BaseRegistryImport
             $chunkDataRows[] = $data;
         }
 
-        // do nothing if the data row is empty
+        // do nothing if the data row is empty 
         if (empty($chunkDataRows)) {
             return;
         }
 
         try {
             DB::transaction(function () use ($chunkDataRows, $uniqueNumbersForDbCheck, $importer) {
+                // Fetch MainRegistry and map directly to keys
                 $existingRecords = MainRegistry::whereIn('contact_number', $uniqueNumbersForDbCheck)
                     ->get(['contact_number', 'category'])
-                    ->map(fn($r) => "{$r->contact_number}:{$r->category}")
+                    ->mapWithKeys(fn($r) => ["{$r->contact_number}:{$r->category}" => true])
                     ->toArray();
-
+                        
+                // Fetch StagingData and map directly to keys
+                // Using pluck() here to save memory by only fetching the JSON payload
                 $pendingRecords = StagingData::where('validation_status', StagingData::STATUS_PENDING)
                     ->whereIn('data_payload->contact_number', $uniqueNumbersForDbCheck)
-                    ->get(['data_payload'])
-                    ->map(fn($s) => "{$s->data_payload['contact_number']}:{$s->data_payload['category']}")
+                    ->pluck('data_payload')
+                    ->mapWithKeys(fn($payload) => ["{$payload['contact_number']}:{$payload['category']}" => true])
                     ->toArray();
-
-                $existingPairs = array_unique(array_merge($existingRecords, $pendingRecords));
+                        
+                // Merge the hash maps
+                $existingPairs = $existingRecords + $pendingRecords;
 
                 $stagedInsertData = [];
                 foreach ($chunkDataRows as $data) {
                     $pair = "{$data['contact_number']}:{$data['category']}";
-                    if (in_array($pair, $existingPairs)) {
+
+                    // Use isset() for duplicate checking
+                    if (isset($existingPairs[$pair])) {
                         $data['error'] = 'Contact number already exists for this category in either pending or main database';
                         $importer->invalidRows[] = $data;
                         continue;
@@ -119,6 +125,7 @@ trait BaseRegistryImport
         }
     }
 
+    // sanitize, remove non digit characters, add 0 if missing, convert 94 to 0
     protected function normalizePhoneNumber($number)
     {
         if (empty($number)) return null;
@@ -134,6 +141,7 @@ trait BaseRegistryImport
         return $number;
     }
 
+    // sanitize, convert excel scientific format to string, capitalize last letter if exists
     protected function normalizeNationalId($id)
     {
         if (empty($id)) return null;

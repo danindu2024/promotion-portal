@@ -6,10 +6,10 @@ use App\Imports\Concerns\BaseRegistryImport;
 use App\Imports\RegistryImport;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithStartRow;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Collection;
 
-class TradeSheetImport implements ToCollection, WithChunkReading, WithStartRow
+class TradeSheetImport implements ToCollection, WithChunkReading, WithHeadingRow
 {
     use BaseRegistryImport;
 
@@ -20,18 +20,10 @@ class TradeSheetImport implements ToCollection, WithChunkReading, WithStartRow
         $this->importer = $importer;
     }
 
-    /**
-     * Start reading from row 2 (skips header)
-     */
-    public function startRow(): int
-    {
-        return 2;
-    }
-
     public function collection(Collection $rows)
     {
-
         $mappedRows = $rows->map(function ($row) {
+            // WithHeadingRow gives us named keys matching the Excel header row
             $rowData = $row->toArray();
             
             // Skip empty rows
@@ -41,17 +33,17 @@ class TradeSheetImport implements ToCollection, WithChunkReading, WithStartRow
 
             return [
                 'category'           => 'Trade',
-                'full_name'          => $rowData[0] ?? null,
-                'national_id_number' => $this->normalizeNationalId($rowData[1] ?? null),
-                'contact_number'     => $this->normalizePhoneNumber($rowData[2] ?? null),
-                'province'           => $rowData[3] ?? null,
-                'district'           => $rowData[4] ?? null,
-                'ds_division'        => $rowData[5] ?? null,
-                'address'            => $rowData[6] ?? null,
-                'whatsapp_number'    => $this->normalizePhoneNumber($rowData[7] ?? null),
-                'email'              => $rowData[8] ?? null,
-                'contact_person'     => $rowData[9] ?? null,
-                'members_count'      => $rowData[10] ?? null,
+                'trade_name'          => $rowData['trade_name'] ?? null,
+                'national_id_number_of_contact_person' => $this->normalizeNationalId($rowData['national_id_number_of_contact_person'] ?? null),
+                'contact_number'     => $this->normalizePhoneNumber($rowData['contact_number'] ?? null),
+                'province'           => $rowData['province'] ?? null,
+                'district'           => $rowData['district'] ?? null,
+                'ds_division'        => $rowData['ds_division'] ?? null,
+                'address'            => $rowData['address'] ?? null,
+                'whatsapp_number'    => $this->normalizePhoneNumber($rowData['whatsapp_number'] ?? null),
+                'email'              => $rowData['email'] ?? null,
+                'contact_person_name'     => $rowData['contact_person_name'] ?? null,
+                'members_count'      => $rowData['members_count'] ?? null,
             ];
         })->filter();
 

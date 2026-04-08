@@ -10,6 +10,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Protection;
 
 class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEvents, ShouldAutoSize
 {
@@ -35,7 +36,7 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
             'Age',
             'Address',
             'WhatsApp Number',
-            'Email Address',
+            'Email',
             'Employees Count'
         ];
     }
@@ -64,6 +65,17 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                         'startColor' => ['rgb' => '0056b3'], // Website Primary Blue
                     ],
                 ]);
+
+                // --- HEADER ROW PROTECTION ---
+                // Inversion pattern: set the workbook default style to unlocked first
+                // then lock only Header row relavant columns (A1:L1).
+                $sheet->getParent()->getDefaultStyle()->getProtection()
+                    ->setLocked(Protection::PROTECTION_UNPROTECTED);
+                $sheet->getProtection()->setSheet(true);
+                $sheet->getProtection()->setPassword('registry_template'); // password is included in code as this is not a highly sensitive data. This avoid unneccessary complexsity
+                // Lock only the 12 header cells
+                $sheet->getStyle('A1:L1')->getProtection()
+                    ->setLocked(Protection::PROTECTION_PROTECTED);
                 
                 // --- DATA VALIDATION (500 Rows) ---
                 
