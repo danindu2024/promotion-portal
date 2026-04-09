@@ -36,6 +36,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Template download - read-only, generous
         Route::get('/template', [RegistryController::class, 'downloadTemplate'])->middleware('throttle:30,1');
 
+        // Export invalid rows for correction
+        Route::post('/export-errors', [RegistryController::class, 'exportImportErrors'])->middleware('throttle:30,1');
+
         // Rejected Records Management
         Route::get('/rejected', [RegistryController::class, 'getRejected'])->middleware('throttle:30,1');
         Route::post('/rejected/{id}/resubmit', [RegistryController::class, 'resubmitRejected'])->middleware('throttle:30,1');
