@@ -33,8 +33,8 @@ class TradeSheetImport implements ToCollection, WithChunkReading, WithHeadingRow
 
             return [
                 'category'           => 'Trade',
-                'trade_name'          => $rowData['trade_name'] ?? null,
-                'national_id_number_of_contact_person' => $this->normalizeNationalId($rowData['national_id_number_of_contact_person'] ?? null),
+                'full_name'          => $rowData['trade_name'] ?? null,
+                'national_id_number' => $this->normalizeNationalId($rowData['national_id_number_of_contact_person'] ?? null),
                 'contact_number'     => $this->normalizePhoneNumber($rowData['contact_number'] ?? null),
                 'province'           => $rowData['province'] ?? null,
                 'district'           => $rowData['district'] ?? null,
@@ -42,7 +42,7 @@ class TradeSheetImport implements ToCollection, WithChunkReading, WithHeadingRow
                 'address'            => $rowData['address'] ?? null,
                 'whatsapp_number'    => $this->normalizePhoneNumber($rowData['whatsapp_number'] ?? null),
                 'email'              => $rowData['email'] ?? null,
-                'contact_person_name'     => $rowData['contact_person_name'] ?? null,
+                'contact_person'     => $rowData['contact_person_name'] ?? null,
                 'members_count'      => $rowData['members_count'] ?? null,
             ];
         })->filter();

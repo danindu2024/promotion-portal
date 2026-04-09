@@ -5,18 +5,36 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
+use App\Exports\Sheets\SelfEmployedErrorSheet;
+use App\Exports\Sheets\TradeErrorSheet;
+use App\Exports\Sheets\OptionsSheet;
 
-class RegistryTemplateExport implements WithMultipleSheets, WithEvents
+class BulkImportErrorExport implements WithMultipleSheets, WithEvents
 {
+    protected $invalidRows;
+
+    public function __construct(array $invalidRows)
+    {
+        $this->invalidRows = $invalidRows;
+    }
+
     /**
      * @return array
      */
     public function sheets(): array
     {
+        $selfEmployedRows = array_filter($this->invalidRows, function($row) {
+            return ($row['category'] ?? '') === 'Self-Employed';
+        });
+
+        $tradeRows = array_filter($this->invalidRows, function($row) {
+            return ($row['category'] ?? '') === 'Trade';
+        });
+
         return [
-            new Sheets\SelfEmployedTemplateSheet(),
-            new Sheets\TradeTemplateSheet(),
-            new Sheets\OptionsSheet(),
+            new SelfEmployedErrorSheet($selfEmployedRows),
+            new TradeErrorSheet($tradeRows),
+            new OptionsSheet(),
         ];
     }
 

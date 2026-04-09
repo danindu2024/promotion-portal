@@ -2109,85 +2109,31 @@ const resetBulkUpload = () => {
     }
 };
 
-const downloadErrorSheet = () => {
-    if (
-        !bulkResults.value ||
-        !bulkResults.value.invalid_rows ||
-        bulkResults.value.invalid_rows.length === 0
-    )
-        return;
+const downloadErrorSheet = async () => {
+    if (!bulkResults.value?.invalid_rows?.length) return;
 
-    const rows = bulkResults.value.invalid_rows;
-    // Headers matching the backend array mapping
-    const headers = [
-        "Category",
-        "Full Name",
-        "National ID Number",
-        "Contact Number",
-        "Province",
-        "District",
-        "DS Division",
-        "Field of Work",
-        "Age",
-        "Address",
-        "WhatsApp Number",
-        "Email Address",
-        "Contact Person",
-        "Members Count",
-        "Employees Count",
-        "Error Message",
-    ];
+    try {
+        const response = await axios.post('/api/registry/export-errors', {
+            invalid_rows: bulkResults.value.invalid_rows,
+            batch_id: bulkResults.value.batch_id
+        }, {
+            responseType: 'blob'
+        });
 
-    /**
-     * Sanitize a single CSV cell value against Formula/Excel Injection.
-     * Excel treats cells starting with =, +, -, @ as formulas.
-     * We prefix such values with a tab so Excel treats them as plain text.
-     */
-    const sanitizeCsvCell = (val) => {
-        const str = String(val ?? "");
-        // Strip any leading formula-trigger characters for safety
-        return str.replace(/^[=+\-@\t\r]+/, "");
-    };
-
-    // Convert objects to array in correct order, sanitizing each cell
-    const csvContent = [
-        headers.join(","),
-        ...rows.map((row) => {
-            const values = [
-                sanitizeCsvCell(row.category),
-                sanitizeCsvCell(row.full_name),
-                sanitizeCsvCell(row.national_id_number),
-                sanitizeCsvCell(row.contact_number),
-                sanitizeCsvCell(row.province),
-                sanitizeCsvCell(row.district),
-                sanitizeCsvCell(row.ds_division),
-                sanitizeCsvCell(row.field_of_work),
-                sanitizeCsvCell(row.age),
-                sanitizeCsvCell(row.address),
-                sanitizeCsvCell(row.whatsapp_number),
-                sanitizeCsvCell(row.email),
-                sanitizeCsvCell(row.contact_person),
-                sanitizeCsvCell(row.members_count),
-                sanitizeCsvCell(row.employees_count),
-                sanitizeCsvCell(row.error),
-            ];
-            // Wrap in quotes to handle commas, escape internal quotes
-            return values.map((v) => `"${v.replace(/"/g, '""')}"`).join(",");
-        }),
-    ].join("\n");
-
-    // Create download link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-        "download",
-        `error_sheet_${bulkResults.value.batch_id || "unknown"}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Release memory
+        const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `error_sheet_${bulkResults.value.batch_id || 'unknown'}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Failed to download error sheet", err);
+        alert("Could not generate error sheet. Please try again.");
+    }
 };
 </script>
