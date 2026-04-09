@@ -13,6 +13,7 @@ use App\Helpers\Current;
 use App\Helpers\Logger;
 use App\Imports\RegistryImport;
 use App\Exports\RegistryTemplateExport;
+use App\Exports\BulkImportErrorExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
@@ -34,6 +35,11 @@ class RegistryController extends Controller
         if (isset($data['national_id_number'])) {
             $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
         }
+
+        // Normalize locations
+        $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
+        $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
+        $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
 
         // Initial format check
         $validator = Validator::make($data, [
@@ -170,8 +176,25 @@ class RegistryController extends Controller
             'invalid_rows' => $import->invalidRows,
             'batch_id'     => $import->validCount > 0 ? $import->batchId : null
         ], 200);
+    }
 
+    /*
+     * Export invalid rows as a formatted Excel file for correction
+     */
+    public function exportImportErrors(Request $request)
+    {
+        $request->validate([
+            'invalid_rows' => 'required|array',
+            'batch_id'     => 'nullable|string'
+        ]);
 
+        $invalidRows = $request->input('invalid_rows');
+        $batchId     = $request->input('batch_id', 'unknown');
+
+        return Excel::download(
+            new BulkImportErrorExport($invalidRows), 
+            "error_sheet_{$batchId}.xlsx"
+        );
     }
 
     /**
@@ -202,8 +225,6 @@ class RegistryController extends Controller
         return response()->json($records);
     }
     
-
-
     /**
      * Resubmit a corrected rejected record
      */
@@ -216,6 +237,7 @@ class RegistryController extends Controller
             
         $data = $request->all();
 
+        // sanitize string values (trim leading and trailing whitespace)
         foreach ($data as $key => $value) {
             if (is_string($value)) {
                 $data[$key] = trim($value);
@@ -226,6 +248,11 @@ class RegistryController extends Controller
         if (isset($data['national_id_number'])) {
             $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
         }
+
+        // Normalize locations
+        $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
+        $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
+        $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
 
         // Initial format check before expensive db checks
         $preCheck = Validator::make($data, [
@@ -298,7 +325,7 @@ class RegistryController extends Controller
     public function listUpdateable(Request $request)
     {
         $user = Current::user();
-        $query = MainRegistry::query();
+        $query = MainRegistry::query(); // return a new query builder instance
 
         // 1. Enforce Location Scoping
         if ($user->access_level === 'data entry') {
@@ -384,6 +411,11 @@ class RegistryController extends Controller
             $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
         }
 
+        // Normalize locations
+        $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
+        $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
+        $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
+
         // Category-Aware Validation
         $data['category'] = $mainRecord->category; // Force original category
         
@@ -428,5 +460,14 @@ class RegistryController extends Controller
             'message' => 'Update request submitted for review successfully.',
             'staging_id' => $staging->id
         ], 201);
+    }
+
+    /*
+     * capitalize first letter of each word for locations (e.g. "colombo" -> "Colombo")
+     */
+    private function normalizeLocationName($name)
+    {
+        if (empty($name)) return null;
+        return ucwords(strtolower(trim((string) $name)));
     }
 }
