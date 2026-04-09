@@ -23,6 +23,7 @@ trait BaseRegistryImport
 
         foreach ($mappedRows as $data) {
             $importer->totalRows++;
+            $data['failed_fields'] = []; // Track single field errors
 
             // Server-side trim
             foreach ($data as $key => $value) {
@@ -36,6 +37,7 @@ trait BaseRegistryImport
             // throw error if the contact number is missing
             if (empty($contactNumber)) {
                 $data['error'] = 'Contact number is missing.';
+                $data['failed_fields'][] = 'contact_number';
                 $importer->invalidRows[] = $data;
                 continue;
             }
@@ -43,6 +45,7 @@ trait BaseRegistryImport
             // category aware duplicate check inside the excel sheet
             if ($importer->isContactNumberInFile($contactNumber, $data['category'])) {
                 $data['error'] = 'Duplicate contact number found for this category within this Excel file.';
+                $data['failed_fields'][] = 'contact_number';
                 $importer->invalidRows[] = $data;
                 continue;
             }
@@ -79,11 +82,17 @@ trait BaseRegistryImport
 
                 $stagedInsertData = [];
                 foreach ($chunkDataRows as $data) {
+                    // Normalize locations to Title Case before validation
+                    $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
+                    $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
+                    $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
+
                     $pair = "{$data['contact_number']}:{$data['category']}";
 
                     // Use isset() for duplicate checking
                     if (isset($existingPairs[$pair])) {
                         $data['error'] = 'Contact number already exists for this category in either pending or main database';
+                        $data['failed_fields'][] = 'contact_number';
                         $importer->invalidRows[] = $data;
                         continue;
                     }
@@ -100,6 +109,7 @@ trait BaseRegistryImport
 
                     if ($validator->fails()) {
                         $data['error'] = implode(' | ', $validator->errors()->all());
+                        $data['failed_fields'] = array_merge($data['failed_fields'], array_keys($validator->errors()->toArray()));
                         $importer->invalidRows[] = $data;
                     } else {
                         $stagedInsertData[] = [
@@ -149,5 +159,12 @@ trait BaseRegistryImport
             return number_format((float) $id, 0, '', '');
         }
         return strtoupper(trim((string) $id));
+    }
+
+    // capitalize first letter of each word for locations (e.g. "colombo" -> "Colombo")
+    protected function normalizeLocationName($name)
+    {
+        if (empty($name)) return null;
+        return ucwords(strtolower(trim((string) $name)));
     }
 }
