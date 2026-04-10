@@ -68,7 +68,7 @@ class RegistryValidator
         // Category-Specific Rules
         if ($category === 'Self-Employed') {
             $rules = array_merge($rules, [
-                'age' => 'nullable|integer|min:16|max:110',
+                'age' => 'nullable|integer|min:17|max:60',
                 'field_of_work' => ['required', Rule::in([
                     'Agriculture and Fisheries Entrepreneurs', 'Cottage Industries / Small Industries',
                     'Transport and Technical Services', 'Construction Services', 'Trade and Service Enterprises',
