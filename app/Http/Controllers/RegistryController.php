@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use App\Models\MainRegistry;
-
 use App\Models\StagingData;
 use App\Services\RegistryValidator;
 use App\Helpers\Current;
@@ -14,10 +13,12 @@ use App\Helpers\Logger;
 use App\Imports\RegistryImport;
 use App\Exports\RegistryTemplateExport;
 use App\Exports\BulkImportErrorExport;
+use App\Traits\NormalizesData;
 use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
 {
+    use NormalizesData;
     /*
      * Submit a single new record for validator review
      */
@@ -31,10 +32,9 @@ class RegistryController extends Controller
                 $data[$key] = trim($value);
             }
         }
+        
         // Normalize NIC if present (uppercase v/x)
-        if (isset($data['national_id_number'])) {
-            $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
-        }
+        $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number'] ?? '');
 
         // Normalize locations
         $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
@@ -112,11 +112,9 @@ class RegistryController extends Controller
         return Excel::download(new RegistryTemplateExport, 'bulk_upload_template.xlsx');
     }
 
-
     /**
      * Parse Excel, validate rows, check duplicates efficiently, and stage valid rows.
      */
-
     public function uploadExcel(Request $request)
     {
         // validate file type and size
@@ -167,14 +165,19 @@ class RegistryController extends Controller
             'filename' => $request->file('file')->getClientOriginalName()
         ]);
 
+        // Cache invalid rows server-side keyed by batch_id (expires in 2 hours)
+        // This prevents raw error data from being exposed to or tampered with by the client
+        if (!empty($import->invalidRows)) {
+            Cache::put("import_errors_{$import->batchId}", $import->invalidRows, now()->addHours(2));
+        }
+
         return response()->json([
             'summary' => [
                 'total_processed' => $import->totalRows,
                 'valid_count'     => $import->validCount,
                 'invalid_count'   => count($import->invalidRows),
             ],
-            'invalid_rows' => $import->invalidRows,
-            'batch_id'     => $import->validCount > 0 ? $import->batchId : null
+            'batch_id' => $import->batchId
         ], 200);
     }
 
@@ -184,33 +187,27 @@ class RegistryController extends Controller
     public function exportImportErrors(Request $request)
     {
         $request->validate([
-            'invalid_rows' => 'required|array',
-            'batch_id'     => 'nullable|string'
+            'batch_id' => 'required|string'
         ]);
 
-        $invalidRows = $request->input('invalid_rows');
-        $batchId     = $request->input('batch_id', 'unknown');
+        $batchId = $request->input('batch_id');
+
+        // Retrieve invalid rows from server-side cache
+        // The client only sends a batch_id — no raw row data is trusted from the browser
+        $invalidRows = Cache::get("import_errors_{$batchId}");
+
+        if (!$invalidRows) {
+            return response()->json([
+                'message' => 'Error data has expired or not found. Please re-upload your file.'
+            ], 404);
+        }
 
         return Excel::download(
-            new BulkImportErrorExport($invalidRows), 
+            new BulkImportErrorExport($invalidRows),
             "error_sheet_{$batchId}.xlsx"
         );
     }
 
-    /**
-     * Normalize National ID numbers from Excel uploads or single entries
-     * Handles scientific notation and ensures letters (v/x) are uppercase
-     */
-    private function normalizeNationalId($id)
-    {
-        if (empty($id)) return null;
-
-        if (is_numeric($id)) {
-            return number_format((float) $id, 0, '', '');
-        }
-
-        return strtoupper(trim((string) $id));
-    }
 
     /**
      * Get rejected records for the current Data Entry user
@@ -462,12 +459,5 @@ class RegistryController extends Controller
         ], 201);
     }
 
-    /*
-     * capitalize first letter of each word for locations (e.g. "colombo" -> "Colombo")
-     */
-    private function normalizeLocationName($name)
-    {
-        if (empty($name)) return null;
-        return ucwords(strtolower(trim((string) $name)));
-    }
 }
+
