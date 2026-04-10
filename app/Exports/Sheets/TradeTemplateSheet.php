@@ -17,24 +17,24 @@ class TradeTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEven
     public function array(): array
     {
         return [
-            ['Sakindu Geethula', '198512345678', '0719876543', 'Central', 'Kandy', 'Kandy', '456 Market St', '0719876543', 'sakindu@gmail.com', 'Jane Smith', '10']
+            ['Sri Lanka Senior Society', 'Sakindu Geethula', '0719876543', '0719876543', 'sakindu@gmail.com', '198512345678', 'Central', 'Kandy', 'Kandy', '456 Market St', '10']
         ];
     }
 
     public function headings(): array
     {
         return [
-            'Trade Name',           
-            'National ID Number Of Contact Person',  
+            'Trade Name',
+            'Contact Person Name',             
             'Contact Number',
+            'WhatsApp Number',
+            'Email',
+            'National Id Number',
             'Province',
             'District',
             'DS Division',
-            'Address',
-            'WhatsApp Number',
-            'Email',               
-            'Contact Person Name',      
-            'Members Count'
+            'Address',       
+            'Members Count',
         ];
     }
 
@@ -75,8 +75,8 @@ class TradeTemplateSheet implements WithHeadings, WithTitle, FromArray, WithEven
 
                 // --- DATA VALIDATION (500 Rows) ---
                 
-                // Province (D2:D501)
-                $validationProvince = $sheet->getDataValidation('D2:D501');
+                // Province (G2:G501)
+                $validationProvince = $sheet->getDataValidation('G2:G501');
                 $validationProvince->setType(DataValidation::TYPE_LIST);
                 $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationProvince->setShowErrorMessage(true);
