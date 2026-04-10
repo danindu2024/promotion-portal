@@ -20,16 +20,16 @@ class SelfEmployedErrorSheet implements WithHeadings, WithTitle, FromCollection,
 
     private const COLUMN_MAP = [
         'full_name'          => 'A',
-        'national_id_number' => 'B',
-        'contact_number'     => 'C',
-        'province'           => 'D',
-        'district'           => 'E',
-        'ds_division'        => 'F',
-        'field_of_work'      => 'G',
-        'age'                => 'H',
-        'address'            => 'I',
-        'whatsapp_number'    => 'J',
-        'email'              => 'K',
+        'contact_number'     => 'B',
+        'whatsapp_number'    => 'C',
+        'email'              => 'D',
+        'age'                => 'E',
+        'national_id_number' => 'F', 
+        'province'           => 'G',
+        'district'           => 'H',
+        'ds_division'        => 'I',
+        'address'            => 'J',
+        'field_of_work'      => 'K',
         'employees_count'    => 'L',
     ];
 
@@ -48,16 +48,16 @@ class SelfEmployedErrorSheet implements WithHeadings, WithTitle, FromCollection,
     {
         return [
             'Full Name',
-            'National ID Number',
             'Contact Number',
+            'WhatsApp Number',
+            'Email',
+            'Age',
+            'National Id Number',
             'Province',
             'District',
             'DS Division',
-            'Field of Work',
-            'Age',
             'Address',
-            'WhatsApp Number',
-            'Email',
+            'Field of Work',
             'Employees Count',
             'Error Message'
         ];
@@ -68,16 +68,16 @@ class SelfEmployedErrorSheet implements WithHeadings, WithTitle, FromCollection,
     {
         return [
             $row['full_name'] ?? '',
-            $row['national_id_number'] ?? '',
             $row['contact_number'] ?? '',
+            $row['whatsapp_number'] ?? '',
+            $row['email'] ?? '',
+            $row['age'] ?? '',
+            $row['national_id_number'] ?? '',
             $row['province'] ?? '',
             $row['district'] ?? '',
             $row['ds_division'] ?? '',
-            $row['field_of_work'] ?? '',
-            $row['age'] ?? '',
             $row['address'] ?? '',
-            $row['whatsapp_number'] ?? '',
-            $row['email'] ?? '',
+            $row['field_of_work'] ?? '',
             $row['employees_count'] ?? '',
             $row['error'] ?? ''
         ];
@@ -139,22 +139,16 @@ class SelfEmployedErrorSheet implements WithHeadings, WithTitle, FromCollection,
                     }
                 }
 
-                // 2. Apply styles in batches to drastically reduce memory usage and speed up execution
-                if (!empty($errorCells)) {
-                    // Chunk by 500 to prevent the coordinate string from becoming too large for PhpSpreadsheet to parse
-                    $chunks = array_chunk($errorCells, 500); 
-
-                    foreach ($chunks as $chunk) {
-                        $coordinateString = implode(',', $chunk);
-                        $sheet->getStyle($coordinateString)->applyFromArray($errorStyle);
-                    }
+                // 2. Apply styles to each error cell
+                foreach ($errorCells as $coordinate) {
+                    $sheet->getStyle($coordinate)->applyFromArray($errorStyle);
                 }
                 
                 // --- Dropdown range ---
                 $rowCount = $this->rows->count() + 10; // Validation for existing rows + 10 buffer
                 
-                // Province (D2:D<row count>)
-                $validationProvince = $sheet->getDataValidation("D2:D$rowCount");
+                // Province (G2:G<row count>)
+                $validationProvince = $sheet->getDataValidation("G2:G$rowCount");
                 $validationProvince->setType(DataValidation::TYPE_LIST);
                 $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationProvince->setShowErrorMessage(true);
@@ -163,8 +157,8 @@ class SelfEmployedErrorSheet implements WithHeadings, WithTitle, FromCollection,
                 $validationProvince->setShowDropDown(true);
                 $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
 
-                // Field of Work (G2:G<row count>)
-                $validationField = $sheet->getDataValidation("G2:G$rowCount");
+                // Field of Work (K2:K<row count>)
+                $validationField = $sheet->getDataValidation("K2:K$rowCount");
                 $validationField->setType(DataValidation::TYPE_LIST);
                 $validationField->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationField->setShowErrorMessage(true);
