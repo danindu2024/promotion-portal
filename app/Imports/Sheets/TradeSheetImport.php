@@ -34,7 +34,7 @@ class TradeSheetImport implements ToCollection, WithChunkReading, WithHeadingRow
             return [
                 'category'           => 'Trade',
                 'full_name'          => $rowData['trade_name'] ?? null,
-                'national_id_number' => $this->normalizeNationalId($rowData['national_id_number_of_contact_person'] ?? null),
+                'national_id_number' => $this->normalizeNationalId($rowData['national_id_number'] ?? null),
                 'contact_number'     => $this->normalizePhoneNumber($rowData['contact_number'] ?? null),
                 'province'           => $rowData['province'] ?? null,
                 'district'           => $rowData['district'] ?? null,
