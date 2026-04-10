@@ -4,13 +4,15 @@ namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Events\BeforeWriting;
 
 class RegistryTemplateExport implements WithMultipleSheets, WithEvents
 {
     /**
      * @return array
      */
+
+    // get the multiple sheets
     public function sheets(): array
     {
         return [
@@ -20,14 +22,14 @@ class RegistryTemplateExport implements WithMultipleSheets, WithEvents
         ];
     }
 
+    // add protection for tab modification
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
-                // Access the spreadsheet parent from the current sheet
-                $spreadsheet = $event->sheet->getDelegate()->getParent();
+            BeforeWriting::class => function(BeforeWriting $event) {
+                $spreadsheet = $event->writer->getDelegate();
                 
-                // Protect the workbook structure (prevents renaming, deleting, adding sheets)
+                // Protect the workbook structure (prevents renaming, deleting, adding, reordering sheets)
                 $spreadsheet->getSecurity()->setLockStructure(true);
                 $spreadsheet->getSecurity()->setWorkbookPassword('registry_template');
             },
