@@ -315,8 +315,8 @@
                                     <input
                                         type="number"
                                         v-model="form.age"
-                                        min="16"
-                                        max="110"
+                                        min="17"
+                                        max="60"
                                         :class="inputClass(fieldErrors.age)"
                                     />
                                     <p
@@ -1559,7 +1559,7 @@ const inputClass = (error) => [
 // Phone validation regex (Sri Lankan format: 10 digits starting with 0)
 const PHONE_REGEX = /^0\d{9}$/;
 
-// ─── Client-Side Validation (Bug 9) ────────────────────────────────
+// ─── Client-Side Validation ────────────────────────────────
 function validateForm() {
     // Clear previous errors
     Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
@@ -1594,7 +1594,7 @@ function validateForm() {
         valid = false;
     }
 
-    // WhatsApp — optional but must match format if provided (Bug 3)
+    // WhatsApp — optional but must match format if provided
     if (form.whatsapp_number && !PHONE_REGEX.test(form.whatsapp_number)) {
         fieldErrors.whatsapp_number = "Must be 10 digits starting with 0.";
         valid = false;
@@ -1616,9 +1616,9 @@ function validateForm() {
         if (
             form.age !== null &&
             form.age !== "" &&
-            (form.age < 16 || form.age > 110)
+            (form.age < 17 || form.age > 60)
         ) {
-            fieldErrors.age = "Age must be between 16 and 110.";
+            fieldErrors.age = "Age must be between 17 and 60.";
             valid = false;
         }
         if (
@@ -1648,7 +1648,7 @@ function validateForm() {
     return valid;
 }
 
-// ─── Auto-scroll to alert area (Bug 11) ────────────────────────────
+// ─── Auto-scroll to alert area ────────────────────────────
 async function scrollToAlert() {
     await nextTick();
     alertArea.value?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2110,11 +2110,10 @@ const resetBulkUpload = () => {
 };
 
 const downloadErrorSheet = async () => {
-    if (!bulkResults.value?.invalid_rows?.length) return;
+    if (!bulkResults.value?.summary?.invalid_count) return;
 
     try {
         const response = await axios.post('/api/registry/export-errors', {
-            invalid_rows: bulkResults.value.invalid_rows,
             batch_id: bulkResults.value.batch_id
         }, {
             responseType: 'blob'

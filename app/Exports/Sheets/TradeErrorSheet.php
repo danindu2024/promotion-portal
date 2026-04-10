@@ -20,15 +20,15 @@ class TradeErrorSheet implements WithHeadings, WithTitle, FromCollection, WithEv
     
     private const COLUMN_MAP = [
         'full_name'          => 'A', // Trade Name
-        'national_id_number' => 'B',
+        'contact_person'     => 'B',
         'contact_number'     => 'C',
-        'province'           => 'D',
-        'district'           => 'E',
-        'ds_division'        => 'F',
-        'address'            => 'G',
-        'whatsapp_number'    => 'H',
-        'email'              => 'I',
-        'contact_person'     => 'J',
+        'whatsapp_number'    => 'D',
+        'email'              => 'E',
+        'national_id_number' => 'F',
+        'province'           => 'G',
+        'district'           => 'H',
+        'ds_division'        => 'I',
+        'address'            => 'J',
         'members_count'      => 'K',
     ];
 
@@ -45,16 +45,16 @@ class TradeErrorSheet implements WithHeadings, WithTitle, FromCollection, WithEv
     public function headings(): array
     {
         return [
-            'Trade Name',           
-            'National ID Number Of Contact Person',  
+            'Trade Name',
+            'Contact Person Name',             
             'Contact Number',
+            'WhatsApp Number',
+            'Email',
+            'National Id Number',
             'Province',
             'District',
             'DS Division',
-            'Address',
-            'WhatsApp Number',
-            'Email',               
-            'Contact Person Name',      
+            'Address',       
             'Members Count',
             'Error Message'
         ];
@@ -63,18 +63,18 @@ class TradeErrorSheet implements WithHeadings, WithTitle, FromCollection, WithEv
     public function map($row): array
     {
         return [
-            $row['full_name'] ?? '', // Trade name is mapped to full_name key internally
-            $row['national_id_number'] ?? '', // National ID Number of Contact Person is mapped to national_id_number key internally
-            $row['contact_number'] ?? '',
-            $row['province'] ?? '',
-            $row['district'] ?? '',
-            $row['ds_division'] ?? '',
-            $row['address'] ?? '',
-            $row['whatsapp_number'] ?? '',
-            $row['email'] ?? '',
-            $row['contact_person'] ?? '', // Contact Person name is mapped to contact_person key internally
-            $row['members_count'] ?? '',
-            $row['error'] ?? ''
+            $row['full_name'] ?? '', // Trade Name (A)
+            $row['contact_person'] ?? '', // Contact Person Name (B)
+            $row['contact_number'] ?? '', // Contact Number (C)
+            $row['whatsapp_number'] ?? '', // WhatsApp Number (D)
+            $row['email'] ?? '', // Email (E)
+            $row['national_id_number'] ?? '', // National Id Number (F)
+            $row['province'] ?? '', // Province (G)
+            $row['district'] ?? '', // District (H)
+            $row['ds_division'] ?? '', // DS Division (I)
+            $row['address'] ?? '', // Address (J)
+            $row['members_count'] ?? '', // Members Count (K)
+            $row['error'] ?? '' // Error Message (L)
         ];
     }
 
@@ -134,22 +134,16 @@ class TradeErrorSheet implements WithHeadings, WithTitle, FromCollection, WithEv
                     }
                 }
 
-                // 2. Apply styles in batches to drastically reduce memory usage and speed up execution
-                if (!empty($errorCells)) {
-                    // Chunk by 500 to prevent the coordinate string from becoming too large for PhpSpreadsheet to parse
-                    $chunks = array_chunk($errorCells, 500); 
-
-                    foreach ($chunks as $chunk) {
-                        $coordinateString = implode(',', $chunk);
-                        $sheet->getStyle($coordinateString)->applyFromArray($errorStyle);
-                    }
+                // 2. Apply styles to each error cell
+                foreach ($errorCells as $coordinate) {
+                    $sheet->getStyle($coordinate)->applyFromArray($errorStyle);
                 }
 
                 // --- Dropdown range ---
                 $rowCount = $this->rows->count() + 10;
                 
-                // Province (D2:D<row count>)
-                $validationProvince = $sheet->getDataValidation("D2:D$rowCount");
+                // Province (G2:G<row count>)
+                $validationProvince = $sheet->getDataValidation("G2:G$rowCount");
                 $validationProvince->setType(DataValidation::TYPE_LIST);
                 $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationProvince->setShowErrorMessage(true);

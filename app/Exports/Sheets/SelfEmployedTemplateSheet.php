@@ -18,7 +18,7 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
     public function array(): array
     {
         return [
-            ['Danindu Ransika', '199012345678', '0771234567', 'Western', 'Colombo', 'Thimbirigasyaya', 'Information Technology and Modern Services', '30', '123 Main St, Colombo 05', '0771234567', 'danindu@gmail.com', '5']
+            ['Danindu Ransika', '0771234567', '0771234567', 'danindu@gmail.com', '30', '199012345678', 'Western', 'Colombo', 'Thimbirigasyaya', '123 Main St, Colombo 05', 'Information Technology and Modern Services', '5']
         ];
     }
 
@@ -27,17 +27,17 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
     {
         return [
             'Full Name',
-            'National ID Number',
             'Contact Number',
+            'WhatsApp Number',
+            'Email',
+            'Age',
+            'National Id Number',
             'Province',
             'District',
             'DS Division',
-            'Field of Work',
-            'Age',
             'Address',
-            'WhatsApp Number',
-            'Email',
-            'Employees Count'
+            'Field of Work',
+            'Employees Count',
         ];
     }
 
@@ -77,10 +77,10 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                 $sheet->getStyle('A1:L1')->getProtection()
                     ->setLocked(Protection::PROTECTION_PROTECTED);
                 
-                // --- DATA VALIDATION (500 Rows) ---
+                // --- DROPDOWN CREATION (500 Rows) ---
                 
-                // Province (D2:D501)
-                $validationProvince = $sheet->getDataValidation('D2:D501');
+                // Province (G2:G501)
+                $validationProvince = $sheet->getDataValidation('G2:G501');
                 $validationProvince->setType(DataValidation::TYPE_LIST);
                 $validationProvince->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationProvince->setShowErrorMessage(true);
@@ -89,8 +89,8 @@ class SelfEmployedTemplateSheet implements WithHeadings, WithTitle, FromArray, W
                 $validationProvince->setShowDropDown(true);
                 $validationProvince->setFormula1("'Options'!\$B\$2:\$B\$10");
 
-                // Field of Work (G2:G501)
-                $validationField = $sheet->getDataValidation('G2:G501');
+                // Field of Work (K2:K501)
+                $validationField = $sheet->getDataValidation('K2:K501');
                 $validationField->setType(DataValidation::TYPE_LIST);
                 $validationField->setErrorStyle(DataValidation::STYLE_STOP);
                 $validationField->setShowErrorMessage(true);
