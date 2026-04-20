@@ -108,6 +108,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Username</th>
                                 <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Office</th>
                                 <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Access Level</th>
                                 <th scope="col" class="px-6 py-4 text-right text-sm font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -115,11 +116,14 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-if="filteredUsers.length === 0">
-                                <td colspan="4" class="px-6 py-10 text-center text-gray-500 text-base">No users found.</td>
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-500 text-base">No users found.</td>
                             </tr>
                             <tr v-for="user in filteredUsers" :key="user.user_id" class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">
-                                    {{ user.name.split(' ').pop() }}
+                                    {{ user.name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-base text-gray-600">
+                                    {{ user.username }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700">
                                     <div v-if="user.district">
@@ -248,11 +252,43 @@
                                     <label for="password" class="block text-sm font-medium text-gray-700">
                                         {{ form.user_id ? 'Reset Password (optional)' : 'Password' }}
                                     </label>
-                                    <input type="password" id="password" v-model="form.password" :required="!form.user_id" class="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2.5 px-3">
+                                    <div class="relative">
+                                        <input :type="showPassword ? 'text' : 'password'" id="password" v-model="form.password" :required="!form.user_id" class="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2.5 pl-3 pr-10">
+                                        <button
+                                            type="button"
+                                            @click="showPassword = !showPassword"
+                                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-600 focus:outline-none transition-colors"
+                                            tabindex="-1"
+                                        >
+                                            <svg v-if="!showPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.046m2.458-2.458A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.059 10.059 0 01-4.293 5.707M11.25 11.25l.041-.02a3 3 0 013.978 3.978l-.02.041m-4.231-4.231L6.75 6.75m10.5 10.5l-2.136-2.136" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div v-if="!form.user_id">
                                     <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                                    <input type="password" id="password_confirmation" v-model="form.password_confirmation" :required="!form.user_id" class="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2.5 px-3">
+                                    <div class="relative">
+                                        <input :type="showConfirmPassword ? 'text' : 'password'" id="password_confirmation" v-model="form.password_confirmation" :required="!form.user_id" class="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2.5 pl-3 pr-10">
+                                        <button
+                                            type="button"
+                                            @click="showConfirmPassword = !showConfirmPassword"
+                                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-600 focus:outline-none transition-colors"
+                                            tabindex="-1"
+                                        >
+                                            <svg v-if="!showConfirmPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.046m2.458-2.458A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.059 10.059 0 01-4.293 5.707M11.25 11.25l.041-.02a3 3 0 013.978 3.978l-.02.041m-4.231-4.231L6.75 6.75m10.5 10.5l-2.136-2.136" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -344,6 +380,10 @@ const fetchUsers = async () => {
 // --- Filtering Logic ---
 const filters = ref({ search: '', province: '', district: '', ds_division: '', access_level: '' });
 const appliedFilters = ref({ search: '', province: '', district: '', ds_division: '', access_level: '' });
+
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+
 
 const provinces = ref([]);
 const districts = ref([]);
@@ -523,7 +563,10 @@ const openEditModal = async (user) => {
 
 const closeModal = () => {
     isModalOpen.value = false;
+    showPassword.value = false;
+    showConfirmPassword.value = false;
 };
+
 
 const saveUser = async () => {
     try {
