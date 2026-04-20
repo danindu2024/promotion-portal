@@ -126,12 +126,12 @@
                                                         Age: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'age')}">{{ record.data_payload.age || 'N/A' }}</span>
                                                     </div>
                                                     <div class="text-xs text-black">
-                                                        Emp: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'employees_count')}">{{ record.data_payload.employees_count ?? 'N/A' }}</span>
+                                                        Employees: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'employees_count')}">{{ record.data_payload.employees_count ?? 'N/A' }}</span>
                                                     </div>
                                                 </template>
                                                 <template v-if="record.data_payload.category === 'Trade'">
                                                     <div class="text-xs text-black mt-1">
-                                                        Mem: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'members_count')}">{{ record.data_payload.members_count ?? 'N/A' }}</span>
+                                                        Members: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'members_count')}">{{ record.data_payload.members_count ?? 'N/A' }}</span>
                                                     </div>
                                                 </template>
                                             </td>
@@ -209,12 +209,12 @@
                                                         Age: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'age')}">{{ record.target_record.age || 'N/A' }}</span>
                                                     </div>
                                                     <div class="text-xs">
-                                                        Emp: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'employees_count')}">{{ record.target_record.employees_count ?? 'N/A' }}</span>
+                                                        Employees: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'employees_count')}">{{ record.target_record.employees_count ?? 'N/A' }}</span>
                                                     </div>
                                                 </template>
                                                 <template v-if="record.target_record.category === 'Trade'">
                                                     <div class="text-xs mt-1">
-                                                        Mem: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'members_count')}">{{ record.target_record.members_count ?? 'N/A' }}</span>
+                                                        Members: <span :class="{'bg-yellow-100 px-1 rounded-sm': isFieldChanged(record, 'members_count')}">{{ record.target_record.members_count ?? 'N/A' }}</span>
                                                     </div>
                                                 </template>
                                             </td>
@@ -278,10 +278,10 @@
                                             <span class="font-medium text-black">{{ record.data_payload.category }}</span>
                                             <template v-if="record.data_payload.category === 'Self-Employed'">
                                                 <div class="text-xs text-black mt-1">Age: {{ record.data_payload.age || 'N/A' }}</div>
-                                                <div class="text-xs text-black">Emp: {{ record.data_payload.employees_count ?? 'N/A' }}</div>
+                                                <div class="text-xs text-black">Employees: {{ record.data_payload.employees_count ?? 'N/A' }}</div>
                                             </template>
                                             <template v-if="record.data_payload.category === 'Trade'">
-                                                <div class="text-xs text-black mt-1">Mem: {{ record.data_payload.members_count ?? 'N/A' }}</div>
+                                                <div class="text-xs text-black mt-1">Members: {{ record.data_payload.members_count ?? 'N/A' }}</div>
                                             </template>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
@@ -292,7 +292,7 @@
                                         </td>
                                         <td class="px-4 py-3 text-sm text-black border-r border-gray-100">
                                             <div class="text-black">{{ record.data_payload.district }} &rarr; {{ record.data_payload.ds_division }}</div>
-                                            <div class="text-xs text-black truncate max-w-xs mt-0.5" :title="record.data_payload.address">{{ record.data_payload.address || 'N/A' }}</div>
+                                            <div class="text-xs text-black truncate max-w-xs mt-0.5" :title="record.data_payload.address">Address: {{ record.data_payload.address || 'N/A' }}</div>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-black">
                                             <div class="font-mono text-black">{{ record.data_payload.contact_number }}</div>
@@ -358,7 +358,7 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploader</th>
                                 <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Record Count</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -662,8 +662,12 @@ const rejectSingleRecord = async () => {
         
         successMsg.value = `Record for ${recordToReject.value.data_payload.full_name} rejected.`;
         
-        // After any rejection, we always return to the main queue
-        closeBatch();
+        // Only return to the main queue if no records are left in the current batch
+        if (batchRecords.value.length === 0) {
+            closeBatch();
+        }
+
+        // Refresh background queue counts
         fetchQueue('/api/reviews/pending');
         
         isProcessing.value = false;

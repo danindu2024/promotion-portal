@@ -445,10 +445,11 @@
                                     <select
                                         v-model="form.province"
                                         @change="fetchDistricts"
-                                        :disabled="loadingProvinces"
-                                        :class="
-                                            inputClass(fieldErrors.province)
-                                        "
+                                        :disabled="loadingProvinces || ['data entry', 'validator'].includes(user.access_level)"
+                                        :class="[
+                                            inputClass(fieldErrors.province),
+                                            ['data entry', 'validator'].includes(user.access_level) ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
+                                        ]"
                                     >
                                         <option value="" disabled>
                                             {{
@@ -471,6 +472,7 @@
                                         >Loading...</span
                                     >
                                 </div>
+
                                 <p
                                     v-if="fieldErrors.province"
                                     class="text-xs text-red-500 mt-1"
@@ -490,11 +492,12 @@
                                         v-model="form.district"
                                         @change="fetchDsDivisions"
                                         :disabled="
-                                            !form.province || loadingDistricts
+                                            !form.province || loadingDistricts || ['data entry', 'validator'].includes(user.access_level)
                                         "
                                         :class="[
                                             inputClass(fieldErrors.district),
-                                            'disabled:bg-gray-100 disabled:text-gray-400',
+                                            !form.province || loadingDistricts || ['data entry', 'validator'].includes(user.access_level) ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
+                                            'disabled:text-gray-400'
                                         ]"
                                     >
                                         <option value="" disabled>
@@ -518,6 +521,7 @@
                                         >Loading...</span
                                     >
                                 </div>
+
                                 <p
                                     v-if="fieldErrors.district"
                                     class="text-xs text-red-500 mt-1"
@@ -536,11 +540,12 @@
                                     <select
                                         v-model="form.ds_division"
                                         :disabled="
-                                            !form.district || loadingDsDivisions
+                                            !form.district || loadingDsDivisions || user.access_level === 'data entry'
                                         "
                                         :class="[
                                             inputClass(fieldErrors.ds_division),
-                                            'disabled:bg-gray-100 disabled:text-gray-400',
+                                            !form.district || loadingDsDivisions || user.access_level === 'data entry' ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
+                                            'disabled:text-gray-400',
                                         ]"
                                     >
                                         <option value="" disabled>
@@ -564,6 +569,7 @@
                                         >Loading...</span
                                     >
                                 </div>
+
                                 <p
                                     v-if="fieldErrors.ds_division"
                                     class="text-xs text-red-500 mt-1"
@@ -1535,6 +1541,32 @@ const getInitialForm = () => ({
 });
 const form = reactive(getInitialForm());
 
+// ─── Location Pre-selection logic ───
+const applyUserLocationDefaults = async () => {
+    if (user.access_level === "data entry") {
+        form.province = user.province || "";
+        form.district = user.district || "";
+        form.ds_division = user.ds_division || "";
+    } else if (user.access_level === "validator") {
+        form.province = user.province || "";
+        form.district = user.district || "";
+    }
+
+    // Populate dropdowns if location is pre-set
+    if (form.province) {
+        await fetchDistricts();
+        if (user.access_level === "validator") {
+             form.district = user.district || "";
+        }
+        if (user.access_level === "data entry") {
+             form.district = user.district || "";
+             await fetchDsDivisions();
+             form.ds_division = user.ds_division || "";
+        }
+    }
+};
+
+
 const fieldOfWorkOptions = [
     "Agriculture and Fisheries Entrepreneurs",
     "Cottage Industries / Small Industries",
@@ -1668,8 +1700,12 @@ onMounted(async () => {
 
     fetchRejectedRecords();
     fetchUpdateableRecords();
+    
+    // Apply location pre-selection for Single Form
+    applyUserLocationDefaults();
 
     // Load filter options
+
     if (['admin', 'decision maker'].includes(user.access_level)) {
         try {
             const { data } = await axios.get("/api/locations/provinces");
@@ -1798,7 +1834,11 @@ const resetForm = (clearRejectionState = true, keepMessages = false) => {
     }
 
     editingUpdateId.value = null;
+    
+    // Re-apply role-based location defaults
+    applyUserLocationDefaults();
 };
+
 
 // ─── Filter Cascaded Loading ──────────────────────────────────────────
 const onFilterProvinceChange = async () => {

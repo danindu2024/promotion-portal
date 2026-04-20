@@ -82,14 +82,59 @@
                     class="block font-medium text-sm text-gray-700"
                     >Password</label
                 >
-                <input
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full rounded-md shadow-sm py-2 border px-3 ring-1 ring-gray-200 border-gray-300 bg-white focus:border-primary-500 focus:ring-primary-500"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
+                <div class="relative">
+                    <input
+                        id="password"
+                        :type="showPassword ? 'text' : 'password'"
+                        class="mt-1 block w-full rounded-md shadow-sm py-2 border pl-3 pr-10 ring-1 ring-gray-200 border-gray-300 bg-white focus:border-primary-500 focus:ring-primary-500"
+                        v-model="form.password"
+                        required
+                        autocomplete="current-password"
+                    />
+                    <button
+                        type="button"
+                        @click="showPassword = !showPassword"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-600 focus:outline-none transition-colors"
+                        tabindex="-1"
+                    >
+                        <!-- Eye Icon (Open) -->
+                        <svg
+                            v-if="!showPassword"
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                        </svg>
+                        <!-- Eye Icon (Closed/Slash) -->
+                        <svg
+                            v-else
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.046m2.458-2.458A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.059 10.059 0 01-4.293 5.707M11.25 11.25l.041-.02a3 3 0 013.978 3.978l-.02.041m-4.231-4.231L6.75 6.75m10.5 10.5l-2.136-2.136"
+                            />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="block mt-4">
@@ -139,6 +184,9 @@ const flashError = computed(() => page.props.flash?.error || null);
 const hasError = computed(() => form.hasErrors || Boolean(flashError.value));
 const errorDismissed = ref(false);
 const showError = computed(() => hasError.value && !errorDismissed.value);
+
+const showPassword = ref(false);
+
 
 watch(
     () => hasError.value,

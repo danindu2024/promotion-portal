@@ -19,14 +19,13 @@ class ReviewController extends Controller
         $user = Current::user();
         $query = StagingData::where('validation_status', StagingData::STATUS_PENDING);
 
-        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
+        if ($user && $user->access_level === 'validator' && !empty($user->district) && $user->district !== 'All') {
             $query->whereHas('uploader', function ($q) use ($user) {
                 $q->where('district', $user->district);
             });
         }
 
-        // Get unique pending batch IDs, their counts, and the MIN(id) as a stable
-        // representative row to avoid N+1 queries later.
+        // Get unique pending batch IDs, their counts, and the MIN(id) as a stable representative row to avoid N+1 queries later.
         $paginated = $query->select(
                 'batch_id',
                 DB::raw('MIN(created_at) as batch_created_at'),
