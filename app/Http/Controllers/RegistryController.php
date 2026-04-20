@@ -40,6 +40,19 @@ class RegistryController extends Controller
         $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
         $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
         $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
+        
+        $user = Current::user();
+        // Location Scoping Enforcement
+        if ($user->access_level === 'data entry') {
+            if ($data['province'] !== $user->province || $data['district'] !== $user->district || $data['ds_division'] !== $user->ds_division) {
+                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned DS Division.'], 403);
+            }
+        } elseif ($user->access_level === 'validator') {
+            if ($data['province'] !== $user->province || $data['district'] !== $user->district) {
+                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned District.'], 403);
+            }
+        }
+
 
         // Initial format check
         $validator = Validator::make($data, [
@@ -250,6 +263,19 @@ class RegistryController extends Controller
         $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
         $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
         $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
+        
+        $user = Current::user();
+        // Location Scoping Enforcement
+        if ($user->access_level === 'data entry') {
+            if ($data['province'] !== $user->province || $data['district'] !== $user->district || $data['ds_division'] !== $user->ds_division) {
+                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned DS Division.'], 403);
+            }
+        } elseif ($user->access_level === 'validator') {
+            if ($data['province'] !== $user->province || $data['district'] !== $user->district) {
+                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned District.'], 403);
+            }
+        }
+
 
         // Initial format check before expensive db checks
         $preCheck = Validator::make($data, [
