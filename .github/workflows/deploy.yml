@@ -3,7 +3,7 @@ name: Deploy to cPanel
 on:
   push:
     branches:
-      - main  # Adjust this to your production branch
+      - main  
 
 jobs:
   deploy:
@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: 🚚 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🔑 Setup PHP
         uses: shivammathur/setup-php@v2
@@ -25,7 +25,7 @@ jobs:
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: 💽 Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
@@ -34,15 +34,15 @@ jobs:
           npm install
           npm run build
 
-      - name: 📂 Sync files via FTP
+      - name: 📂 Sync Core Files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./public_html/  # Default cPanel root. Adjust if your site is in a subfolder.
+          server-dir: ./promotion_app/
           local-dir: ./
-          timeout: 60000 # 60 second timeout for each file
+          timeout: 60000
           exclude: |
             **/.git*
             **/.git*/**
@@ -50,9 +50,22 @@ jobs:
             **/tests/**
             **/storage/logs/**
             .env
+            .env.example
             phpunit.xml
             .editorconfig
             README.md
             CHANGELOG.md
             *.sql
             /tmp/**
+            .github/**
+            public/**
+
+      - name: 📂 Sync Public Assets via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ./public_html/
+          local-dir: ./public/
+          timeout: 60000
