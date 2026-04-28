@@ -43,7 +43,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./promotion_app/
+          server-dir: promotion_app/
           local-dir: ./
           timeout: 60000
           exclude: |
@@ -69,6 +69,6 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./public_html/
+          server-dir: public_html/promotiondb/
           local-dir: ./public/
           timeout: 60000
