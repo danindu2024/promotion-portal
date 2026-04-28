@@ -105,3 +105,22 @@ Route::get('/debug-user', function () {
         'all_user_data' => $user->toArray(),
     ];
 });
+
+Route::get('/maintenance/clear-cache/{token}', function ($token) {
+    // Basic security token check
+    if ($token !== config('app.deploy_token', 'default_secret_token_123')) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    try {
+        echo "Clearing caches...<br>";
+        
+        // optimize:clear handles config, view, cache, route, and event caches all at once
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        
+        echo "All Laravel caches cleared successfully.<br>";
+        return "System cache update complete.";
+    } catch (\Exception $e) {
+        return "Error clearing cache: " . $e->getMessage();
+    }
+});
