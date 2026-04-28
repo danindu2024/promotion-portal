@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id('user_id'); // Custom PK
             $table->string('username')->unique();
-            $table->string('password_hash');
+            $table->string('password');
             $table->enum('role', ['Agent', 'Validator', 'Admin']);
             $table->rememberToken();
             $table->timestamps();
