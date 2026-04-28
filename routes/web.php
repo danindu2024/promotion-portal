@@ -58,6 +58,21 @@ Route::get('/maintenance/deploy-migrations/{token}', function ($token) {
         echo "Running migrations...<br>";
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
         echo "Migrations completed successfully.<br>";
+
+        echo "Creating Admin User...<br>";
+        \App\Models\User::updateOrCreate(
+            ['username' => 'admin'],
+            [
+                'name' => 'System Admin',
+                'password' => \Illuminate\Support\Facades\Hash::make('admin123'),
+                'access_level' => 'admin',
+                'is_active' => true,
+                'province' => 'Western',
+                'district' => 'Colombo',
+                'ds_division' => 'Colombo',
+            ]
+        );
+        echo "Admin user created.<br>";
         
         echo "Creating storage link...<br>";
         try {
