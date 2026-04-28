@@ -93,3 +93,15 @@ Route::get('/maintenance/deploy-migrations/{token}', function ($token) {
         return "Error during update: " . $e->getMessage();
     }
 });
+
+Route::get('/debug-user', function () {
+    $user = auth()->user();
+    if (!$user) return "Not logged in";
+    
+    return [
+        'user_id' => $user->user_id,
+        'username' => $user->username,
+        'access_level_from_db' => $user->access_level,
+        'all_user_data' => $user->toArray(),
+    ];
+});
