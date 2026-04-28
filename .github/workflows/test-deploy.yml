@@ -16,13 +16,12 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./promotion_app/  # SAFE TEST DIRECTORY
+          server-dir: promotion_app/  # SAFE TEST DIRECTORY
           local-dir: ./
           dry-run: false
           exclude: |
             **
             !README.md
-            !.github/workflows/test-deploy.yml
 
       - name: 📂 Test Sync Public Directory
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -30,7 +29,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./public_html/promotiondb/ # SAFE TEST DIRECTORY
+          server-dir: public_html/promotiondb/ # SAFE TEST DIRECTORY
           local-dir: ./public/
           dry-run: false
           exclude: |
