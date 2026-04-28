@@ -25,6 +25,7 @@ if (file_exists(__DIR__.'/../vendor/autoload.php')) {
     // Assumes core files are in '../promotion_app/' relative to the web root
     require __DIR__.'/../../promotion_app/vendor/autoload.php';
     $app = require_once __DIR__.'/../../promotion_app/bootstrap/app.php';
+    $app->usePublicPath(__DIR__);
 }
 
 $app->handleRequest(Request::capture());
