@@ -34,8 +34,12 @@ class AuthenticatedSessionController extends Controller
 
             $user = Auth::user();
 
-            // Log successful login to database
-            Logger::log('AUTH_SUCCESS', 'User logged in successfully', 'AUTH', "Access Level: {$user->access_level}");
+            // Log successful login to database (non-blocking)
+            try {
+                Logger::log('AUTH_SUCCESS', 'User logged in successfully', 'AUTH', "Access Level: {$user->access_level}");
+            } catch (\Exception $e) {
+                // Don't block login if logging fails
+            }
 
             $home = match ($user->access_level) {
                 'data entry' => '/data-entry',
