@@ -59,6 +59,14 @@ Route::get('/maintenance/deploy-migrations/{token}', function ($token) {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         echo "Migrations completed successfully.<br>";
         
+        echo "Creating storage link...<br>";
+        try {
+            \Illuminate\Support\Facades\Artisan::call('storage:link');
+            echo "Storage link created.<br>";
+        } catch (\Exception $e) {
+            echo "Storage link notice: " . $e->getMessage() . "<br>";
+        }
+
         echo "Clearing cache...<br>";
         \Illuminate\Support\Facades\Artisan::call('cache:clear');
         \Illuminate\Support\Facades\Artisan::call('view:clear');
