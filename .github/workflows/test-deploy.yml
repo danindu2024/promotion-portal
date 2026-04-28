@@ -1,0 +1,38 @@
+name: Test Deployment (Safe)
+
+on:
+  workflow_dispatch: # Allows manual trigger from GitHub UI Actions tab
+
+jobs:
+  test-ftp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📂 Test Sync Core Directory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ./test_deploy_core/  # SAFE TEST DIRECTORY
+          local-dir: ./
+          dry-run: false
+          exclude: |
+            **
+            !README.md
+            !.github/workflows/test-deploy.yml
+
+      - name: 📂 Test Sync Public Directory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ./public_html/test_portal/ # SAFE TEST DIRECTORY
+          local-dir: ./public/
+          dry-run: false
+          exclude: |
+            **
+            !index.php
