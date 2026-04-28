@@ -61,6 +61,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'error' => fn () => $request->session()->get('error'),
             ],
+            // Explicitly pass the CSRF token to Inertia
+            'csrf_token' => csrf_token(),
         ];
     }
 }
