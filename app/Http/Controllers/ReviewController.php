@@ -117,6 +117,7 @@ class ReviewController extends Controller
 
         DB::transaction(function () use ($records, &$approvedCount, &$errors) {
             foreach ($records as $staging) {
+                /** @var \App\Models\StagingData $staging */
                 $payload = $staging->data_payload;
 
                 // Final duplicate guard — auto-reject duplicates so they don't stay PENDING
@@ -126,6 +127,7 @@ class ReviewController extends Controller
                 $duplicateQuery = MainRegistry::where('contact_number', $contactNumber)
                     ->where('category', $category);
                 
+                // exclude self id checking, if the record is update type
                 if ($staging->submission_type === 'UPDATE') {
                     $duplicateQuery->where('id', '!=', $staging->target_record_id);
                 }
@@ -137,7 +139,7 @@ class ReviewController extends Controller
                     continue;
                 }
 
-                // Missing target guard for UPDATE — auto-reject so it doesn't stay PENDING
+                // target guard for UPDATE — auto-reject so it doesn't stay PENDING
                 if ($staging->submission_type === 'UPDATE' && !$staging->target_record_id) {
                     $reason = 'Auto-rejected: UPDATE submission is missing a target_record_id.';
                     $staging->reject($reason);
@@ -215,6 +217,7 @@ class ReviewController extends Controller
         }
 
         $staging = $query->firstOrFail();
+        /** @var \App\Models\StagingData $staging */
 
         if ($staging->validation_status !== StagingData::STATUS_PENDING) {
             return response()->json(['message' => 'Record is not in pending state.'], 400);
