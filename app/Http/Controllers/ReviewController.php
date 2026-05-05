@@ -17,13 +17,8 @@ class ReviewController extends Controller
     public function pending()
     {
         $user = Current::user();
-        $query = StagingData::where('validation_status', StagingData::STATUS_PENDING);
-
-        if ($user && $user->access_level === 'validator' && !empty($user->district) && $user->district !== 'All') {
-            $query->whereHas('uploader', function ($q) use ($user) {
-                $q->where('district', $user->district);
-            });
-        }
+        $query = StagingData::forValidator($user)
+            ->where('validation_status', StagingData::STATUS_PENDING);
 
         // Get unique pending batch IDs, their counts, and the MIN(id) as a stable representative row to avoid N+1 queries later.
         $paginated = $query->select(
@@ -68,16 +63,11 @@ class ReviewController extends Controller
     public function batchDetails($batchId)
     {
         $user = Current::user();
-        $query = StagingData::where('batch_id', $batchId)
+        $query = StagingData::forValidator($user)
+            ->where('batch_id', $batchId)
             ->where('validation_status', StagingData::STATUS_PENDING)
             ->with(['uploader', 'targetRecord'])
             ->orderBy('id', 'asc');
-
-        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
-            $query->whereHas('uploader', function ($q) use ($user) {
-                $q->where('district', $user->district);
-            });
-        }
 
         $records = $query->get();
 
@@ -97,14 +87,9 @@ class ReviewController extends Controller
     public function approveBatch($batchId)
     {
         $user = Current::user();
-        $query = StagingData::where('batch_id', $batchId)
+        $query = StagingData::forValidator($user)
+            ->where('batch_id', $batchId)
             ->where('validation_status', StagingData::STATUS_PENDING);
-
-        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
-            $query->whereHas('uploader', function ($q) use ($user) {
-                $q->where('district', $user->district);
-            });
-        }
 
         $records = $query->get();
 
@@ -115,31 +100,49 @@ class ReviewController extends Controller
         $approvedCount = 0;
         $errors = [];
 
-        DB::transaction(function () use ($records, &$approvedCount, &$errors) {
+        // Pre-fetch data to avoid N+1 queries inside the loop
+        $contactNumbers = $records->map(fn($r) => $r->data_payload['contact_number'] ?? null)->filter()->unique()->toArray();
+        $targetIds = $records->where('submission_type', 'UPDATE')->pluck('target_record_id')->filter()->unique()->toArray();
+
+        // Fetch existing records for duplicate checking (keyed by contact_number)
+        $existingRecords = MainRegistry::whereIn('contact_number', $contactNumbers)
+            ->get(['id', 'contact_number', 'category'])
+            ->groupBy('contact_number');
+
+        // Fetch target records for updates (keyed by id)
+        $targetRecords = MainRegistry::whereIn('id', $targetIds)->get()->keyBy('id');
+
+        DB::transaction(function () use ($records, $existingRecords, $targetRecords, &$approvedCount, &$errors) {
             foreach ($records as $staging) {
                 /** @var \App\Models\StagingData $staging */
                 $payload = $staging->data_payload;
 
-                // Final duplicate guard — auto-reject duplicates so they don't stay PENDING
+                // Final duplicate guard — auto-reject duplicates using in-memory collection
                 $contactNumber = $payload['contact_number'] ?? null;
                 $category = $payload['category'] ?? null;
                 
-                $duplicateQuery = MainRegistry::where('contact_number', $contactNumber)
-                    ->where('category', $category);
-                
-                // exclude self id checking, if the record is update type
-                if ($staging->submission_type === 'UPDATE') {
-                    $duplicateQuery->where('id', '!=', $staging->target_record_id);
+                $isDuplicate = false;
+                if ($contactNumber && $existingRecords->has($contactNumber)) {
+                    foreach ($existingRecords->get($contactNumber) as $match) {
+                        if ($match->category === $category) {
+                            // If update, skip if it's the target record itself
+                            if ($staging->submission_type === 'UPDATE' && $match->id == $staging->target_record_id) {
+                                continue;
+                            }
+                            $isDuplicate = true;
+                            break;
+                        }
+                    }
                 }
 
-                if ($contactNumber && $duplicateQuery->exists()) {
+                if ($isDuplicate) {
                     $reason = "Auto-rejected: contact number {$contactNumber} for category {$category} was already approved by another validator.";
                     $staging->reject($reason);
                     $errors[] = "Row ID {$staging->id} ({$contactNumber}): {$reason}";
                     continue;
                 }
 
-                // target guard for UPDATE — auto-reject so it doesn't stay PENDING
+                // target guard for UPDATE — auto-reject if target_record_id is missing
                 if ($staging->submission_type === 'UPDATE' && !$staging->target_record_id) {
                     $reason = 'Auto-rejected: UPDATE submission is missing a target_record_id.';
                     $staging->reject($reason);
@@ -153,7 +156,7 @@ class ReviewController extends Controller
                 if ($staging->submission_type === 'NEW') {
                     MainRegistry::create($payload);
                 } elseif ($staging->submission_type === 'UPDATE') {
-                    $mainRecord = MainRegistry::find($staging->target_record_id);
+                    $mainRecord = $targetRecords->get($staging->target_record_id);
                     if (!$mainRecord) {
                         $reason = 'Auto-rejected: target record no longer exists in main registry.';
                         $staging->reject($reason);
@@ -208,13 +211,7 @@ class ReviewController extends Controller
         ]);
 
         $user = Current::user();
-        $query = StagingData::where('id', $id);
-
-        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
-            $query->whereHas('uploader', function ($q) use ($user) {
-                $q->where('district', $user->district);
-            });
-        }
+        $query = StagingData::forValidator($user)->where('id', $id);
 
         $staging = $query->firstOrFail();
         /** @var \App\Models\StagingData $staging */
