@@ -159,7 +159,7 @@ class AnalyticsController extends Controller
             $query->where('field_of_work', $request->field_of_work);
         }
 
-        $results = $query->orderBy('created_at', 'desc')->paginate(15);
+        $results = $query->orderBy('created_at', 'desc')->paginate(30);
 
         // Log search query to audit file
         Logger::log('SEARCH_QUERY', 'Demographic search performed', 'ANALYTICS', null, [
