@@ -69,4 +69,18 @@ class StagingData extends Model
             'reviewed_by' => Current::id()
         ]);
     }
+
+    /**
+     * Scope a query to only include records that the given validator user is authorized to see.
+     * Validators are restricted to records uploaded by users in their own district.
+     */
+    public function scopeForValidator($query, $user)
+    {
+        if ($user && strtolower(trim($user->access_level)) === 'validator' && !empty($user->district) && $user->district !== 'All') {
+            return $query->whereHas('uploader', function ($q) use ($user) {
+                $q->where('district', $user->district);
+            });
+        }
+        return $query;
+    }
 }
