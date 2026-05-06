@@ -56,7 +56,7 @@ Route::get('/maintenance/deploy-migrations/{token}', function ($token) {
 
     try {
         echo "Running migrations...<br>";
-        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         echo "Migrations completed successfully.<br>";
 
         echo "Creating Admin User...<br>";
