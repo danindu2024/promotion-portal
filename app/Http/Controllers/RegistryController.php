@@ -4,16 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 use App\Models\MainRegistry;
 use App\Models\StagingData;
-use App\Services\RegistryValidator;
 use App\Helpers\Current;
 use App\Helpers\Logger;
 use App\Imports\RegistryImport;
 use App\Exports\RegistryTemplateExport;
 use App\Exports\BulkImportErrorExport;
 use App\Traits\NormalizesData;
+use App\Http\Requests\SaveRegistryRequest;
 use Maatwebsite\Excel\Facades\Excel;
 
 class RegistryController extends Controller
@@ -22,47 +21,10 @@ class RegistryController extends Controller
     /*
      * Submit a single new record for validator review
      */
-    public function storeSingle(Request $request)
+    public function storeSingle(SaveRegistryRequest $request)
     {
-        $data = $request->all();
-
-        // trim leading and trailing spaces from all string values
-        foreach ($data as $key => $value) {
-            if (is_string($value)) {
-                $data[$key] = trim($value);
-            }
-        }
+        $data = $request->validated();
         
-        // Normalize NIC if present (uppercase v/x)
-        $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number'] ?? '');
-
-        // Normalize locations
-        $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
-        $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
-        $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
-        
-        $user = Current::user();
-        // Location Scoping Enforcement
-        if ($user->access_level === 'data entry') {
-            if ($data['province'] !== $user->province || $data['district'] !== $user->district || $data['ds_division'] !== $user->ds_division) {
-                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned DS Division.'], 403);
-            }
-        } elseif ($user->access_level === 'validator') {
-            if ($data['province'] !== $user->province || $data['district'] !== $user->district) {
-                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned District.'], 403);
-            }
-        }
-
-
-        // Initial format check
-        $validator = Validator::make($data, [
-            'category' => 'required|in:Self-Employed,Trade',
-            'contact_number' => 'required|string|regex:/^0\d{9}$/'
-        ]);
-
-        // if fails, throw exception. Laravel will automatically convert it to 422 response
-        $validator->validate();
-
         // DB Duplicate Check — main_registry (category-aware)
         $exists = MainRegistry::where('contact_number', $data['contact_number'])
             ->where('category', $data['category'])
@@ -85,17 +47,6 @@ class RegistryController extends Controller
                 'errors' => ['contact_number' => ['Contact number is already pending approval.']]
             ], 409);
         }
-
-        // Strip cross-category null fields to prevent 'prohibited' rule from firing on empty fields
-        if ($data['category'] === 'Self-Employed') {
-            unset($data['contact_person'], $data['members_count']);
-        } elseif ($data['category'] === 'Trade') {
-            unset($data['field_of_work'], $data['age'], $data['employees_count']);
-        }
-
-        // Full Category-Aware Validation
-        $fullValidator = RegistryValidator::validate($data);
-        $fullValidator->validate();
 
         // Insert to Staging
         $staging = StagingData::create([
@@ -238,62 +189,14 @@ class RegistryController extends Controller
     /**
      * Resubmit a corrected rejected record
      */
-    public function resubmitRejected(Request $request, $id)
+    public function resubmitRejected(SaveRegistryRequest $request, $id)
     {
-        // Get rejected record
+        // Get rejected records
         $staging = StagingData::where('uploaded_by', Current::id())
             ->where('validation_status', StagingData::STATUS_REJECTED)
             ->findOrFail($id);
             
-        $data = $request->all();
-
-        // sanitize string values (trim leading and trailing whitespace)
-        foreach ($data as $key => $value) {
-            if (is_string($value)) {
-                $data[$key] = trim($value);
-            }
-        }
- 
-        // Normalize NIC if present (uppercase v/x)
-        if (isset($data['national_id_number'])) {
-            $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
-        }
-
-        // Normalize locations
-        $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
-        $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
-        $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
-        
-        $user = Current::user();
-        // Location Scoping Enforcement
-        if ($user->access_level === 'data entry') {
-            if ($data['province'] !== $user->province || $data['district'] !== $user->district || $data['ds_division'] !== $user->ds_division) {
-                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned DS Division.'], 403);
-            }
-        } elseif ($user->access_level === 'validator') {
-            if ($data['province'] !== $user->province || $data['district'] !== $user->district) {
-                return response()->json(['message' => 'Unauthorized: You can only submit data for your assigned District.'], 403);
-            }
-        }
-
-
-        // Initial format check before expensive db checks
-        $preCheck = Validator::make($data, [
-            'category'       => 'required|in:Self-Employed,Trade',
-            'contact_number' => 'required|string|regex:/^0\d{9}$/'
-        ]);
-        $preCheck->validate();
-        
-        // Strip cross-category null fields
-        if ($data['category'] === 'Self-Employed') {
-            unset($data['contact_person'], $data['members_count']);
-        } elseif ($data['category'] === 'Trade') {
-            unset($data['field_of_work'], $data['age'], $data['employees_count']);
-        }
-
-        // Full Category-Aware Validation
-        $validator = RegistryValidator::validate($data);
-        $validator->validate();
+        $data = $request->validated();
         
         // Check for duplicates in main_registry (category-aware)
         $query = MainRegistry::where('contact_number', $data['contact_number'])
@@ -390,7 +293,7 @@ class RegistryController extends Controller
               ->limit(1);
         }, 'has_pending_update');
 
-        $results = $query->orderBy('full_name', 'asc')->paginate(15);
+        $results = $query->orderBy('full_name', 'asc')->paginate(30);
 
         return response()->json($results);
     }
@@ -398,7 +301,7 @@ class RegistryController extends Controller
     /**
      * Submit an update request for an existing record.
      */
-    public function submitUpdate(Request $request, $id)
+    public function submitUpdate(SaveRegistryRequest $request, $id)
     {
         $mainRecord = MainRegistry::findOrFail($id);
         $user = Current::user();
@@ -420,37 +323,10 @@ class RegistryController extends Controller
             return response()->json(['message' => 'This record already has a pending update request.'], 409);
         }
 
-        $data = $request->all();
+        $data = $request->validated();
 
-        // Server-side trim
-        foreach ($data as $key => $value) {
-            if (is_string($value)) {
-                $data[$key] = trim($value);
-            }
-        }
-
-        // Normalize NIC if present (uppercase v/x)
-        if (isset($data['national_id_number'])) {
-            $data['national_id_number'] = $this->normalizeNationalId($data['national_id_number']);
-        }
-
-        // Normalize locations
-        $data['province']    = $this->normalizeLocationName($data['province'] ?? '');
-        $data['district']    = $this->normalizeLocationName($data['district'] ?? '');
-        $data['ds_division'] = $this->normalizeLocationName($data['ds_division'] ?? '');
-
-        // Category-Aware Validation
-        $data['category'] = $mainRecord->category; // Force original category
-        
-        // Strip cross-category null fields
-        if ($data['category'] === 'Self-Employed') {
-            unset($data['contact_person'], $data['members_count']);
-        } elseif ($data['category'] === 'Trade') {
-            unset($data['field_of_work'], $data['age'], $data['employees_count']);
-        }
-
-        $validator = RegistryValidator::validate($data);
-        $validator->validate();
+        // Category-Aware Validation: Force original category to prevent switching category via update
+        $data['category'] = $mainRecord->category;
 
         // Check for contact number duplicates (excluding the current record)
         $existsInMain = MainRegistry::where('contact_number', $data['contact_number'])
@@ -486,4 +362,3 @@ class RegistryController extends Controller
     }
 
 }
-

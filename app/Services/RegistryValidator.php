@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 class RegistryValidator
 {
     /**
-     * Validate a single row of registry data.
+     * Validate a single row of registry data
      * 
      * @param array $data The raw row data
      * @return \Illuminate\Validation\Validator
@@ -23,7 +23,7 @@ class RegistryValidator
     /**
      * Get the validation rules based on category.
      */
-    protected static function getRules(array $data): array
+    public static function getRules(array $data): array
     {
         $category = $data['category'] ?? null;
         // Common Rules (Apply to everyone)

@@ -45,7 +45,7 @@
                         @click="activeTab = 'rejected'"
                         :class="[
                             activeTab === 'rejected'
-                                ? 'border-red-500 text-red-600'
+                                ? 'border-primary-500 text-primary-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                             'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-lg flex items-center',
                         ]"
@@ -53,7 +53,7 @@
                         Rejected Data
                         <span
                             v-if="rejectedCount > 0"
-                            class="ml-2 bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold"
+                            class="ml-2 bg-primary-100 text-primary-600 py-0.5 px-2 rounded-full text-xs font-bold"
                         >
                             {{ rejectedCount }}
                         </span>
@@ -148,12 +148,12 @@
                     <!-- Rejection Alert Banner -->
                     <div
                         v-if="editingRejectedId"
-                        class="mb-6 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-md shadow-sm"
+                        class="mb-6 p-4 bg-primary-50 text-primary-800 border border-primary-200 rounded-md shadow-sm"
                     >
                         <div class="flex">
                             <div class="flex items-center flex-1">
                                 <svg
-                                    class="h-5 w-5 text-orange-400 mr-2 flex-shrink-0"
+                                    class="h-5 w-5 text-primary-400 mr-2 flex-shrink-0"
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 20 20"
                                     fill="currentColor"
@@ -161,11 +161,11 @@
                                 >
                                     <path
                                         fill-rule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                         clip-rule="evenodd"
                                     />
                                 </svg>
-                                <div class="text-sm text-orange-700">
+                                <div class="text-sm text-primary-700">
                                     <span class="font-bold">Reason: </span>
                                     <span class="font-semibold">{{
                                         currentRejectionReason
@@ -176,7 +176,7 @@
                                 <button
                                     type="button"
                                     @click="cancelEditRejected"
-                                    class="inline-flex items-center px-4 py-2 border border-orange-300 shadow-sm text-sm font-medium rounded-md text-orange-700 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+                                    class="inline-flex items-center px-4 py-2 border border-primary-300 shadow-sm text-sm font-medium rounded-md text-primary-700 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                                 >
                                     Cancel Editing
                                 </button>
@@ -227,7 +227,8 @@
                                     type="radio"
                                     v-model="form.category"
                                     value="Self-Employed"
-                                    class="form-radio text-primary-600 w-5 h-5"
+                                    :disabled="editingUpdateId || editingRejectedId"
+                                    class="form-radio text-primary-600 w-5 h-5 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <span class="ml-2 text-gray-700"
                                     >Self-Employed</span
@@ -240,7 +241,8 @@
                                     type="radio"
                                     v-model="form.category"
                                     value="Trade"
-                                    class="form-radio text-primary-600 w-5 h-5"
+                                    :disabled="editingUpdateId || editingRejectedId"
+                                    class="form-radio text-primary-600 w-5 h-5 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <span class="ml-2 text-gray-700">Trade</span>
                             </label>
@@ -445,10 +447,10 @@
                                     <select
                                         v-model="form.province"
                                         @change="fetchDistricts"
-                                        :disabled="loadingProvinces || ['data entry', 'validator'].includes(user.access_level)"
+                                        :disabled="loadingProvinces"
                                         :class="[
                                             inputClass(fieldErrors.province),
-                                            ['data entry', 'validator'].includes(user.access_level) ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
+                                            loadingProvinces ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
                                         ]"
                                     >
                                         <option value="" disabled>
@@ -492,11 +494,11 @@
                                         v-model="form.district"
                                         @change="fetchDsDivisions"
                                         :disabled="
-                                            !form.province || loadingDistricts || ['data entry', 'validator'].includes(user.access_level)
+                                            !form.province || loadingDistricts
                                         "
                                         :class="[
                                             inputClass(fieldErrors.district),
-                                            !form.province || loadingDistricts || ['data entry', 'validator'].includes(user.access_level) ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
+                                            !form.province || loadingDistricts ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
                                             'disabled:text-gray-400'
                                         ]"
                                     >
@@ -540,11 +542,11 @@
                                     <select
                                         v-model="form.ds_division"
                                         :disabled="
-                                            !form.district || loadingDsDivisions || user.access_level === 'data entry'
+                                            !form.district || loadingDsDivisions
                                         "
                                         :class="[
                                             inputClass(fieldErrors.ds_division),
-                                            !form.district || loadingDsDivisions || user.access_level === 'data entry' ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
+                                            !form.district || loadingDsDivisions ? 'bg-gray-100 cursor-not-allowed opacity-75' : '',
                                             'disabled:text-gray-400',
                                         ]"
                                     >
@@ -1056,20 +1058,20 @@
                 class="bg-white rounded-lg shadow border border-gray-200"
             >
                 <div
-                    class="p-6 border-b border-gray-200 flex justify-between items-center bg-red-50 rounded-t-lg"
+                    class="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg"
                 >
                     <div>
-                        <h2 class="text-xl font-bold text-red-800">
+                        <h2 class="text-xl font-bold text-gray-800">
                             Rejected Submissions
                         </h2>
-                        <p class="text-sm text-red-600 mt-1">
+                        <p class="text-sm text-gray-600 mt-1">
                             These records were rejected by a Validator and
                             require your correction before they can be approved.
                         </p>
                     </div>
                     <button
                         @click="fetchRejectedRecords"
-                        class="p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors"
+                        class="p-2 text-primary-500 hover:bg-primary-50 rounded-full transition-colors"
                         title="Refresh"
                     >
                         <svg
@@ -1118,7 +1120,7 @@
                                 </th>
                                 <th
                                     scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider border-l border-red-200 bg-red-50"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200 bg-gray-50"
                                 >
                                     Rejection Reason
                                 </th>
@@ -1134,7 +1136,7 @@
                                     class="px-6 py-12 text-center text-gray-500"
                                 >
                                     <svg
-                                        class="animate-spin h-8 w-8 text-red-500 mx-auto mb-4"
+                                        class="animate-spin h-8 w-8 text-primary-500 mx-auto mb-4"
                                         xmlns="http://www.w3.org/2000/svg"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -1242,7 +1244,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-6 py-4 text-sm text-red-700 bg-red-50/30 border-l border-red-100 max-w-xs"
+                                    class="px-6 py-4 text-sm text-gray-700 bg-gray-50/30 border-l border-gray-100 max-w-xs"
                                 >
                                     <div
                                         class="whitespace-normal break-words font-medium"
@@ -1255,7 +1257,7 @@
                                 >
                                     <button
                                         @click="editRejectedRecord(record)"
-                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                                     >
                                         <svg
                                             class="-ml-0.5 mr-1.5 h-4 w-4"
@@ -1324,7 +1326,7 @@
                                 type="text" 
                                 v-model="updateFilters.search" 
                                 @keyup.enter="fetchUpdateableRecords" 
-                                placeholder="Search Name/NIC..." 
+                                placeholder="Search by Name, NIC, or Contact Number" 
                                 class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3 pl-9"
                             >
                             <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
