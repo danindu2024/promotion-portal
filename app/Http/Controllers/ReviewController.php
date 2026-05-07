@@ -105,7 +105,8 @@ class ReviewController extends Controller
         $targetIds = $records->where('submission_type', 'UPDATE')->pluck('target_record_id')->filter()->unique()->toArray();
 
         // Fetch existing records for duplicate checking (keyed by contact_number)
-        $existingRecords = MainRegistry::whereIn('contact_number', $contactNumbers)
+        $existingRecords = MainRegistry::active()
+            ->whereIn('contact_number', $contactNumbers)
             ->get(['id', 'contact_number', 'category'])
             ->groupBy('contact_number');
 
@@ -154,6 +155,20 @@ class ReviewController extends Controller
                 $payload['approved_at'] = now();
 
                 if ($staging->submission_type === 'NEW') {
+                    // Check if a soft-deleted record exists for this contact number and category
+                    $deletedRecord = MainRegistry::where('contact_number', $payload['contact_number'])
+                        ->where('category', $payload['category'])
+                        ->where('is_deleted', true)
+                        ->first();
+                    
+                    if ($deletedRecord) {
+                        // Rename the deleted record's contact number to free it up for the new record
+                        // This prevents MySQL unique constraint violations while preserving the deleted record's audit history
+                        $deletedRecord->update([
+                            'contact_number' => $deletedRecord->contact_number . '_del_' . $deletedRecord->id
+                        ]);
+                    }
+                    
                     MainRegistry::create($payload);
                 } elseif ($staging->submission_type === 'UPDATE') {
                     $mainRecord = $targetRecords->get($staging->target_record_id);
