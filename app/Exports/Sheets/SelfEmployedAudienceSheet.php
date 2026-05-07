@@ -23,19 +23,20 @@ class SelfEmployedAudienceSheet implements FromQuery, WithHeadings, WithMapping,
 
     public function query()
     {
-        $query = MainRegistry::query()->where('category', 'Self-Employed');
+        $query = MainRegistry::query()->active()->where('category', 'Self-Employed');
 
-        if (!empty($this->filters['province'])) {
-            $query->where('province', $this->filters['province']);
-        }
-        if (!empty($this->filters['district'])) {
-            $query->where('district', $this->filters['district']);
-        }
-        if (!empty($this->filters['ds_division'])) {
-            $query->where('ds_division', $this->filters['ds_division']);
-        }
-        if (!empty($this->filters['field_of_work'])) {
-            $query->where('field_of_work', $this->filters['field_of_work']);
+        $query = $query->when(!empty($this->filters['province']), fn($q) => $q->where('province', $this->filters['province']))
+                     ->when(!empty($this->filters['district']), fn($q) => $q->where('district', $this->filters['district']))
+                     ->when(!empty($this->filters['ds_division']), fn($q) => $q->where('ds_division', $this->filters['ds_division']))
+                     ->when(!empty($this->filters['field_of_work']), fn($q) => $q->where('field_of_work', $this->filters['field_of_work']));
+
+        if (!empty($this->filters['search'])) {
+            $search = $this->filters['search'];
+            $query->where(function($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('contact_number', 'like', "%{$search}%")
+                  ->orWhere('national_id_number', 'like', "%{$search}%");
+            });
         }
 
         return $query->orderBy('created_at', 'desc');
@@ -96,7 +97,7 @@ class SelfEmployedAudienceSheet implements FromQuery, WithHeadings, WithMapping,
                     ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '0056b3'], // Website Primary Blue
+                        'startColor' => ['rgb' => '0056b3'],
                     ],
                 ]);
             },
