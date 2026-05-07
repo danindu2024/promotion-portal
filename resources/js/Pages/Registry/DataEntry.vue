@@ -1,6 +1,6 @@
 <template>
     <AppLayout>
-        <div class="max-w-5xl mx-auto">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 transform-gpu" :class="{ 'blur-sm pointer-events-none opacity-80 grayscale-[0.1]': isDownloading }" style="will-change: filter, opacity;">
             <h1 class="text-3xl font-bold text-gray-800 mb-6">
                 Data Entry Page
             </h1>
@@ -723,10 +723,8 @@
                         Excel Bulk Upload
                     </h2>
                     <div class="flex space-x-3">
-                        <a
-                            href="/instructions.xlsx"
-                            target="_blank"
-                            download
+                        <button
+                            @click="downloadInstructions"
                             class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                         >
                             <svg
@@ -743,9 +741,9 @@
                                 ></path>
                             </svg>
                             Instructions (Excel)
-                        </a>
-                        <a
-                            href="/api/registry/template"
+                        </button>
+                        <button
+                            @click="downloadTemplate"
                             class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                         >
                             <svg
@@ -763,7 +761,7 @@
                                 />
                             </svg>
                             Download Template
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -1317,83 +1315,94 @@
                 v-show="activeTab === 'update'"
                 class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden"
             >
-                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4 items-end">
-                    <!-- Search -->
-                    <div class="flex-1 min-w-[240px]">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Search Name / NIC</label>
-                        <div class="relative">
-                            <input 
-                                type="text" 
-                                v-model="updateFilters.search" 
-                                @keyup.enter="fetchUpdateableRecords" 
-                                placeholder="Search by Name, NIC, or Contact Number" 
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3 pl-9"
-                            >
-                            <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <div class="px-6 py-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-5">
+                    <!-- Row 1: Primary Search -->
+                    <div class="flex gap-4 items-end">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Search</label>
+                            <div class="relative group">
+                                <input 
+                                    type="text" 
+                                    v-model="updateFilters.search" 
+                                    @keyup.enter="fetchUpdateableRecords" 
+                                    placeholder="Search by Name, NIC, or Contact Number..." 
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2.5 px-4 pl-10 transition-all group-hover:border-gray-400"
+                                >
+                                <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Category Filter (Always visible for Data Entry and above) -->
-                    <div class="w-44">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
-                        <select 
-                            v-model="updateFilters.category"
-                            @change="fetchUpdateableRecords"
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2"
+                        <button 
+                            @click="fetchUpdateableRecords"
+                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2"
                         >
-                            <option value="">All Categories</option>
-                            <option value="Self-Employed">Self-Employed</option>
-                            <option value="Trade">Trade</option>
-                        </select>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            Search
+                        </button>
                     </div>
 
-                    <!-- Location Filters for Admin/Decision Maker -->
-                    <template v-if="['admin', 'decision maker'].includes(user.access_level)">
+                    <!-- Row 2: Advanced Filters -->
+                    <div class="flex flex-wrap gap-4 items-end pt-2 border-t border-gray-200/60">
+                        <!-- Category Filter -->
                         <div class="w-44">
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Province</label>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
                             <select 
-                                v-model="updateFilters.province"
-                                @change="onFilterProvinceChange"
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2"
+                                v-model="updateFilters.category"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400"
                             >
-                                <option value="">All Provinces</option>
-                                <option v-for="p in filterProvinces" :key="p" :value="p">{{ p }}</option>
+                                <option value="">All Categories</option>
+                                <option value="Self-Employed">Self-Employed</option>
+                                <option value="Trade">Trade</option>
                             </select>
                         </div>
-                        <div class="w-44">
-                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">District</label>
+
+                        <!-- Location Filters for Admin/Decision Maker -->
+                        <template v-if="['admin', 'decision maker'].includes(user.access_level)">
+                            <div class="w-44">
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Province</label>
+                                <select 
+                                    v-model="updateFilters.province"
+                                    @change="onFilterProvinceChange"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400"
+                                >
+                                    <option value="">All Provinces</option>
+                                    <option v-for="p in filterProvinces" :key="p" :value="p">{{ p }}</option>
+                                </select>
+                            </div>
+                            <div class="w-44">
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">District</label>
+                                <select 
+                                    v-model="updateFilters.district"
+                                    @change="onFilterDistrictChange"
+                                    :disabled="!updateFilters.province || loadingFilterDistricts"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100 transition-all hover:border-gray-400"
+                                >
+                                    <option value="">All Districts</option>
+                                    <option v-for="d in filterDistricts" :key="d" :value="d">{{ d }}</option>
+                                </select>
+                            </div>
+                        </template>
+
+                        <!-- DS Division Filter (Admin/Decision Maker OR Validator) -->
+                        <div class="w-44" v-if="['admin', 'decision maker', 'validator'].includes(user.access_level)">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">DS Division</label>
                             <select 
-                                v-model="updateFilters.district"
-                                @change="onFilterDistrictChange"
-                                :disabled="!updateFilters.province || loadingFilterDistricts"
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100"
+                                v-model="updateFilters.ds_division"
+                                :disabled="(['admin', 'decision maker'].includes(user.access_level) && !updateFilters.district) || (user.access_level === 'validator' && !user.district) || loadingFilterDsDivisions"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100 transition-all hover:border-gray-400"
                             >
-                                <option value="">All Districts</option>
-                                <option v-for="d in filterDistricts" :key="d" :value="d">{{ d }}</option>
+                                <option value="">All divisions</option>
+                                <option v-for="ds in filterDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
                             </select>
                         </div>
-                    </template>
 
-                    <!-- DS Division Filter (Admin/Decision Maker OR Validator) -->
-                    <div class="w-44" v-if="['admin', 'decision maker', 'validator'].includes(user.access_level)">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">DS Division</label>
-                        <select 
-                            v-model="updateFilters.ds_division"
-                            @change="fetchUpdateableRecords"
-                            :disabled="(['admin', 'decision maker'].includes(user.access_level) && !updateFilters.district) || (user.access_level === 'validator' && !user.district) || loadingFilterDsDivisions"
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100"
+                        <button 
+                            @click="fetchUpdateableRecords"
+                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2 ml-auto sm:ml-0"
                         >
-                            <option value="">All divisions</option>
-                            <option v-for="ds in filterDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
-                        </select>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z"></path></svg>
+                            Apply Filters
+                        </button>
                     </div>
-
-                    <button 
-                        @click="fetchUpdateableRecords"
-                        class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium transition h-[38px]"
-                    >
-                        Filter
-                    </button>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -1449,6 +1458,15 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+        <!-- Modern Loading Indicator -->
+        <div v-if="isDownloading" class="fixed inset-0 ml-64 z-[10001] flex items-center justify-center pointer-events-none">
+            <div class="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col items-center">
+                <div class="relative">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-100 border-t-primary-600"></div>
+                </div>
+                <p class="mt-4 text-[10px] font-black text-primary-800 tracking-[0.2em] uppercase">Preparing Excel</p>
             </div>
         </div>
     </AppLayout>
@@ -1848,7 +1866,6 @@ const onFilterProvinceChange = async () => {
     updateFilters.ds_division = "";
     filterDistricts.value = [];
     filterDsDivisions.value = [];
-    fetchUpdateableRecords();
 
     if (!updateFilters.province) return;
 
@@ -1866,7 +1883,6 @@ const onFilterProvinceChange = async () => {
 const onFilterDistrictChange = async () => {
     updateFilters.ds_division = "";
     filterDsDivisions.value = [];
-    fetchUpdateableRecords();
 
     if (!updateFilters.district) return;
 
@@ -2151,9 +2167,36 @@ const resetBulkUpload = () => {
     }
 };
 
+const isDownloading = ref(false);
+
+const downloadFile = async (url, filename) => {
+    isDownloading.value = true;
+    try {
+        const response = await axios.get(url, { responseType: 'blob' });
+        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+        console.error("Download failed", error);
+        alert("Download failed. Please try again.");
+    } finally {
+        isDownloading.value = false;
+    }
+};
+
+const downloadTemplate = () => downloadFile('/api/registry/template', 'registration_template.xlsx');
+const downloadInstructions = () => downloadFile('/instructions.xlsx', 'Bulk_Upload_Instructions.xlsx');
+
 const downloadErrorSheet = async () => {
     if (!bulkResults.value?.summary?.invalid_count) return;
 
+    isDownloading.value = true;
     try {
         const response = await axios.post('/api/registry/export-errors', {
             batch_id: bulkResults.value.batch_id
@@ -2175,6 +2218,8 @@ const downloadErrorSheet = async () => {
     } catch (err) {
         console.error("Failed to download error sheet", err);
         alert("Could not generate error sheet. Please try again.");
+    } finally {
+        isDownloading.value = false;
     }
 };
 </script>
