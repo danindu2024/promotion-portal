@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\MainRegistry;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class FilteredAudienceExport implements WithMultipleSheets
