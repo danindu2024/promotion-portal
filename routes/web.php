@@ -94,6 +94,22 @@ Route::get('/maintenance/deploy-migrations/{token}', function ($token) {
     }
 });
 
+// Dedicated route to run migrations
+Route::get('/maintenance/migrate/{token}', function ($token) {
+    if ($token !== config('app.deploy_token', 'default_secret_token_123')) {
+        abort(403, 'Unauthorized migration access.');
+    }
+
+    try {
+        echo "Running migrations...<br>";
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        echo "Output: <pre>" . \Illuminate\Support\Facades\Artisan::output() . "</pre>";
+        return "Migrations completed successfully.";
+    } catch (\Exception $e) {
+        return "Error during migration: " . $e->getMessage();
+    }
+});
+
 Route::get('/debug-user', function () {
     $user = auth()->user();
     if (!$user) return "Not logged in";
