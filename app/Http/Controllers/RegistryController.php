@@ -26,7 +26,8 @@ class RegistryController extends Controller
         $data = $request->validated();
         
         // DB Duplicate Check — main_registry (category-aware)
-        $exists = MainRegistry::where('contact_number', $data['contact_number'])
+        $exists = MainRegistry::active()
+            ->where('contact_number', $data['contact_number'])
             ->where('category', $data['category'])
             ->exists();
         if ($exists) {
@@ -199,7 +200,8 @@ class RegistryController extends Controller
         $data = $request->validated();
         
         // Check for duplicates in main_registry (category-aware)
-        $query = MainRegistry::where('contact_number', $data['contact_number'])
+        $query = MainRegistry::active()
+            ->where('contact_number', $data['contact_number'])
             ->where('category', $data['category']);
         // exclude the target record if this was an update
         if ($staging->submission_type === 'UPDATE' && $staging->target_record_id) {
@@ -251,7 +253,7 @@ class RegistryController extends Controller
     public function listUpdateable(Request $request)
     {
         $user = Current::user();
-        $query = MainRegistry::query(); // return a new query builder instance
+        $query = MainRegistry::active(); // only active records can be updated
 
         // 1. Enforce Location Scoping
         if ($user->access_level === 'data entry') {
@@ -303,7 +305,7 @@ class RegistryController extends Controller
      */
     public function submitUpdate(SaveRegistryRequest $request, $id)
     {
-        $mainRecord = MainRegistry::findOrFail($id);
+        $mainRecord = MainRegistry::active()->findOrFail($id);
         $user = Current::user();
 
         // Security: Ensure user has permission to update this record based on location
@@ -329,7 +331,8 @@ class RegistryController extends Controller
         $data['category'] = $mainRecord->category;
 
         // Check for contact number duplicates (excluding the current record)
-        $existsInMain = MainRegistry::where('contact_number', $data['contact_number'])
+        $existsInMain = MainRegistry::active()
+            ->where('contact_number', $data['contact_number'])
             ->where('category', $data['category'])
             ->where('id', '!=', $id)
             ->exists();

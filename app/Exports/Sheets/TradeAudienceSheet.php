@@ -23,16 +23,19 @@ class TradeAudienceSheet implements FromQuery, WithHeadings, WithMapping, WithTi
 
     public function query()
     {
-        $query = MainRegistry::query()->where('category', 'Trade');
+        $query = MainRegistry::query()->active()->where('category', 'Trade');
 
-        if (!empty($this->filters['province'])) {
-            $query->where('province', $this->filters['province']);
-        }
-        if (!empty($this->filters['district'])) {
-            $query->where('district', $this->filters['district']);
-        }
-        if (!empty($this->filters['ds_division'])) {
-            $query->where('ds_division', $this->filters['ds_division']);
+        $query = $query->when(!empty($this->filters['province']), fn($q) => $q->where('province', $this->filters['province']))
+                     ->when(!empty($this->filters['district']), fn($q) => $q->where('district', $this->filters['district']))
+                     ->when(!empty($this->filters['ds_division']), fn($q) => $q->where('ds_division', $this->filters['ds_division']));
+
+        if (!empty($this->filters['search'])) {
+            $search = $this->filters['search'];
+            $query->where(function($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('contact_number', 'like', "%{$search}%")
+                  ->orWhere('national_id_number', 'like', "%{$search}%");
+            });
         }
 
         return $query->orderBy('created_at', 'desc');
@@ -91,7 +94,7 @@ class TradeAudienceSheet implements FromQuery, WithHeadings, WithMapping, WithTi
                     ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '0056b3'], // Website Primary Blue
+                        'startColor' => ['rgb' => '0056b3'], 
                     ],
                 ]);
             },

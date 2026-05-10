@@ -66,7 +66,8 @@ trait BaseRegistryImport
         try {
             DB::transaction(function () use ($chunkDataRows, $uniqueNumbersForDbCheck, $importer) {
                 // Fetch MainRegistry and map directly to keys
-                $existingRecords = MainRegistry::whereIn('contact_number', $uniqueNumbersForDbCheck)
+                $existingRecords = MainRegistry::where('is_deleted', false)
+                    ->whereIn('contact_number', $uniqueNumbersForDbCheck)
                     ->get(['contact_number', 'category'])
                     ->mapWithKeys(fn($r) => ["{$r->contact_number}:{$r->category}" => true])
                     ->toArray();

@@ -50,7 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Main Registry Actions
         Route::prefix('main')->group(function () {
             Route::get('/{id}', [\App\Http\Controllers\MainRegistryController::class, 'show']);
-            Route::put('/{id}', [\App\Http\Controllers\MainRegistryController::class, 'update']);
             Route::delete('/{id}', [\App\Http\Controllers\MainRegistryController::class, 'destroy']);
         });
     });
@@ -72,6 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/ds-heatmap', [AnalyticsController::class, 'getDsHeatmapData']);
         Route::get('/search', [AnalyticsController::class, 'advancedSearch']);
         Route::get('/search/export', [AnalyticsController::class, 'exportAudience']);
+        Route::post('/target', [AnalyticsController::class, 'updateTarget']);
+        Route::post('/heatmap-ranges', [AnalyticsController::class, 'updateHeatmapRanges']);
     });
 });
 
