@@ -95,7 +95,7 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Enrollment Number <span class="text-red-500">*</span></label>
-                                <input type="number" v-model="form.enrollment_number" required :class="inputClass(fieldErrors.enrollment_number)" placeholder="Unique identifier">
+                                <input type="number" v-model="form.enrollment_number" required :class="inputClass(fieldErrors.enrollment_number)">
                                 <p v-if="fieldErrors.enrollment_number" class="text-xs text-red-500 mt-1">{{ fieldErrors.enrollment_number }}</p>
                             </div>
 
@@ -253,7 +253,7 @@
                                     <div class="text-xs text-gray-500">Mob: {{ deposit.mobile }}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900 font-medium">#{{ deposit.enrollment_number }}</div>
+                                    <div class="text-sm text-gray-900 font-medium">{{ deposit.enrollment_number }}</div>
                                     <div class="text-xs text-gray-500 truncate max-w-xs">{{ deposit.address }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
