@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\BankDepositController;
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
@@ -45,6 +46,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/api/users/{id}', [UserManagementController::class, 'update']);
         Route::delete('/api/users/{id}', [UserManagementController::class, 'destroy']);
     });
+
+    // Bank Deposit Routes
+    Route::get('/bank-deposits', [BankDepositController::class, 'index'])->name('bank-deposits.index');
+    Route::post('/api/bank-deposits', [BankDepositController::class, 'store']);
+    Route::get('/api/bank-deposits/global', [BankDepositController::class, 'all'])->name('bank-deposits.global');
+    Route::get('/api/bank-deposits/export', [BankDepositController::class, 'export'])->name('bank-deposits.export');
 });
 
 // Deployment helper for cPanel (Shared Hosting without SSH)
