@@ -23,6 +23,18 @@
                     Data Entry
                 </Link>
                 <Link
+                    v-if="['data entry', 'validator', 'decision maker', 'admin'].includes(user?.access_level)"
+                    href="/bank-deposits"
+                    :class="[
+                        $page.url.startsWith('/bank-deposits')
+                            ? 'bg-primary-600 border-l-4 border-white font-medium text-white'
+                            : 'hover:bg-primary-600 text-gray-200 hover:text-white transition border-l-4 border-transparent',
+                        'block px-6 py-3',
+                    ]"
+                >
+                    Bank Deposits
+                </Link>
+                <Link
                     v-if="['validator', 'decision maker', 'admin'].includes(user?.access_level)"
                     href="/review"
                     :class="[
