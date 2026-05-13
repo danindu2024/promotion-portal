@@ -46,6 +46,7 @@ class StoreBankDepositRequest extends FormRequest
             'mobile.regex' => 'The mobile number must be 10 digits starting with 0.',
             'deposit_date.before_or_equal' => 'The deposit date cannot be in the future.',
             'receipt_reference_number.unique' => 'A deposit with this receipt reference number has already been recorded.',
+            'amount.min' => 'The amount must be a positive value.',
         ];
     }
 }
