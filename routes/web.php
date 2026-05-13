@@ -150,3 +150,34 @@ Route::get('/maintenance/clear-cache/{token}', function ($token) {
         return "Error clearing cache: " . $e->getMessage();
     }
 });
+
+// Dedicated route to fix storage link on cPanel
+Route::get('/maintenance/storage-link/{token}', function ($token) {
+    if ($token !== config('app.deploy_token', 'default_secret_token_123')) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    try {
+        $storagePath = storage_path('app/public');
+        $publicPath = public_path('storage');
+
+        if (file_exists($publicPath)) {
+            echo "Existing storage link found at $publicPath. Deleting...<br>";
+            if (is_link($publicPath)) {
+                unlink($publicPath);
+            } else {
+                // If it's a real directory, we might not want to delete it blindly, 
+                // but usually on Laravel it should be a symlink.
+                // On some cPanel setups, users might have manually created a folder.
+                return "Error: $publicPath is a directory, not a symlink. Please delete it manually via File Manager.";
+            }
+        }
+
+        echo "Creating new storage link...<br>";
+        \Illuminate\Support\Facades\Artisan::call('storage:link');
+        
+        return "Storage link created successfully.";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
