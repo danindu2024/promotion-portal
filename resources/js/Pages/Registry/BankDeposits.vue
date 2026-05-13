@@ -113,7 +113,7 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Amount (LKR) <span class="text-red-500">*</span></label>
-                                <input type="number" v-model="form.amount" step="0.01" required :class="inputClass(fieldErrors.amount)" placeholder="0.00">
+                                <input type="number" v-model="form.amount" step="0.01" min="0" @input="form.amount = form.amount < 0 ? 0 : form.amount" required :class="inputClass(fieldErrors.amount)" placeholder="0.00">
                                 <p v-if="fieldErrors.amount" class="text-xs text-red-500 mt-1">{{ fieldErrors.amount }}</p>
                             </div>
 
@@ -332,7 +332,7 @@ const fieldErrors = reactive({
 });
 
 const handleSearch = () => {
-    router.get(route('bank-deposits.index'), { search: search.value }, {
+    router.get('/bank-deposits', { search: search.value }, {
         preserveState: true,
         replace: true,
         only: ['deposits', 'filters']
