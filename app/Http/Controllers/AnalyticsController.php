@@ -148,7 +148,7 @@ class AnalyticsController extends Controller
             });
         }
 
-        $results = $query->orderBy('created_at', 'desc')->paginate(30);
+        $results = $query->orderBy('created_at', 'desc')->paginate(20);
 
         // Log search query to audit file
         Logger::log('SEARCH_QUERY', 'Demographic search performed', 'ANALYTICS', null, [

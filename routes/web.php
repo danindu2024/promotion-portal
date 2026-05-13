@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\BankDepositController;
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
@@ -44,6 +45,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/users', [UserManagementController::class, 'store']);
         Route::put('/api/users/{id}', [UserManagementController::class, 'update']);
         Route::delete('/api/users/{id}', [UserManagementController::class, 'destroy']);
+    });
+
+    // Bank Deposit Routes
+    Route::get('/bank-deposits', [BankDepositController::class, 'index'])->name('bank-deposits.index');
+    Route::prefix('api/bank-deposits')->group(function () {
+        Route::post('/', [BankDepositController::class, 'store'])->name('bank-deposits.store')
+            ->middleware('throttle:30,1');
+        Route::get('/global', [BankDepositController::class, 'all'])->name('bank-deposits.global');
+        Route::get('/export', [BankDepositController::class, 'export'])->name('bank-deposits.export');
     });
 });
 

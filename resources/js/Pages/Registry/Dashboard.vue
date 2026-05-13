@@ -30,6 +30,17 @@
                     >
                         Advanced Search
                     </button>
+                    <button
+                        @click="activeTab = 'deposits'"
+                        :class="[
+                            activeTab === 'deposits'
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                            'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-lg',
+                        ]"
+                    >
+                        Bank Deposits
+                    </button>
                 </nav>
             </div>
 
@@ -332,6 +343,127 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Global Bank Deposits Tab -->
+            <div v-show="activeTab === 'deposits'" class="space-y-6">
+                <!-- Search Bar & Filters (Matching Advanced Search UI) -->
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-6 flex flex-col gap-6">
+                    <h3 class="text-lg font-bold text-gray-800 border-b pb-2">Bank Deposit Filters</h3>
+                    
+                    <!-- Row 1: Primary Search -->
+                    <div class="flex gap-4 items-end">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Search</label>
+                            <div class="relative group">
+                                <input 
+                                    type="text" 
+                                    v-model="depositSearch" 
+                                    @keyup.enter="fetchGlobalDeposits(1)" 
+                                    placeholder="Search by Customer Name or Enrollment Number..." 
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2.5 px-4 pl-10 transition-all group-hover:border-gray-400"
+                                >
+                                <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                        </div>
+                        <button 
+                            @click="fetchGlobalDeposits(1)"
+                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            Search
+                        </button>
+                        <button 
+                            @click="exportBankDeposits" 
+                            class="inline-flex items-center px-4 py-2.5 border border-green-600 rounded-lg text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 transition-all h-[42px] gap-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Excel Download
+                        </button>
+                    </div>
+
+                    <!-- Row 2: Advanced Filters -->
+                    <div class="pt-4 border-t border-gray-100">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">From Date</label>
+                                <input type="date" v-model="depositFilters.from_date" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">To Date</label>
+                                <input type="date" v-model="depositFilters.to_date" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                            </div>
+                            <div class="flex items-end gap-3">
+                                <button @click="fetchGlobalDeposits(1)" class="flex-1 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z"></path></svg>
+                                    Apply Filters
+                                </button>
+                                <button @click="resetDepositFilters" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-gray-700">Global Bank Deposit Records</h3>
+                        <button @click="fetchGlobalDeposits" class="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            Refresh
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer / Enrollment</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recorded By</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-if="loadingDeposits">
+                                    <td colspan="5" class="px-6 py-10 text-center text-gray-500 italic">Loading records...</td>
+                                </tr>
+                                <tr v-for="deposit in globalDeposits.data" :key="deposit.id" class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(deposit.deposit_date) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-bold text-gray-900">{{ deposit.customer_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ deposit.enrollment_number }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-bold text-gray-900">{{ deposit.creator?.name || 'Unknown' }}</div>
+                                        <div class="text-xs text-gray-500">
+                                            {{ deposit.creator?.ds_division ? deposit.creator.ds_division + ', ' : '' }}{{ deposit.creator?.district || 'No Location' }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-right text-gray-900">LKR {{ formatCurrency(deposit.amount) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button v-if="deposit.slip_path" @click="viewSlip(deposit.slip_path)" class="text-primary-600 hover:text-primary-900 font-bold">View Slip</button>
+                                        <span v-else class="text-gray-400 italic">No slip</span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!loadingDeposits && (!globalDeposits.data || globalDeposits.data.length === 0)">
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">No deposit records found in the system.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination for Bank Deposits -->
+                    <div class="px-6 py-3 flex items-center justify-between border-t border-gray-200 bg-gray-50/30" v-if="globalDeposits.last_page > 1">
+                         <div class="text-sm text-gray-700">
+                             Showing <span class="font-medium">{{ globalDeposits.from || 0 }}</span> to <span class="font-medium">{{ globalDeposits.to || 0 }}</span> of <span class="font-medium">{{ globalDeposits.total }}</span> results
+                         </div>
+                         <div class="flex space-x-2">
+                             <button @click="fetchGlobalDeposits(globalDeposits.current_page - 1)" :disabled="globalDeposits.current_page === 1" class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors">Previous</button>
+                             <button @click="fetchGlobalDeposits(globalDeposits.current_page + 1)" :disabled="globalDeposits.current_page === globalDeposits.last_page" class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors">Next</button>
+                         </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- View Details Modal -->
         <ViewDetailsModal 
@@ -464,7 +596,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ViewDetailsModal from '@/Components/Registry/ViewDetailsModal.vue';
 import axios from 'axios';
@@ -1004,10 +1136,98 @@ const onDetailsDeleted = (deletedId) => {
     performSearch(searchData.value.current_page || 1);
 };
 
+// Bank Deposits Global View
+const globalDeposits = ref({ data: [], total: 0 });
+const loadingDeposits = ref(false);
+const depositSearch = ref("");
+const depositFilters = reactive({
+    from_date: "",
+    to_date: "",
+});
+
+const fetchGlobalDeposits = async (page = 1) => {
+    loadingDeposits.value = true;
+    try {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        if (depositSearch.value) params.append('search', depositSearch.value);
+        if (depositFilters.from_date) params.append('from_date', depositFilters.from_date);
+        if (depositFilters.to_date) params.append('to_date', depositFilters.to_date);
+        
+        const resp = await axios.get(`/api/bank-deposits/global?${params.toString()}`);
+        globalDeposits.value = resp.data;
+    } catch (error) {
+        console.error("Failed to load global deposits", error);
+    } finally {
+        loadingDeposits.value = false;
+    }
+};
+
+const resetDepositFilters = () => {
+    depositSearch.value = "";
+    depositFilters.from_date = "";
+    depositFilters.to_date = "";
+    fetchGlobalDeposits(1);
+};
+
+const resetDepositSearch = () => {
+    depositSearch.value = "";
+    fetchGlobalDeposits(1);
+};
+
+const exportBankDeposits = async () => {
+    loadingMessage.value = 'Preparing Excel...';
+    dashboardLoading.value = true;
+    try {
+        const params = new URLSearchParams();
+        if (depositSearch.value) params.append('search', depositSearch.value);
+        if (depositFilters.from_date) params.append('from_date', depositFilters.from_date);
+        if (depositFilters.to_date) params.append('to_date', depositFilters.to_date);
+        
+        const response = await axios.get(`/api/bank-deposits/export?${params.toString()}`, {
+            responseType: 'blob'
+        });
+        
+        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `bank_deposits_export_${new Date().getTime()}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Export failed", error);
+        alert("Failed to generate Excel export.");
+    } finally {
+        dashboardLoading.value = false;
+    }
+};
+
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-GB');
+};
+
+const formatCurrency = (val) => {
+    return parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const viewSlip = (path) => {
+    window.open(`/storage/${path}`, '_blank');
+};
+
+watch(activeTab, (newTab) => {
+    if (newTab === 'deposits' && globalDeposits.value.data.length === 0) {
+        fetchGlobalDeposits();
+    }
+});
+
 onMounted(() => {
     fetchOverviewData();
     fetchProvinces();
     performSearch(1);
+    fetchGlobalDeposits();
 });
 
 onBeforeUnmount(() => {
