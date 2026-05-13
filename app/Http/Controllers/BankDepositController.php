@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\Logger;
+use App\Http\Requests\StoreBankDepositRequest;
+use App\Traits\NormalizesData;
 
 class BankDepositController extends Controller
 {
+    use NormalizesData;
     public function index(Request $request)
     {
         $query = BankDeposit::with('creator')->where('created_by', auth()->id());
@@ -42,22 +45,15 @@ class BankDepositController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreBankDepositRequest $request)
     {
-        $validated = $request->validate([
-            'customer_name' => 'required|string|max:255',
-            'nic' => ['required', 'string', 'regex:/^(?:[0-9]{9}[vVxX]|[0-9]{12})$/'],
-            'mobile' => ['required', 'string', 'regex:/^0\d{9}$/'],
-            'address' => 'required|string',
-            'enrollment_number' => 'required|numeric',
-            'amount' => 'required|numeric|min:0',
-            'deposit_date' => 'required|date|before_or_equal:today',
-            'branch' => 'required|string|max:255',
-            'receipt_reference_number' => 'required|string|max:255',
-            'slip' => 'required|image|max:5120', // 5MB max
-            'remarks' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
+        // Normalize data before saving
+        $validated['nic'] = $this->normalizeNationalId($validated['nic']);
+        $validated['mobile'] = $this->normalizePhoneNumber($validated['mobile']);
+
+        $path = null;
         if ($request->hasFile('slip')) {
             $path = $request->file('slip')->store('slips', 'public');
             $validated['slip_path'] = $path;
@@ -65,17 +61,24 @@ class BankDepositController extends Controller
 
         $validated['created_by'] = auth()->id();
 
-        $deposit = BankDeposit::create($validated);
+        try {
+            $deposit = BankDeposit::create($validated);
 
-        Logger::log('BANK_DEPOSIT_CREATE', "Recorded deposit for {$deposit->customer_name}", 'BANK_DEPOSIT', "ID: {$deposit->id}", [
-            'enrollment_number' => $deposit->enrollment_number,
-            'amount' => $deposit->amount
-        ]);
+            Logger::log('BANK_DEPOSIT_CREATE', "Recorded deposit for {$deposit->customer_name}", 'BANK_DEPOSIT', "ID: {$deposit->id}", [
+                'enrollment_number' => $deposit->enrollment_number,
+                'amount' => $deposit->amount
+            ]);
 
-        return response()->json([
-            'message' => 'Bank deposit recorded successfully',
-            'deposit' => $deposit
-        ], 201);
+            return response()->json([
+                'message' => 'Bank deposit recorded successfully',
+                'deposit' => $deposit
+            ], 201);
+        } catch (\Exception $e) {
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+            throw $e;
+        }
     }
 
     public function all(Request $request)
