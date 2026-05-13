@@ -49,9 +49,12 @@ Route::middleware('auth')->group(function () {
 
     // Bank Deposit Routes
     Route::get('/bank-deposits', [BankDepositController::class, 'index'])->name('bank-deposits.index');
-    Route::post('/api/bank-deposits', [BankDepositController::class, 'store']);
-    Route::get('/api/bank-deposits/global', [BankDepositController::class, 'all'])->name('bank-deposits.global');
-    Route::get('/api/bank-deposits/export', [BankDepositController::class, 'export'])->name('bank-deposits.export');
+    Route::prefix('api/bank-deposits')->group(function () {
+        Route::post('/', [BankDepositController::class, 'store'])->name('bank-deposits.store')
+            ->middleware('throttle:30,1');
+        Route::get('/global', [BankDepositController::class, 'all'])->name('bank-deposits.global');
+        Route::get('/export', [BankDepositController::class, 'export'])->name('bank-deposits.export');
+    });
 });
 
 // Deployment helper for cPanel (Shared Hosting without SSH)
