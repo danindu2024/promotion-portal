@@ -6,6 +6,9 @@
 
         <title inertia>{{ config('app.name', 'Promotion Portal') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="{{ asset('assets/logo.png') }}">
+
         <!-- Fonts (Inter & Roboto Mono) -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
