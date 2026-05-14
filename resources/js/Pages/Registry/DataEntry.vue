@@ -1,13 +1,14 @@
 <template>
     <AppLayout>
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 transform-gpu" :class="{ 'blur-sm pointer-events-none opacity-80 grayscale-[0.1]': isDownloading }" style="will-change: filter, opacity;">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
                 Data Entry Page
             </h1>
 
-            <!-- Tabs Navigation -->
-            <div class="border-b border-gray-200 mb-8">
-                <nav class="-mb-px flex space-x-8">
+            <!-- Tabs Navigation (Responsive Scrollable with Fade Indicator) -->
+            <div class="relative mb-8">
+                <div ref="tabsContainer" @scroll="updateScrollState" class="border-b border-gray-200 overflow-x-auto no-scrollbar" :style="tabMaskStyle">
+                    <nav class="-mb-px flex space-x-8 min-w-max px-2">
                     <button
                         @click="activeTab = 'single'"
                         :class="[
@@ -60,11 +61,12 @@
                     </button>
                 </nav>
             </div>
+        </div>
 
-            <!-- Single Entry Form -->
+        <!-- Single Entry Form -->
             <div
                 v-show="activeTab === 'single'"
-                class="bg-white rounded-lg shadow border border-gray-200 p-8"
+                class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8"
             >
                 <!-- Alerts (scroll target) -->
                 <div ref="alertArea">
@@ -210,7 +212,7 @@
                 <form @submit.prevent="submitSingleForm" novalidate>
                     <!-- Section 1: Classification -->
                     <h2
-                        class="text-xl font-bold text-gray-700 mb-4 pb-2 border-b"
+                        class="text-lg sm:text-xl font-bold text-gray-700 mb-4 pb-2 border-b"
                     >
                         1. Classification
                     </h2>
@@ -219,7 +221,7 @@
                             class="block text-sm font-medium text-gray-700 mb-2"
                             >Category <span class="text-red-500">*</span></label
                         >
-                        <div class="flex space-x-6">
+                        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6">
                             <label
                                 class="inline-flex items-center cursor-pointer"
                             >
@@ -665,18 +667,18 @@
                     </div>
 
                     <!-- Footer Actions -->
-                    <div class="flex justify-end space-x-4 border-t pt-6">
+                    <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 border-t pt-6">
                         <button
                             type="button"
                             @click="resetForm"
-                            class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            class="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                         >
                             Reset
                         </button>
                         <button
                             type="submit"
                             :disabled="isSubmitting"
-                            class="flex justify-center py-2 px-8 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="w-full sm:w-auto flex justify-center py-2 px-8 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <svg
                                 v-if="isSubmitting"
@@ -714,15 +716,15 @@
             <!-- Bulk Upload Tab -->
             <div
                 v-show="activeTab === 'bulk'"
-                class="bg-white rounded-lg shadow border border-gray-200 p-8"
+                class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8"
             >
                 <div
-                    class="flex justify-between items-center mb-6 pb-2 border-b"
+                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-2 border-b space-y-4 sm:space-y-0"
                 >
                     <h2 class="text-xl font-bold text-gray-700">
                         Excel Bulk Upload
                     </h2>
-                    <div class="flex space-x-3">
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                         <button
                             @click="downloadInstructions"
                             class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
@@ -864,11 +866,11 @@
                 <!-- Selected File Info & Submit Button -->
                 <div
                     v-if="selectedFile && !bulkResults"
-                    class="mt-4 flex items-center justify-between p-4 border rounded-md bg-gray-50"
+                    class="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-md bg-gray-50 gap-4"
                 >
-                    <div class="flex items-center">
+                    <div class="flex items-center min-w-0 w-full sm:w-auto">
                         <svg
-                            class="w-8 h-8 text-green-500 mr-3"
+                            class="w-10 h-10 text-green-500 mr-3 flex-shrink-0"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                         >
@@ -878,8 +880,8 @@
                                 clip-rule="evenodd"
                             ></path>
                         </svg>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-gray-900 truncate">
                                 {{ selectedFile.name }}
                             </p>
                             <p class="text-xs text-gray-500">
@@ -897,14 +899,14 @@
                             </p>
                         </div>
                     </div>
-                    <div class="flex space-x-3">
+                    <div class="flex flex-col-reverse sm:flex-row items-center gap-3 w-full sm:w-auto">
                         <button
                             type="button"
                             @click="
                                 selectedFile = null;
                                 if ($refs.fileInput) $refs.fileInput.value = '';
                             "
-                            class="text-sm text-red-600 hover:text-red-900"
+                            class="text-sm font-bold text-red-600 hover:text-red-900 w-full sm:w-auto py-2 sm:py-0 transition-colors"
                         >
                             Remove
                         </button>
@@ -912,7 +914,7 @@
                             type="button"
                             @click="submitBulkUpload"
                             :disabled="isUploading"
-                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="inline-flex items-center justify-center px-6 py-2.5 border border-transparent shadow-sm text-sm font-bold rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto transition-all"
                         >
                             <svg
                                 v-if="isUploading"
@@ -1128,33 +1130,8 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-if="loadingRejected">
-                                <td
-                                    colspan="6"
-                                    class="px-6 py-12 text-center text-gray-500"
-                                >
-                                    <svg
-                                        class="animate-spin h-8 w-8 text-primary-500 mx-auto mb-4"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            class="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            stroke-width="4"
-                                        ></circle>
-                                        <path
-                                            class="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                                        ></path>
-                                    </svg>
-                                    Loading rejected records...
-                                </td>
+                            <tr v-if="false">
+                                <!-- Replaced by global indicator -->
                             </tr>
                             <tr v-else-if="rejectedRecords.length === 0">
                                 <td
@@ -1315,9 +1292,9 @@
                 v-show="activeTab === 'update'"
                 class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden"
             >
-                <div class="px-6 py-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-5">
+                <div class="px-4 sm:px-6 py-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-5">
                     <!-- Row 1: Primary Search -->
-                    <div class="flex gap-4 items-end">
+                    <div class="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Search</label>
                             <div class="relative group">
@@ -1341,9 +1318,9 @@
                     </div>
 
                     <!-- Row 2: Advanced Filters -->
-                    <div class="flex flex-wrap gap-4 items-end pt-2 border-t border-gray-200/60">
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-end pt-2 border-t border-gray-200/60">
                         <!-- Category Filter -->
-                        <div class="w-44">
+                        <div class="w-full sm:w-44">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
                             <select 
                                 v-model="updateFilters.category"
@@ -1354,10 +1331,10 @@
                                 <option value="Trade">Trade</option>
                             </select>
                         </div>
-
+ 
                         <!-- Location Filters for Admin/Decision Maker -->
                         <template v-if="['admin', 'decision maker'].includes(user.access_level)">
-                            <div class="w-44">
+                            <div class="w-full sm:w-44">
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Province</label>
                                 <select 
                                     v-model="updateFilters.province"
@@ -1368,7 +1345,7 @@
                                     <option v-for="p in filterProvinces" :key="p" :value="p">{{ p }}</option>
                                 </select>
                             </div>
-                            <div class="w-44">
+                            <div class="w-full sm:w-44">
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">District</label>
                                 <select 
                                     v-model="updateFilters.district"
@@ -1381,9 +1358,9 @@
                                 </select>
                             </div>
                         </template>
-
+ 
                         <!-- DS Division Filter (Admin/Decision Maker OR Validator) -->
-                        <div class="w-44" v-if="['admin', 'decision maker', 'validator'].includes(user.access_level)">
+                        <div class="w-full sm:w-44" v-if="['admin', 'decision maker', 'validator'].includes(user.access_level)">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">DS Division</label>
                             <select 
                                 v-model="updateFilters.ds_division"
@@ -1394,10 +1371,10 @@
                                 <option v-for="ds in filterDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
                             </select>
                         </div>
-
+ 
                         <button 
                             @click="fetchUpdateableRecords"
-                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2 ml-auto sm:ml-0"
+                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center justify-center gap-2 w-full sm:w-auto ml-auto"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z"></path></svg>
                             Apply Filters
@@ -1416,8 +1393,8 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-if="loadingUpdate" class="animate-pulse">
-                                <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">Loading records...</td>
+                            <tr v-if="false">
+                                <!-- Replaced by global indicator -->
                             </tr>
                             <tr v-else-if="updateRecords.length === 0">
                                 <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">No records found.</td>
@@ -1461,19 +1438,19 @@
             </div>
         </div>
         <!-- Modern Loading Indicator -->
-        <div v-if="isDownloading" class="fixed inset-0 ml-64 z-[10001] flex items-center justify-center pointer-events-none">
+        <div v-if="isDownloading" class="fixed inset-0 md:ml-64 z-[10001] flex items-center justify-center pointer-events-none">
             <div class="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col items-center">
                 <div class="relative">
                     <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-100 border-t-primary-600"></div>
                 </div>
-                <p class="mt-4 text-[10px] font-black text-primary-800 tracking-[0.2em] uppercase">Preparing Excel</p>
+                <p class="mt-4 text-[10px] font-black text-primary-800 tracking-[0.2em] uppercase">{{ loadingMessage }}</p>
             </div>
         </div>
     </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, watch } from "vue";
+import { ref, reactive, onMounted, onUnmounted, nextTick, watch, computed } from "vue";
 import axios from "axios";
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from "@/Layouts/AppLayout.vue";
@@ -1481,6 +1458,40 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 const user = usePage().props.auth.user;
 
 const activeTab = ref("single");
+const tabsContainer = ref(null);
+
+// Dynamic fade indicator logic
+const scrollState = reactive({
+    isAtStart: true,
+    isAtEnd: false
+});
+
+const updateScrollState = () => {
+    const container = tabsContainer.value;
+    if (!container) return;
+    scrollState.isAtStart = container.scrollLeft <= 5;
+    scrollState.isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 5;
+};
+
+const tabMaskStyle = computed(() => {
+    const { isAtStart, isAtEnd } = scrollState;
+    if (isAtStart && isAtEnd) return {};
+    if (isAtStart) return { maskImage: 'linear-gradient(to right, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)' };
+    if (isAtEnd) return { maskImage: 'linear-gradient(to left, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to left, black 85%, transparent 100%)' };
+    return { maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)' };
+});
+
+// Watch for tab changes to auto-scroll on mobile
+watch(activeTab, async () => {
+    await nextTick();
+    const container = tabsContainer.value;
+    if (!container) return;
+    const activeBtn = container.querySelector('.border-primary-500');
+    if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    setTimeout(updateScrollState, 300); // Update fade after smooth scroll completes
+});
 // ... Single Form state
 const isSubmitting = ref(false);
 const successMsg = ref("");
@@ -1602,7 +1613,7 @@ const fieldOfWorkOptions = [
 
 // Dynamic input class based on error state
 const inputClass = (error) => [
-    "mt-1 block w-full rounded-md shadow-sm py-2 border px-3 ring-1 ring-gray-200",
+    "mt-1 block w-full rounded-lg shadow-sm py-3 px-4 border ring-1 ring-gray-200 text-sm md:text-base font-sans transition-all duration-200 bg-white hover:border-gray-400",
     error
         ? "border-red-400 focus:border-red-500 focus:ring-red-500"
         : "border-gray-300 focus:border-primary-500 focus:ring-primary-500",
@@ -1708,6 +1719,8 @@ async function scrollToAlert() {
 
 // ─── Fetch Geography & Rejected Data ────────────────────────────────────────────────
 onMounted(async () => {
+    window.addEventListener('resize', updateScrollState);
+    setTimeout(updateScrollState, 500);
     loadingProvinces.value = true;
     try {
         const { data } = await axios.get("/api/locations/provinces");
@@ -1744,7 +1757,9 @@ onMounted(async () => {
 });
 
 const fetchRejectedRecords = async () => {
+    loadingMessage.value = "Loading Data";
     loadingRejected.value = true;
+    isDownloading.value = true;
     try {
         const { data } = await axios.get("/api/registry/rejected");
         rejectedRecords.value = data.data;
@@ -1759,6 +1774,7 @@ const fetchRejectedRecords = async () => {
         console.error("Failed to load rejected records", e);
     } finally {
         loadingRejected.value = false;
+        isDownloading.value = false;
     }
 };
 
@@ -1902,7 +1918,9 @@ const cancelUpdate = () => {
 };
 
 const fetchUpdateableRecords = async () => {
+    loadingMessage.value = "Searching Records";
     loadingUpdate.value = true;
+    isDownloading.value = true;
     try {
         const { data } = await axios.get("/api/registry/updateable", {
             params: updateFilters,
@@ -1912,6 +1930,7 @@ const fetchUpdateableRecords = async () => {
         console.error("Failed to fetch updateable records", e);
     } finally {
         loadingUpdate.value = false;
+        isDownloading.value = false;
     }
 };
 
@@ -2168,6 +2187,13 @@ const resetBulkUpload = () => {
 };
 
 const isDownloading = ref(false);
+const loadingMessage = ref("Preparing Excel");
+
+const exportToExcel = (category) => {
+    const filename = `registrations_${category.toLowerCase().replace(' ', '_')}.xlsx`;
+    const url = `/api/registry/export?category=${category}`;
+    downloadFile(url, filename);
+};
 
 const downloadFile = async (url, filename) => {
     isDownloading.value = true;
@@ -2222,4 +2248,15 @@ const downloadErrorSheet = async () => {
         isDownloading.value = false;
     }
 };
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateScrollState);
+});
 </script>
+
+<style scoped>
+select, option {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-size: inherit !important;
+}
+</style>
