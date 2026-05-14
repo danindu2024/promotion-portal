@@ -1,13 +1,14 @@
 <template>
     <AppLayout>
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
                 Bank Deposits
             </h1>
 
-            <!-- Tabs Navigation -->
-            <div class="border-b border-gray-200 mb-8">
-                <nav class="-mb-px flex space-x-8">
+            <!-- Tabs Navigation (Responsive Scrollable with Fade Indicator) -->
+            <div class="relative mb-8">
+                <div ref="tabsContainer" @scroll="updateScrollState" class="border-b border-gray-200 overflow-x-auto no-scrollbar" :style="tabMaskStyle">
+                    <nav class="-mb-px flex space-x-8 min-w-max px-2">
                     <button
                         @click="activeTab = 'entry'"
                         :class="[
@@ -32,10 +33,11 @@
                     </button>
                 </nav>
             </div>
+        </div>
 
-            <!-- New Deposit Form Tab -->
-            <div v-show="activeTab === 'entry'" class="bg-white rounded-lg shadow border border-gray-200 p-8">
-                <h2 class="text-xl font-bold text-gray-700 mb-6 pb-2 border-b">
+        <!-- New Deposit Form Tab -->
+            <div v-show="activeTab === 'entry'" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-700 mb-6 pb-2 border-b">
                     Record New Bank Deposit
                 </h2>
 
@@ -181,11 +183,11 @@
                         <p v-if="fieldErrors.slip" class="text-xs text-red-500 mt-2 text-center font-bold italic">{{ fieldErrors.slip }}</p>
                     </div>
 
-                    <div class="flex justify-end space-x-4 border-t pt-6">
-                        <button type="button" @click="resetForm" class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 border-t pt-6">
+                        <button type="button" @click="resetForm" class="w-full sm:w-auto px-6 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                             Reset
                         </button>
-                        <button type="submit" :disabled="submitting" class="flex justify-center py-2 px-8 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button type="submit" :disabled="submitting" class="w-full sm:w-auto flex justify-center items-center py-2.5 px-8 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                             <svg v-if="submitting" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                             {{ submitting ? 'Saving...' : 'Save Deposit' }}
                         </button>
@@ -196,8 +198,8 @@
             <!-- Table of Recent Deposits Tab -->
             <div v-show="activeTab === 'records'" class="space-y-6">
                 <!-- Search Bar (Matching Advanced Search UI) -->
-                <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
-                    <div class="flex gap-4 items-end">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                    <div class="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Search</label>
                             <div class="relative group">
@@ -213,7 +215,7 @@
                         </div>
                         <button 
                             @click="handleSearch"
-                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2"
+                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center justify-center gap-2"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             Search
@@ -221,7 +223,7 @@
                         <button 
                             v-if="search"
                             @click="resetSearch"
-                            class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all h-[42px]"
+                            class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all h-[42px] flex items-center justify-center"
                         >
                             Clear
                         </button>
@@ -296,12 +298,21 @@
             </div>
         </div>
     </div>
+    <!-- Modern Loading Indicator -->
+    <div v-if="isLoading" class="fixed inset-0 md:ml-64 z-[10001] flex items-center justify-center pointer-events-none">
+        <div class="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col items-center">
+            <div class="relative">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-100 border-t-primary-600"></div>
+            </div>
+            <p class="mt-4 text-[10px] font-black text-primary-800 tracking-[0.2em] uppercase">{{ loadingMessage }}</p>
+        </div>
+    </div>
 </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import { ref, reactive } from "vue";
+import { ref, reactive, watch, nextTick, computed, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import { router } from "@inertiajs/vue3";
 
@@ -313,7 +324,52 @@ const props = defineProps({
 });
 
 const activeTab = ref("entry");
+const tabsContainer = ref(null);
+
+// Dynamic fade indicator logic
+const scrollState = reactive({
+    isAtStart: true,
+    isAtEnd: false
+});
+
+const updateScrollState = () => {
+    const container = tabsContainer.value;
+    if (!container) return;
+    scrollState.isAtStart = container.scrollLeft <= 5;
+    scrollState.isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 5;
+};
+
+const tabMaskStyle = computed(() => {
+    const { isAtStart, isAtEnd } = scrollState;
+    if (isAtStart && isAtEnd) return {};
+    if (isAtStart) return { maskImage: 'linear-gradient(to right, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)' };
+    if (isAtEnd) return { maskImage: 'linear-gradient(to left, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to left, black 85%, transparent 100%)' };
+    return { maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)' };
+});
+
+// Watch for tab changes to auto-scroll on mobile
+watch(activeTab, async () => {
+    await nextTick();
+    const container = tabsContainer.value;
+    if (!container) return;
+    const activeBtn = container.querySelector('.border-primary-500');
+    if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    setTimeout(updateScrollState, 300); // Update fade after smooth scroll completes
+});
+
+onMounted(() => {
+    window.addEventListener('resize', updateScrollState);
+    setTimeout(updateScrollState, 500);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateScrollState);
+});
 const submitting = ref(false);
+const isLoading = ref(false);
+const loadingMessage = ref("Searching Records");
 const dragover = ref(false);
 const search = ref(props.filters?.search || "");
 const successMsg = ref("");
@@ -332,10 +388,14 @@ const fieldErrors = reactive({
 });
 
 const handleSearch = () => {
+    isLoading.value = true;
     router.get('/bank-deposits', { search: search.value }, {
         preserveState: true,
         replace: true,
-        only: ['deposits', 'filters']
+        only: ['deposits', 'filters'],
+        onFinish: () => {
+            isLoading.value = false;
+        }
     });
 };
 
@@ -361,7 +421,7 @@ const form = reactive({
 
 const inputClass = (hasError = false) => {
     return [
-        'mt-1 block w-full rounded-lg shadow-sm text-sm transition-all py-2.5 px-4 ring-1 ring-gray-200 border',
+        'mt-1 block w-full rounded-lg shadow-sm text-sm md:text-base font-sans transition-all py-3 px-4 ring-1 ring-gray-200 border bg-white',
         hasError 
             ? 'border-red-300 ring-red-200 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500' 
             : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500 hover:border-gray-400'
@@ -467,3 +527,10 @@ const viewSlip = (path) => {
     window.open(`/storage/${path}`, '_blank');
 };
 </script>
+
+<style scoped>
+select, option {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-size: inherit !important;
+}
+</style>
