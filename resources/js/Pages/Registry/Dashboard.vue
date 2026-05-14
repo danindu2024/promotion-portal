@@ -5,9 +5,10 @@
                 Analytics Dashboard
             </h1>
 
-            <!-- Tabs Navigation -->
-            <div class="border-b border-gray-200 mb-8">
-                <nav class="-mb-px flex space-x-8">
+            <!-- Tabs Navigation (Responsive Scrollable with Fade Indicator) -->
+            <div class="relative mb-8">
+                <div class="border-b border-gray-200 overflow-x-auto no-scrollbar" style="mask-image: linear-gradient(to right, black 85%, transparent 100%); -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);">
+                    <nav class="-mb-px flex space-x-8 min-w-max px-2">
                     <button
                         @click="activeTab = 'overview'"
                         :class="[
@@ -43,8 +44,9 @@
                     </button>
                 </nav>
             </div>
+        </div>
 
-            <!-- Dashboard Overview Tab -->
+        <!-- Dashboard Overview Tab -->
             <div v-show="activeTab === 'overview'" class="space-y-6">
                 <!-- Overview Filters -->
                 <div class="bg-white rounded-lg shadow border border-gray-200 p-4 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-end">
@@ -205,7 +207,7 @@
                     <h3 class="text-lg font-bold text-gray-800 border-b pb-2">Target Audience Filters</h3>
                     
                     <!-- Row 1: Primary Search -->
-                    <div class="flex gap-4 items-end">
+                    <div class="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Search</label>
                             <div class="relative group">
@@ -221,7 +223,7 @@
                         </div>
                         <button 
                             @click="performSearch(1)"
-                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2"
+                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center justify-center gap-2 w-full sm:w-auto"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             Search
@@ -269,16 +271,16 @@
                             </div>
                         </div>
 
-                        <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-                            <button @click="resetFilters" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                        <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-6 pt-4 border-t border-gray-100 gap-4">
+                            <button @click="resetFilters" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all w-full sm:w-auto">
                                 Clear Filters
                             </button>
-                            <div class="flex gap-3">
-                                <button @click="exportToExcel" class="inline-flex items-center px-4 py-2 border border-green-600 rounded-lg text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 transition-all gap-2">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button @click="exportToExcel" class="inline-flex items-center justify-center px-4 py-2 border border-green-600 rounded-lg text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 transition-all gap-2 w-full sm:w-auto">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     Export Excel
                                 </button>
-                                <button @click="performSearch(1)" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all flex items-center gap-2">
+                                <button @click="performSearch(1)" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z"></path></svg>
                                     Apply Filters
                                 </button>
@@ -584,7 +586,7 @@
         </div>
 
         <!-- Modern Loading Indicator -->
-        <div v-if="dashboardLoading" class="fixed inset-0 ml-64 z-[10001] flex items-center justify-center pointer-events-none">
+        <div v-if="dashboardLoading" class="fixed inset-0 md:ml-64 z-[10001] flex items-center justify-center pointer-events-none">
             <div class="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col items-center">
                 <div class="relative">
                     <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-100 border-t-primary-600"></div>
