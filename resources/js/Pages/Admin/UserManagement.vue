@@ -1,13 +1,13 @@
 <template>
     <AppLayout>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 class="text-3xl font-bold text-gray-800">
                     User Management
                 </h1>
                 <button
                     @click="openAddModal"
-                    class="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
+                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 active:bg-primary-900 focus:outline-none focus:border-primary-900 focus:ring ring-primary-300 disabled:opacity-25 transition ease-in-out duration-150"
                 >
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -36,7 +36,7 @@
                 <!-- Advanced Filters -->
                 <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
                     <h3 class="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Advanced Filters</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Province</label>
                             <select v-model="filters.province" @change="fetchDistricts" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 text-sm">
@@ -66,11 +66,11 @@
                             </select>
                         </div>
                     </div>
-                    <div class="flex justify-between items-center bg-gray-50 -mx-6 -mb-6 p-4 border-t rounded-b-lg">
-                        <button @click="resetFilters" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-100">
+                    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-gray-50 -mx-6 -mb-6 p-4 border-t rounded-b-lg gap-3">
+                        <button @click="resetFilters" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 w-full sm:w-auto">
                             Clear Filters
                         </button>
-                        <button @click="applyFilters" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <button @click="applyFilters" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full sm:w-auto">
                             Apply Filter
                         </button>
                     </div>
@@ -78,22 +78,22 @@
             </div>
 
             <!-- Dashboard Overview Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white overflow-hidden shadow rounded-lg px-4 py-5 sm:p-6 border border-gray-200">
-                    <dt class="text-sm font-medium text-gray-500 truncate">Admins</dt>
-                    <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'admin').length }}</dd>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white overflow-hidden shadow-sm rounded-lg px-4 py-4 border border-gray-200">
+                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">Admins</dt>
+                    <dd class="mt-1 text-2xl font-bold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'admin').length }}</dd>
                 </div>
-                <div class="bg-white overflow-hidden shadow rounded-lg px-4 py-5 sm:p-6 border border-gray-200">
-                    <dt class="text-sm font-medium text-gray-500 truncate">Decision Makers</dt>
-                    <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'decision maker').length }}</dd>
+                <div class="bg-white overflow-hidden shadow-sm rounded-lg px-4 py-4 border border-gray-200">
+                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">D-Makers</dt>
+                    <dd class="mt-1 text-2xl font-bold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'decision maker').length }}</dd>
                 </div>
-                <div class="bg-white overflow-hidden shadow rounded-lg px-4 py-5 sm:p-6 border border-gray-200">
-                    <dt class="text-sm font-medium text-gray-500 truncate">Validators</dt>
-                    <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'validator').length }}</dd>
+                <div class="bg-white overflow-hidden shadow-sm rounded-lg px-4 py-4 border border-gray-200">
+                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">Validators</dt>
+                    <dd class="mt-1 text-2xl font-bold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'validator').length }}</dd>
                 </div>
-                <div class="bg-white overflow-hidden shadow rounded-lg px-4 py-5 sm:p-6 border border-gray-200">
-                    <dt class="text-sm font-medium text-gray-500 truncate">Data Entry</dt>
-                    <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'data entry').length }}</dd>
+                <div class="bg-white overflow-hidden shadow-sm rounded-lg px-4 py-4 border border-gray-200">
+                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">Data Entry</dt>
+                    <dd class="mt-1 text-2xl font-bold text-gray-900">{{ filteredUsers.filter(u => u.access_level === 'data entry').length }}</dd>
                 </div>
             </div>
 
@@ -292,12 +292,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                            <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm">
-                                Save
-                            </button>
-                            <button type="button" @click="closeModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col-reverse sm:flex-row sm:justify-end border-t border-gray-200 gap-3">
+                            <button type="button" @click="closeModal" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm">
                                 Cancel
+                            </button>
+                            <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:text-sm">
+                                Save
                             </button>
                         </div>
                     </form>
