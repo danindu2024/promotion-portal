@@ -58,8 +58,8 @@
             </div>
 
             <!-- View: Selected Batch Detail -->
-            <div v-if="selectedBatch" class="bg-white rounded-lg shadow border border-gray-200 p-8 mb-8">
-                <div class="flex justify-between items-center mb-6 pb-2 border-b">
+            <div v-if="selectedBatch" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8 mb-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-gray-700">Review Data Submission</h2>
                         <p class="text-sm text-gray-500 mt-1">
@@ -67,18 +67,18 @@
                             on {{ new Date(selectedBatch.created_at.replace(' ', 'T')).toLocaleString() }} 
                         </p>
                     </div>
-                    <div class="text-right">
-                        <div class="flex flex-col gap-2 items-end">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
+                    <div class="flex flex-col gap-2 items-start sm:items-end w-full sm:w-auto">
+                        <div class="flex flex-wrap gap-2 justify-start sm:justify-end">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" 
                                   :class="selectedBatch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
                                 {{ selectedBatch.batch_id.startsWith('SINGLE-') ? 'SINGLE' : 'BULK' }} UPLOAD
                             </span>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" 
                                   :class="selectedBatch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
                                 {{ selectedBatch.submission_type }} SUBMISSION
                             </span>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">
+                        <p class="text-sm text-gray-500">
                             Total Records: <span class="font-bold text-gray-800">{{ batchRecords.length }}</span>
                         </p>
                     </div>
@@ -316,23 +316,23 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="flex justify-between items-center border-t pt-6 bg-gray-50 -mx-8 -mb-8 p-8 rounded-b-lg">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center border-t pt-6 bg-gray-50 -mx-4 sm:-mx-8 -mb-4 sm:-mb-8 p-4 sm:p-8 rounded-b-lg gap-4">
                     <div class="text-sm text-gray-500">
                         <span v-if="batchRecords.length > 0">
                             You are about to approve <strong>{{ batchRecords.length }}</strong> remaining records in this batch.
                         </span>
                     </div>
-                    <div class="flex space-x-4">
+                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                         <button 
                             @click="closeBatch" 
-                            class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            class="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                             :disabled="isProcessing"
                         >
                             Back to Queue
                         </button>
                         <button 
                             @click="approveBatch" 
-                            class="flex justify-center px-8 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                            class="w-full sm:w-auto flex justify-center px-8 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
                             :disabled="isProcessing || batchRecords.length === 0"
                         >
                             <svg v-if="isProcessing && currentAction === 'approve'" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -345,9 +345,8 @@
                 </div>
             </div>
 
-            <!-- View: Pending Queue Table -->
-            <div v-show="!selectedBatch" class="bg-white rounded-lg shadow border border-gray-200">
-                <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+            <div v-show="!selectedBatch" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-4 sm:px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-xl font-medium text-gray-800">Pending Review Queue</h2>
                     <span class="bg-primary-100 text-primary-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
                         {{ pendingBatches.total || 0 }} Upload Batches
@@ -382,7 +381,7 @@
                             </tr>
                             <tr v-else v-for="batch in pendingBatches.data" :key="batch.batch_id" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ new Date(batch.created_at.replace(' ', 'T')).toLocaleDateString() }}<br>
+                                    <div class="font-medium text-gray-900 sm:font-normal">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleDateString() }}</div>
                                     <span class="text-xs">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleTimeString() }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -393,15 +392,17 @@
                                         {{ batch.record_count }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap flex gap-2">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
-                                          :class="batch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
-                                        {{ batch.batch_id.startsWith('SINGLE-') ? 'Single' : 'Bulk' }} Upload
-                                    </span>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
-                                          :class="batch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
-                                        {{ batch.submission_type }}
-                                    </span>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                                              :class="batch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
+                                            {{ batch.batch_id.startsWith('SINGLE-') ? 'Single' : 'Bulk' }}
+                                        </span>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                                              :class="batch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
+                                            {{ batch.submission_type }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button @click="openBatch(batch)" class="text-primary-600 hover:text-primary-900 bg-primary-50 px-4 py-2 rounded-md shadow-sm border border-primary-200 transition-colors">
