@@ -41,34 +41,65 @@
                     Record New Bank Deposit
                 </h2>
 
-                <!-- Success Message (Matching DataEntry Pattern) -->
-                <div
-                    v-if="successMsg"
-                    class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md flex items-center justify-between"
-                >
-                    <div class="flex items-center">
-                        <svg
-                            class="w-5 h-5 mr-2 flex-shrink-0"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clip-rule="evenodd"
-                            />
-                        </svg>
-                        {{ successMsg }}
-                    </div>
-                    <button
-                        @click="successMsg = ''"
-                        class="text-green-500 hover:text-green-700 focus:outline-none"
+                <!-- Alerts (scroll target) -->
+                <div ref="alertArea" class="scroll-mt-28">
+                    <!-- Success Message (Matching DataEntry Pattern) -->
+                    <div
+                        v-if="successMsg"
+                        class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md flex items-center justify-between"
                     >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
+                        <div class="flex items-center">
+                            <svg
+                                class="w-5 h-5 mr-2 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            {{ successMsg }}
+                        </div>
+                        <button
+                            @click="successMsg = ''"
+                            class="text-green-500 hover:text-green-700 focus:outline-none"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+
+                    <!-- Error Message (Matching DataEntry Pattern) -->
+                    <div
+                        v-if="errorMsg"
+                        class="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center justify-between shadow-sm"
+                    >
+                        <div class="flex items-center">
+                            <svg
+                                class="w-5 h-5 mr-2 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            {{ errorMsg }}
+                        </div>
+                        <button
+                            @click="errorMsg = ''"
+                            class="text-red-500 hover:text-red-700 focus:outline-none"
+                            aria-label="Dismiss"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <form @submit.prevent="submitForm">
+                <form @submit.prevent="submitForm" novalidate>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         <div class="space-y-5">
                             <div>
@@ -234,44 +265,61 @@
                     <div class="px-6 py-5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-gray-700">Bank Deposit Records</h3>
                     </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer / NIC / Mobile</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment / Address</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="deposit in deposits.data" :key="deposit.id" class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(deposit.deposit_date) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-bold text-gray-900">{{ deposit.customer_name }}</div>
-                                    <div class="text-xs text-gray-600">NIC: {{ deposit.nic }}</div>
-                                    <div class="text-xs text-gray-500">Mob: {{ deposit.mobile }}</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900 font-medium">{{ deposit.enrollment_number }}</div>
-                                    <div class="text-xs text-gray-500 truncate max-w-xs">{{ deposit.address }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    {{ deposit.branch }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-right text-gray-900">LKR {{ formatCurrency(deposit.amount) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button v-if="deposit.slip_path" @click="viewSlip(deposit.slip_path)" class="text-primary-600 hover:text-primary-900 font-bold">View Slip</button>
-                                    <span v-else class="text-gray-400 italic">No slip</span>
-                                </td>
-                            </tr>
-                            <tr v-if="!deposits.data || deposits.data.length === 0">
-                                <td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">No deposit records found.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="relative group">
+                    <!-- Floating horizontal scroll indicator -->
+                    <div 
+                        v-if="showDepositsTableIndicator" 
+                        @click="scrollDepositsTable"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                    >
+                        <span>Scroll Right</span>
+                        <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </div>
+                    <div 
+                        ref="depositsTableContainer"
+                        @scroll="handleDepositsTableScroll"
+                        class="overflow-x-auto"
+                    >
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer / NIC / Mobile</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment / Address</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-for="deposit in deposits.data" :key="deposit.id" class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(deposit.deposit_date) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-bold text-gray-900">{{ deposit.customer_name }}</div>
+                                        <div class="text-xs text-gray-600">NIC: {{ deposit.nic }}</div>
+                                        <div class="text-xs text-gray-500">Mob: {{ deposit.mobile }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900 font-medium">{{ deposit.enrollment_number }}</div>
+                                        <div class="text-xs text-gray-500 truncate max-w-xs">{{ deposit.address }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        {{ deposit.branch }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-right text-gray-900">LKR {{ formatCurrency(deposit.amount) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button v-if="deposit.slip_path" @click="viewSlip(deposit.slip_path)" class="text-primary-600 hover:text-primary-900 font-bold">View Slip</button>
+                                        <span v-else class="text-gray-400 italic">No slip</span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!deposits.data || deposits.data.length === 0">
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">No deposit records found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <!-- Pagination -->
                 <div class="px-6 py-3 flex items-center justify-between border-t border-gray-200 bg-gray-50/30" v-if="deposits.last_page > 1">
@@ -347,8 +395,8 @@ const tabMaskStyle = computed(() => {
     return { maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)' };
 });
 
-// Watch for tab changes to auto-scroll on mobile
-watch(activeTab, async () => {
+// Watch for tab changes to auto-scroll on mobile and check table scrollability
+watch(activeTab, async (newTab) => {
     await nextTick();
     const container = tabsContainer.value;
     if (!container) return;
@@ -357,15 +405,22 @@ watch(activeTab, async () => {
         activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
     setTimeout(updateScrollState, 300); // Update fade after smooth scroll completes
+
+    if (newTab === 'records') {
+        checkDepositsTableScroll();
+    }
 });
 
 onMounted(() => {
     window.addEventListener('resize', updateScrollState);
+    window.addEventListener('resize', checkDepositsTableScroll);
     setTimeout(updateScrollState, 500);
+    setTimeout(checkDepositsTableScroll, 1000);
 });
 
 onUnmounted(() => {
     window.removeEventListener('resize', updateScrollState);
+    window.removeEventListener('resize', checkDepositsTableScroll);
 });
 const submitting = ref(false);
 const isLoading = ref(false);
@@ -373,6 +428,8 @@ const loadingMessage = ref("Searching Records");
 const dragover = ref(false);
 const search = ref(props.filters?.search || "");
 const successMsg = ref("");
+const errorMsg = ref("");
+const alertArea = ref(null);
 const fieldErrors = reactive({
     customer_name: "",
     nic: "",
@@ -387,6 +444,34 @@ const fieldErrors = reactive({
     slip: "",
 });
 
+const depositsTableContainer = ref(null);
+const showDepositsTableIndicator = ref(false);
+
+const checkDepositsTableScroll = () => {
+    nextTick(() => {
+        const el = depositsTableContainer.value;
+        if (el) {
+            showDepositsTableIndicator.value = el.scrollWidth > el.clientWidth && el.scrollLeft < 10;
+        }
+    });
+};
+
+const handleDepositsTableScroll = (e) => {
+    if (e.target.scrollLeft > 15) {
+        showDepositsTableIndicator.value = false;
+    }
+};
+
+const scrollDepositsTable = () => {
+    const el = depositsTableContainer.value;
+    if (el) {
+        el.scrollTo({
+            left: el.scrollLeft + 200,
+            behavior: 'smooth'
+        });
+    }
+};
+
 const handleSearch = () => {
     isLoading.value = true;
     router.get('/bank-deposits', { search: search.value }, {
@@ -395,6 +480,7 @@ const handleSearch = () => {
         only: ['deposits', 'filters'],
         onFinish: () => {
             isLoading.value = false;
+            checkDepositsTableScroll();
         }
     });
 };
@@ -452,10 +538,12 @@ const handleDrop = (e) => {
 const resetForm = () => {
     Object.assign(form, {
         customer_name: "",
+        nic: "",
+        mobile: "",
+        address: "",
         enrollment_number: "",
         amount: "",
         deposit_date: "",
-        bank_name: "",
         branch: "",
         receipt_reference_number: "",
         remarks: "",
@@ -464,18 +552,119 @@ const resetForm = () => {
     // Clear errors
     Object.keys(fieldErrors).forEach(key => fieldErrors[key] = "");
     successMsg.value = "";
+    errorMsg.value = "";
+};
+
+const validateForm = () => {
+    let isValid = true;
+    errorMsg.value = "";
+    
+    // Clear previous errors
+    Object.keys(fieldErrors).forEach(key => fieldErrors[key] = "");
+
+    // 1. Customer Name
+    if (!form.customer_name || form.customer_name.trim() === "") {
+        fieldErrors.customer_name = "Customer Name is required.";
+        isValid = false;
+    }
+
+    // 2. NIC
+    const nicRegex = /^(?:[0-9]{9}[vVxX]|[0-9]{12})$/;
+    if (!form.nic) {
+        fieldErrors.nic = "NIC Number is required.";
+        isValid = false;
+    } else if (!nicRegex.test(form.nic)) {
+        fieldErrors.nic = "Enter a valid Sri Lankan NIC (9 digits with V/X, or 12 digits).";
+        isValid = false;
+    }
+
+    // 3. Mobile
+    const mobileRegex = /^0\d{9}$/;
+    if (!form.mobile) {
+        fieldErrors.mobile = "Mobile Number is required.";
+        isValid = false;
+    } else if (!mobileRegex.test(form.mobile)) {
+        fieldErrors.mobile = "Mobile Number must be 10 digits starting with 0 (e.g. 0771234567).";
+        isValid = false;
+    }
+
+    // 4. Address
+    if (!form.address || form.address.trim() === "") {
+        fieldErrors.address = "Address is required.";
+        isValid = false;
+    }
+
+    // 5. Enrollment Number
+    if (!form.enrollment_number) {
+        fieldErrors.enrollment_number = "Enrollment Number is required.";
+        isValid = false;
+    } else if (Number(form.enrollment_number) <= 0) {
+        fieldErrors.enrollment_number = "Enrollment Number must be a positive number.";
+        isValid = false;
+    }
+
+    // 6. Branch
+    if (!form.branch || form.branch.trim() === "") {
+        fieldErrors.branch = "People's Bank Branch Name is required.";
+        isValid = false;
+    }
+
+    // 7. Amount
+    if (!form.amount) {
+        fieldErrors.amount = "Deposit Amount is required.";
+        isValid = false;
+    } else if (Number(form.amount) <= 0) {
+        fieldErrors.amount = "Deposit Amount must be greater than 0.";
+        isValid = false;
+    }
+
+    // 8. Deposit Date
+    if (!form.deposit_date) {
+        fieldErrors.deposit_date = "Deposit Date is required.";
+        isValid = false;
+    } else {
+        const selected = new Date(form.deposit_date);
+        const current = new Date(today);
+        if (selected > current) {
+            fieldErrors.deposit_date = "Deposit Date cannot be in the future.";
+            isValid = false;
+        }
+    }
+
+    // 9. Receipt Reference Number
+    if (!form.receipt_reference_number || form.receipt_reference_number.trim() === "") {
+        fieldErrors.receipt_reference_number = "Receipt Reference Number is required.";
+        isValid = false;
+    }
+
+    // 10. Slip Image
+    if (!form.slip) {
+        fieldErrors.slip = "Please upload the payment slip image before saving.";
+        isValid = false;
+    }
+
+    return isValid;
+};
+
+const scrollToAlert = () => {
+    nextTick(() => {
+        if (alertArea.value) {
+            alertArea.value.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    });
 };
 
 const submitForm = async () => {
-    // Reset errors
-    Object.keys(fieldErrors).forEach(key => fieldErrors[key] = "");
-
-    if (!form.slip) {
-        fieldErrors.slip = "Please upload the payment slip image before saving.";
+    // Client-side validation first
+    if (!validateForm()) {
+        errorMsg.value = "Please fix the highlighted fields before submitting.";
+        scrollToAlert();
         return;
     }
     
     submitting.value = true;
+    successMsg.value = "";
+    errorMsg.value = "";
     
     const formData = new FormData();
     for (const key in form) {
@@ -494,21 +683,23 @@ const submitForm = async () => {
             onSuccess: () => {
                 resetForm();
                 successMsg.value = "Bank deposit record saved successfully!";
-                // Stay on 'entry' tab
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                scrollToAlert();
             }
         });
     } catch (error) {
         if (error.response?.status === 422) {
+            errorMsg.value = "Validation failed on the server.";
             const errors = error.response.data.errors;
             Object.keys(errors).forEach(key => {
                 if (fieldErrors.hasOwnProperty(key)) {
                     fieldErrors[key] = errors[key][0];
                 }
             });
+            scrollToAlert();
         } else {
             console.error(error);
-            alert(error.response?.data?.message || "Failed to save deposit record.");
+            errorMsg.value = error.response?.data?.message || "Failed to save deposit record.";
+            scrollToAlert();
         }
     } finally {
         submitting.value = false;
@@ -532,5 +723,18 @@ const viewSlip = (path) => {
 select, option {
     font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
     font-size: inherit !important;
+}
+@keyframes bounce-horizontal {
+    0%, 100% {
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateX(25%);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+.animate-bounce-horizontal {
+    animation: bounce-horizontal 1s infinite;
 }
 </style>
