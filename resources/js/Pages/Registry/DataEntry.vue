@@ -2196,6 +2196,7 @@ const exportToExcel = (category) => {
 };
 
 const downloadFile = async (url, filename) => {
+    loadingMessage.value = "Preparing Excel";
     isDownloading.value = true;
     try {
         const response = await axios.get(url, { responseType: 'blob' });
@@ -2222,6 +2223,7 @@ const downloadInstructions = () => downloadFile('/instructions.xlsx', 'Bulk_Uplo
 const downloadErrorSheet = async () => {
     if (!bulkResults.value?.summary?.invalid_count) return;
 
+    loadingMessage.value = "Preparing Excel";
     isDownloading.value = true;
     try {
         const response = await axios.post('/api/registry/export-errors', {
