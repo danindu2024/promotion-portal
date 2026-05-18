@@ -1,6 +1,6 @@
 <template>
     <AppLayout>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 transform-gpu" :class="{ 'blur-sm pointer-events-none opacity-80 grayscale-[0.1]': userLoading }" style="will-change: filter, opacity;">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 class="text-3xl font-bold text-gray-800">
                     User Management
@@ -103,8 +103,24 @@
                     <h3 class="text-lg font-bold text-gray-800">Registered Users</h3>
                     <!-- Search could go here -->
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                <div class="relative group">
+                    <!-- Floating horizontal scroll indicator -->
+                    <div 
+                        v-if="showTableIndicator" 
+                        @click="scrollTable"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                    >
+                        <span>Scroll Table</span>
+                        <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </div>
+                    <div 
+                        ref="tableContainer"
+                        @scroll="handleTableScroll"
+                        class="overflow-x-auto"
+                    >
+                        <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Name</th>
@@ -154,6 +170,7 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
                 <!-- Pagination Placeholder -->
                 <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
                     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
@@ -293,11 +310,15 @@
                             </div>
                         </div>
                         <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col-reverse sm:flex-row sm:justify-end border-t border-gray-200 gap-3">
-                            <button type="button" @click="closeModal" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm">
+                            <button type="button" @click="closeModal" :disabled="isSaving" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm disabled:opacity-50">
                                 Cancel
                             </button>
-                            <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:text-sm">
-                                Save
+                            <button type="submit" :disabled="isSaving" class="w-full sm:w-auto inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:text-sm disabled:opacity-50">
+                                <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                {{ isSaving ? 'Saving...' : 'Save' }}
                             </button>
                         </div>
                     </form>
@@ -346,11 +367,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modern Loading Indicator -->
+        <div v-if="userLoading" class="fixed inset-0 md:ml-64 z-[10001] flex items-center justify-center pointer-events-none">
+            <div class="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col items-center">
+                <div class="relative">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-100 border-t-primary-600"></div>
+                </div>
+                <p class="mt-4 text-[10px] font-black text-primary-800 tracking-[0.2em] uppercase">{{ loadingMessage }}</p>
+            </div>
+        </div>
     </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineProps } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, defineProps } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 
@@ -369,11 +400,15 @@ const accessLevels = [
 const users = ref(props.users || []);
 
 const fetchUsers = async () => {
+    loadingMessage.value = 'Updating User Records';
+    userLoading.value = true;
     try {
         const resp = await axios.get('/api/users');
         users.value = resp.data;
     } catch (error) {
         console.error("Failed to load users", error);
+    } finally {
+        userLoading.value = false;
     }
 };
 
@@ -397,7 +432,12 @@ const loadingModalDistricts = ref(false);
 const loadingModalDsDivisions = ref(false);
 
 const applyFilters = () => {
-    appliedFilters.value = { ...filters.value };
+    loadingMessage.value = filters.value.search ? 'Searching Users...' : 'Applying Filters...';
+    userLoading.value = true;
+    setTimeout(() => {
+        appliedFilters.value = { ...filters.value };
+        userLoading.value = false;
+    }, 450);
 };
 
 const fetchProvinces = async () => {
@@ -464,10 +504,15 @@ const fetchModalDsDivisions = async () => {
 };
 
 const resetFilters = () => {
-    filters.value = { search: '', province: '', district: '', ds_division: '', access_level: '' };
-    appliedFilters.value = { search: '', province: '', district: '', ds_division: '', access_level: '' };
-    districts.value = [];
-    dsDivisions.value = [];
+    loadingMessage.value = 'Clearing Filters...';
+    userLoading.value = true;
+    setTimeout(() => {
+        filters.value = { search: '', province: '', district: '', ds_division: '', access_level: '' };
+        appliedFilters.value = { search: '', province: '', district: '', ds_division: '', access_level: '' };
+        districts.value = [];
+        dsDivisions.value = [];
+        userLoading.value = false;
+    }, 450);
 };
 
 const filteredUsers = computed(() => {
@@ -489,9 +534,41 @@ const filteredUsers = computed(() => {
     });
 });
 
+const tableContainer = ref(null);
+const showTableIndicator = ref(false);
+
+const checkTableScroll = () => {
+    const el = tableContainer.value;
+    if (el) {
+        const hasHorizontalScroll = el.scrollWidth > el.clientWidth;
+        showTableIndicator.value = hasHorizontalScroll && el.scrollLeft < 10;
+    }
+};
+
+const handleTableScroll = () => {
+    checkTableScroll();
+};
+
+const scrollTable = () => {
+    const el = tableContainer.value;
+    if (el) {
+        el.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+};
+
+watch(() => users.value, () => {
+    setTimeout(checkTableScroll, 300);
+}, { deep: true });
+
 onMounted(() => {
     fetchProvinces();
     fetchUsers();
+    window.addEventListener('resize', checkTableScroll);
+    setTimeout(checkTableScroll, 1000);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', checkTableScroll);
 });
 // -----------------------
 
@@ -499,6 +576,9 @@ onMounted(() => {
 const isModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const userToDelete = ref(null);
+const isSaving = ref(false);
+const userLoading = ref(false);
+const loadingMessage = ref('Loading Users...');
 
 const defaultForm = {
     user_id: null,
@@ -569,6 +649,7 @@ const closeModal = () => {
 
 
 const saveUser = async () => {
+    isSaving.value = true;
     try {
         const payload = { ...form.value };
         
@@ -599,6 +680,8 @@ const saveUser = async () => {
     } catch (error) {
         console.error("Failed to save user", error.response?.data || error);
         alert(error.response?.data?.message || "An error occurred while saving.");
+    } finally {
+        isSaving.value = false;
     }
 };
 
