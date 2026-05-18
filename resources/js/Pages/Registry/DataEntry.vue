@@ -69,7 +69,7 @@
                 class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8"
             >
                 <!-- Alerts (scroll target) -->
-                <div ref="alertArea">
+                <div ref="alertArea" class="scroll-mt-28">
                     <div
                         v-if="successMsg"
                         class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md flex items-center justify-between"
@@ -191,20 +191,22 @@
                         v-if="editingUpdateId"
                         class="mb-6 p-4 bg-primary-50 text-primary-800 border border-primary-200 rounded-md shadow-sm"
                     >
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div class="flex items-center">
-                                <svg class="h-5 w-5 text-primary-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                <div class="text-sm">
-                                    You are currently <span class="font-bold">Updating</span> an existing record for <span class="font-bold">{{ form.full_name }}</span>.
+                                <svg class="h-5 w-5 text-primary-500 mr-2 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                <div class="text-xs sm:text-sm text-primary-850">
+                                    You are currently <span class="font-bold">Updating</span> the record for <span class="font-bold text-primary-950">{{ form.full_name }}</span>.
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                @click="cancelUpdate"
-                                class="text-sm font-medium text-primary-700 hover:text-primary-800 underline focus:outline-none"
-                            >
-                                Cancel & Reset
-                            </button>
+                            <div class="flex justify-end sm:justify-start">
+                                <button
+                                    type="button"
+                                    @click="cancelUpdate"
+                                    class="inline-flex items-center justify-center px-3 py-1.5 border border-primary-300 shadow-sm text-xs font-semibold rounded-md text-primary-700 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    Cancel & Reset
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -768,7 +770,7 @@
                 </div>
 
                 <!-- Alerts specifically for bulk upload -->
-                <div ref="bulkAlertArea">
+                <div ref="bulkAlertArea" class="scroll-mt-28">
                     <div
                         v-if="bulkErrorMsg"
                         class="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-md flex items-center justify-between"
@@ -1090,8 +1092,24 @@
                     </button>
                 </div>
 
-                <div class="p-0 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                <div class="relative group">
+                    <!-- Floating horizontal scroll indicator -->
+                    <div 
+                        v-if="showRejectedTableIndicator" 
+                        @click="scrollRejectedTable"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                    >
+                        <span>Scroll Right</span>
+                        <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </div>
+                    <div 
+                        ref="rejectedTableContainer"
+                        @scroll="handleRejectedTableScroll"
+                        class="p-0 overflow-x-auto"
+                    >
+                        <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
@@ -1213,7 +1231,7 @@
                                                 ? 'bg-blue-100 text-blue-800'
                                                 : 'bg-purple-100 text-purple-800'
                                         "
-                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                        class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
                                     >
                                         {{ record.data_payload.category }}
                                     </span>
@@ -1286,6 +1304,7 @@
                     </div>
                 </div>
             </div>
+            </div>
 
             <!-- Updateable Records Tab -->
             <div
@@ -1324,7 +1343,7 @@
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
                             <select 
                                 v-model="updateFilters.category"
-                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400"
                             >
                                 <option value="">All Categories</option>
                                 <option value="Self-Employed">Self-Employed</option>
@@ -1339,7 +1358,7 @@
                                 <select 
                                     v-model="updateFilters.province"
                                     @change="onFilterProvinceChange"
-                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400"
                                 >
                                     <option value="">All Provinces</option>
                                     <option v-for="p in filterProvinces" :key="p" :value="p">{{ p }}</option>
@@ -1351,7 +1370,7 @@
                                     v-model="updateFilters.district"
                                     @change="onFilterDistrictChange"
                                     :disabled="!updateFilters.province || loadingFilterDistricts"
-                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100 transition-all hover:border-gray-400"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 disabled:bg-gray-100 transition-all hover:border-gray-400"
                                 >
                                     <option value="">All Districts</option>
                                     <option v-for="d in filterDistricts" :key="d" :value="d">{{ d }}</option>
@@ -1365,7 +1384,7 @@
                             <select 
                                 v-model="updateFilters.ds_division"
                                 :disabled="(['admin', 'decision maker'].includes(user.access_level) && !updateFilters.district) || (user.access_level === 'validator' && !user.district) || loadingFilterDsDivisions"
-                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100 transition-all hover:border-gray-400"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 disabled:bg-gray-100 transition-all hover:border-gray-400"
                             >
                                 <option value="">All divisions</option>
                                 <option v-for="ds in filterDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
@@ -1382,8 +1401,24 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                <div class="relative group">
+                    <!-- Floating horizontal scroll indicator -->
+                    <div 
+                        v-if="showUpdateTableIndicator" 
+                        @click="scrollUpdateTable"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                    >
+                        <span>Scroll Right</span>
+                        <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </div>
+                    <div 
+                        ref="updateTableContainer"
+                        @scroll="handleUpdateTableScroll"
+                        class="overflow-x-auto"
+                    >
+                        <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
@@ -1397,7 +1432,7 @@
                                 <!-- Replaced by global indicator -->
                             </tr>
                             <tr v-else-if="updateRecords.length === 0">
-                                <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">No records found.</td>
+                                <td colspan="4" class="px-6 py-12 text-center text-gray-400 italic">No records found</td>
                             </tr>
                             <tr v-for="record in updateRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4">
@@ -1406,7 +1441,7 @@
                                 <td class="px-6 py-4">
                                     <span 
                                         :class="record.category === 'Self-Employed' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'"
-                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                        class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
                                     >
                                         {{ record.category }}
                                     </span>
@@ -1435,6 +1470,7 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
             </div>
         </div>
         <!-- Modern Loading Indicator -->
@@ -1538,6 +1574,72 @@ const bulkErrorMsg = ref("");
 
 // Ref for auto-scrolling to alerts
 const alertArea = ref(null);
+
+// Table scroll indicator overlay logic
+const updateTableContainer = ref(null);
+const showUpdateTableIndicator = ref(false);
+
+const checkUpdateTableScroll = () => {
+    nextTick(() => {
+        const el = updateTableContainer.value;
+        if (el) {
+            showUpdateTableIndicator.value = el.scrollWidth > el.clientWidth && el.scrollLeft < 10;
+        }
+    });
+};
+
+const handleUpdateTableScroll = (e) => {
+    if (e.target.scrollLeft > 15) {
+        showUpdateTableIndicator.value = false;
+    }
+};
+
+const scrollUpdateTable = () => {
+    const el = updateTableContainer.value;
+    if (el) {
+        el.scrollTo({
+            left: el.scrollLeft + 200,
+            behavior: 'smooth'
+        });
+    }
+};
+
+const rejectedTableContainer = ref(null);
+const showRejectedTableIndicator = ref(false);
+
+const checkRejectedTableScroll = () => {
+    nextTick(() => {
+        const el = rejectedTableContainer.value;
+        if (el) {
+            showRejectedTableIndicator.value = el.scrollWidth > el.clientWidth && el.scrollLeft < 10;
+        }
+    });
+};
+
+const handleRejectedTableScroll = (e) => {
+    if (e.target.scrollLeft > 15) {
+        showRejectedTableIndicator.value = false;
+    }
+};
+
+const scrollRejectedTable = () => {
+    const el = rejectedTableContainer.value;
+    if (el) {
+        el.scrollTo({
+            left: el.scrollLeft + 200,
+            behavior: 'smooth'
+        });
+    }
+};
+
+// Watchers to trigger indicator check when records populate
+watch(updateRecords, () => {
+    checkUpdateTableScroll();
+}, { deep: true });
+
+watch(rejectedRecords, () => {
+    checkRejectedTableScroll();
+}, { deep: true });
 
 // Loading states for cascading dropdowns (Bug 10)
 const loadingProvinces = ref(false);
@@ -1720,7 +1822,11 @@ async function scrollToAlert() {
 // ─── Fetch Geography & Rejected Data ────────────────────────────────────────────────
 onMounted(async () => {
     window.addEventListener('resize', updateScrollState);
+    window.addEventListener('resize', checkUpdateTableScroll);
+    window.addEventListener('resize', checkRejectedTableScroll);
     setTimeout(updateScrollState, 500);
+    setTimeout(checkUpdateTableScroll, 1000);
+    setTimeout(checkRejectedTableScroll, 1000);
     loadingProvinces.value = true;
     try {
         const { data } = await axios.get("/api/locations/provinces");
@@ -1935,52 +2041,61 @@ const fetchUpdateableRecords = async () => {
 };
 
 const startUpdate = async (record) => {
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    isDownloading.value = true;
+    loadingMessage.value = "Loading Record Data";
 
-    // Reset form first
-    resetForm(true, true);
+    try {
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: "smooth" });
 
-    // Fill form
-    editingUpdateId.value = record.id;
-    
-    // Basic fields
-    form.category = record.category;
-    form.full_name = record.full_name;
-    form.national_id_number = record.national_id_number || "";
-    form.province = record.province;
-    form.district = record.district;
-    form.ds_division = record.ds_division;
-    form.address = record.address || "";
-    form.contact_number = record.contact_number;
-    form.whatsapp_number = record.whatsapp_number || "";
-    form.email = record.email || "";
+        // Reset form first
+        resetForm(true, true);
 
-    // Category specific
-    if (record.category === "Self-Employed") {
-        form.age = record.age;
-        form.field_of_work = record.field_of_work;
-        form.employees_count = record.employees_count;
-    } else {
-        form.contact_person = record.contact_person;
-        form.members_count = record.members_count;
+        // Fill form
+        editingUpdateId.value = record.id;
+        
+        // Basic fields
+        form.category = record.category;
+        form.full_name = record.full_name;
+        form.national_id_number = record.national_id_number || "";
+        form.province = record.province;
+        form.district = record.district;
+        form.ds_division = record.ds_division;
+        form.address = record.address || "";
+        form.contact_number = record.contact_number;
+        form.whatsapp_number = record.whatsapp_number || "";
+        form.email = record.email || "";
+
+        // Category specific
+        if (record.category === "Self-Employed") {
+            form.age = record.age;
+            form.field_of_work = record.field_of_work;
+            form.employees_count = record.employees_count;
+        } else {
+            form.contact_person = record.contact_person;
+            form.members_count = record.members_count;
+        }
+
+        // Load locations
+        if (form.province) {
+            loadingDistricts.value = true;
+            const { data: d } = await axios.get(`/api/locations/districts?province=${encodeURIComponent(form.province)}`);
+            districts.value = d;
+            loadingDistricts.value = false;
+        }
+        if (form.district) {
+            loadingDsDivisions.value = true;
+            const { data: ds } = await axios.get(`/api/locations/ds-divisions?district=${encodeURIComponent(form.district)}`);
+            dsDivisions.value = ds;
+            loadingDsDivisions.value = false;
+        }
+
+        activeTab.value = "single";
+    } catch (e) {
+        console.error("Failed to load update record data", e);
+    } finally {
+        isDownloading.value = false;
     }
-
-    // Load locations
-    if (form.province) {
-        loadingDistricts.value = true;
-        const { data: d } = await axios.get(`/api/locations/districts?province=${encodeURIComponent(form.province)}`);
-        districts.value = d;
-        loadingDistricts.value = false;
-    }
-    if (form.district) {
-        loadingDsDivisions.value = true;
-        const { data: ds } = await axios.get(`/api/locations/ds-divisions?district=${encodeURIComponent(form.district)}`);
-        dsDivisions.value = ds;
-        loadingDsDivisions.value = false;
-    }
-
-    activeTab.value = "single";
 };
 
 const submitSingleForm = async () => {
@@ -2253,6 +2368,8 @@ const downloadErrorSheet = async () => {
 
 onUnmounted(() => {
     window.removeEventListener('resize', updateScrollState);
+    window.removeEventListener('resize', checkUpdateTableScroll);
+    window.removeEventListener('resize', checkRejectedTableScroll);
 });
 </script>
 
@@ -2260,5 +2377,19 @@ onUnmounted(() => {
 select, option {
     font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
     font-size: inherit !important;
+}
+
+@keyframes bounce-horizontal {
+    0%, 100% {
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateX(25%);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+.animate-bounce-horizontal {
+    animation: bounce-horizontal 1s infinite;
 }
 </style>

@@ -6,7 +6,7 @@
             </h1>
 
             <!-- Alerts (scroll target) -->
-            <div ref="alertArea">
+            <div ref="alertArea" class="scroll-mt-28">
                 <div v-if="successMsg" class="mb-6 p-4 bg-green-50 text-green-700 border border-green-200 rounded-md flex items-center justify-between">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -353,65 +353,82 @@
                     </span>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploader</th>
-                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Record Count</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-if="isLoadingQueue">
-                                <td colspan="5" class="px-6 py-10 text-center text-gray-500">
-                                    <svg class="animate-spin h-8 w-8 text-primary-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                    </svg>
-                                    Loading pending batches...
-                                </td>
-                            </tr>
-                            <tr v-else-if="!pendingBatches.data || pendingBatches.data.length === 0">
-                                <td colspan="5" class="px-6 py-10 text-center text-gray-500">
-                                    No pending records in the queue. You're all caught up!
-                                </td>
-                            </tr>
-                            <tr v-else v-for="batch in pendingBatches.data" :key="batch.batch_id" class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <div class="font-medium text-gray-900 sm:font-normal">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleDateString() }}</div>
-                                    <span class="text-xs">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleTimeString() }}</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ batch.uploader?.name || 'Unknown' }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-800 min-w-[2.5rem]">
-                                        {{ batch.record_count }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex flex-wrap gap-2">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
-                                              :class="batch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
-                                            {{ batch.batch_id.startsWith('SINGLE-') ? 'Single' : 'Bulk' }}
+                <div class="relative group">
+                    <!-- Floating horizontal scroll indicator -->
+                    <div 
+                        v-if="showQueueTableIndicator" 
+                        @click="scrollQueueTable"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                    >
+                        <span>Scroll Right</span>
+                        <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </div>
+                    <div 
+                        ref="queueTableContainer"
+                        @scroll="handleQueueTableScroll"
+                        class="overflow-x-auto"
+                    >
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploader</th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Record Count</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-if="isLoadingQueue">
+                                    <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                                        <svg class="animate-spin h-8 w-8 text-primary-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        Loading pending batches...
+                                    </td>
+                                </tr>
+                                <tr v-else-if="!pendingBatches.data || pendingBatches.data.length === 0">
+                                    <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                                        No pending records in the queue. You're all caught up!
+                                    </td>
+                                </tr>
+                                <tr v-else v-for="batch in pendingBatches.data" :key="batch.batch_id" class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div class="font-medium text-gray-900 sm:font-normal">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleDateString() }}</div>
+                                        <span class="text-xs">{{ new Date(batch.created_at.replace(' ', 'T')).toLocaleTimeString() }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ batch.uploader?.name || 'Unknown' }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-800 min-w-[2.5rem]">
+                                            {{ batch.record_count }}
                                         </span>
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
-                                              :class="batch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
-                                            {{ batch.submission_type }}
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button @click="openBatch(batch)" class="text-primary-600 hover:text-primary-900 bg-primary-50 px-4 py-2 rounded-md shadow-sm border border-primary-200 transition-colors">
-                                        Review
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                                                  :class="batch.batch_id.startsWith('SINGLE-') ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'">
+                                                {{ batch.batch_id.startsWith('SINGLE-') ? 'Single' : 'Bulk' }}
+                                            </span>
+                                            <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                                                  :class="batch.submission_type === 'NEW' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'">
+                                                {{ batch.submission_type }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button @click="openBatch(batch)" class="text-primary-600 hover:text-primary-900 bg-primary-50 px-4 py-2 rounded-md shadow-sm border border-primary-200 transition-colors">
+                                            Review
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 
                 <!-- Pagination -->
@@ -513,13 +530,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 // Queue State
 const pendingBatches = ref({});
 const isLoadingQueue = ref(true);
+
+const queueTableContainer = ref(null);
+const showQueueTableIndicator = ref(false);
+
+const checkQueueTableScroll = () => {
+    nextTick(() => {
+        const el = queueTableContainer.value;
+        if (el) {
+            showQueueTableIndicator.value = el.scrollWidth > el.clientWidth && el.scrollLeft < 10;
+        }
+    });
+};
+
+const handleQueueTableScroll = (e) => {
+    if (e.target.scrollLeft > 15) {
+        showQueueTableIndicator.value = false;
+    }
+};
+
+const scrollQueueTable = () => {
+    const el = queueTableContainer.value;
+    if (el) {
+        el.scrollTo({
+            left: el.scrollLeft + 200,
+            behavior: 'smooth'
+        });
+    }
+};
 
 // Batch View State
 const selectedBatch = ref(null);
@@ -543,6 +588,12 @@ const rejectError = ref('');
 
 onMounted(() => {
     fetchQueue('/api/reviews/pending');
+    window.addEventListener('resize', checkQueueTableScroll);
+    setTimeout(checkQueueTableScroll, 1000);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', checkQueueTableScroll);
 });
 
 const fetchQueue = async (url) => {
@@ -555,6 +606,7 @@ const fetchQueue = async (url) => {
         errorMsg.value = "Failed to load the pending queue. Please try again.";
     } finally {
         isLoadingQueue.value = false;
+        checkQueueTableScroll();
     }
 };
 
@@ -581,6 +633,7 @@ const openBatch = async (batch) => {
 const closeBatch = () => {
     selectedBatch.value = null;
     batchRecords.value = [];
+    checkQueueTableScroll();
 };
 
 const approveBatch = async () => {
@@ -716,3 +769,19 @@ const scrollToAlert = () => {
     });
 };
 </script>
+
+<style scoped>
+@keyframes bounce-horizontal {
+    0%, 100% {
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateX(25%);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+.animate-bounce-horizontal {
+    animation: bounce-horizontal 1s infinite;
+}
+</style>

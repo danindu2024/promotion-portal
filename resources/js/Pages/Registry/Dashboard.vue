@@ -7,7 +7,12 @@
 
             <!-- Tabs Navigation (Responsive Scrollable with Fade Indicator) -->
             <div class="relative mb-8">
-                <div class="border-b border-gray-200 overflow-x-auto no-scrollbar" style="mask-image: linear-gradient(to right, black 85%, transparent 100%); -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);">
+                <div 
+                    ref="tabsContainer" 
+                    @scroll="updateScrollState" 
+                    class="border-b border-gray-200 overflow-x-auto no-scrollbar" 
+                    :style="tabMaskStyle"
+                >
                     <nav class="-mb-px flex space-x-8 min-w-max px-2">
                     <button
                         @click="activeTab = 'overview'"
@@ -49,33 +54,33 @@
         <!-- Dashboard Overview Tab -->
             <div v-show="activeTab === 'overview'" class="space-y-6">
                 <!-- Overview Filters -->
-                <div class="bg-white rounded-lg shadow border border-gray-200 p-4 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-end">
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-4 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 items-stretch md:items-end">
                     <div class="flex-1">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Province</label>
-                        <select v-model="overviewFilters.province" @change="fetchOverviewDistricts" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 text-sm">
+                        <select v-model="overviewFilters.province" @change="fetchOverviewDistricts" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 px-3 text-sm">
                             <option value="">All Provinces</option>
                             <option v-for="prov in provinces" :key="prov" :value="prov">{{ prov }}</option>
                         </select>
                     </div>
                     <div class="flex-1">
                         <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
-                        <select v-model="overviewFilters.district" @change="fetchOverviewDsDivisions" :disabled="!overviewFilters.province || loadingOverviewDistricts" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 text-sm disabled:bg-gray-100">
+                        <select v-model="overviewFilters.district" @change="fetchOverviewDsDivisions" :disabled="!overviewFilters.province || loadingOverviewDistricts" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 px-3 text-sm disabled:bg-gray-100">
                             <option value="">{{ loadingOverviewDistricts ? 'Loading districts...' : 'All Districts' }}</option>
                             <option v-for="dist in overviewDistricts" :key="dist" :value="dist">{{ dist }}</option>
                         </select>
                     </div>
                     <div class="flex-1">
                         <label class="block text-sm font-medium text-gray-700 mb-1">DS Division</label>
-                        <select v-model="overviewFilters.ds_division" @change="onOverviewDsDivisionChange" :disabled="!overviewFilters.district || loadingOverviewDsDivisions" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 text-sm disabled:bg-gray-100">
+                        <select v-model="overviewFilters.ds_division" @change="onOverviewDsDivisionChange" :disabled="!overviewFilters.district || loadingOverviewDsDivisions" class="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 py-2 px-3 text-sm disabled:bg-gray-100">
                             <option value="">{{ loadingOverviewDsDivisions ? 'Loading divisions...' : 'All Divisions' }}</option>
                             <option v-for="ds in overviewDsDivisions" :key="ds" :value="ds">{{ ds }}</option>
                         </select>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <button @click="resetOverviewFilters" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 w-full md:w-auto h-[38px]">
+                    <div class="flex items-center space-x-2 w-full md:w-auto">
+                        <button @click="resetOverviewFilters" class="flex-1 md:flex-none px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 h-[38px] transition-colors">
                             Reset
                         </button>
-                        <button @click="fetchOverviewData" class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 w-full md:w-auto h-[38px]">
+                        <button @click="fetchOverviewData" class="flex-1 md:flex-none px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 h-[38px] transition-colors">
                             Apply Filter
                         </button>
                     </div>
@@ -154,9 +159,9 @@
                         </div>
                         <button 
                             @click="openRangesModal"
-                            class="flex items-center space-x-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-primary-50 px-2 py-1 rounded-md transition-colors"
+                            class="flex items-center sm:space-x-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-primary-50 px-2 py-1 rounded-md transition-colors"
                         >
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="hidden sm:block w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                             </svg>
                             <span>Set Ranges</span>
@@ -215,7 +220,7 @@
                                     type="text" 
                                     v-model="filters.search" 
                                     @keyup.enter="performSearch(1)" 
-                                    placeholder="Search by Name, NIC, or Contact Number..." 
+                                    placeholder="Search by Name, NIC, or Contact Number" 
                                     class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2.5 px-4 pl-10 transition-all group-hover:border-gray-400"
                                 >
                                 <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -235,28 +240,28 @@
                         <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Province</label>
-                                <select v-model="filters.province" @change="fetchDistricts" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                                <select v-model="filters.province" @change="fetchDistricts" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400">
                                     <option value="">All Provinces</option>
                                     <option v-for="prov in provinces" :key="prov" :value="prov">{{ prov }}</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">District</label>
-                                <select v-model="filters.district" @change="fetchDsDivisions" :disabled="!filters.province || loadingDistricts" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100 transition-all hover:border-gray-400">
+                                <select v-model="filters.district" @change="fetchDsDivisions" :disabled="!filters.province || loadingDistricts" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 disabled:bg-gray-100 transition-all hover:border-gray-400">
                                     <option value="">{{ loadingDistricts ? 'Loading districts...' : 'All Districts' }}</option>
                                     <option v-for="dist in districts" :key="dist" :value="dist">{{ dist }}</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">DS Division</label>
-                                <select v-model="filters.ds_division" :disabled="!filters.district || loadingDsDivisions" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 disabled:bg-gray-100 transition-all hover:border-gray-400">
+                                <select v-model="filters.ds_division" :disabled="!filters.district || loadingDsDivisions" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 disabled:bg-gray-100 transition-all hover:border-gray-400">
                                     <option value="">{{ loadingDsDivisions ? 'Loading divisions...' : 'All Divisions' }}</option>
                                     <option v-for="ds in dsDivisions" :key="ds" :value="ds">{{ ds }}</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
-                                <select v-model="filters.category" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                                <select v-model="filters.category" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400">
                                     <option value="">All Categories</option>
                                     <option value="Trade">Trade</option>
                                     <option value="Self-Employed">Self-Employed</option>
@@ -264,7 +269,7 @@
                             </div>
                             <div v-if="filters.category === 'Self-Employed'">
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Field of Work</label>
-                                <select v-model="filters.field_of_work" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                                <select v-model="filters.field_of_work" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400">
                                     <option value="">All Fields</option>
                                     <option v-for="field in fieldOfWorkOptions" :key="field" :value="field">{{ field }}</option>
                                 </select>
@@ -294,8 +299,24 @@
                     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-gray-800">Filtered Audience ({{ searchData.total || 0 }})</h3>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="relative group">
+                        <!-- Floating horizontal scroll indicator -->
+                        <div 
+                            v-if="showSearchTableIndicator" 
+                            @click="scrollSearchTable"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                        >
+                            <span>Scroll Table</span>
+                            <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                        </div>
+                        <div 
+                            ref="searchTableContainer"
+                            @scroll="handleSearchTableScroll"
+                            class="overflow-x-auto"
+                        >
+                            <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
@@ -332,6 +353,7 @@
                             </tbody>
                         </table>
                     </div>
+                    </div>
                     <!-- Pagination -->
                     <!-- Custom minimalist pagination (just Next/Prev due to time limitations) -->
                     <div class="px-6 py-3 flex items-center justify-between border-t border-gray-200" v-if="searchData.last_page > 1">
@@ -353,7 +375,7 @@
                     <h3 class="text-lg font-bold text-gray-800 border-b pb-2">Bank Deposit Filters</h3>
                     
                     <!-- Row 1: Primary Search -->
-                    <div class="flex gap-4 items-end">
+                    <div class="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Search</label>
                             <div class="relative group">
@@ -367,20 +389,22 @@
                                 <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </div>
                         </div>
-                        <button 
-                            @click="fetchGlobalDeposits(1)"
-                            class="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center gap-2"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            Search
-                        </button>
-                        <button 
-                            @click="exportBankDeposits" 
-                            class="inline-flex items-center px-4 py-2.5 border border-green-600 rounded-lg text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 transition-all h-[42px] gap-2"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            Excel Download
-                        </button>
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <button 
+                                @click="fetchGlobalDeposits(1)"
+                                class="flex-1 sm:flex-none bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all h-[42px] flex items-center justify-center gap-2"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                Search
+                            </button>
+                            <button 
+                                @click="exportBankDeposits" 
+                                class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2.5 border border-green-600 rounded-lg text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 transition-all h-[42px] gap-2 whitespace-nowrap"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Excel Download
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Row 2: Advanced Filters -->
@@ -388,11 +412,11 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">From Date</label>
-                                <input type="date" v-model="depositFilters.from_date" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                                <input type="date" v-model="depositFilters.from_date" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">To Date</label>
-                                <input type="date" v-model="depositFilters.to_date" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 transition-all hover:border-gray-400">
+                                <input type="date" v-model="depositFilters.to_date" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm py-2 px-3.5 transition-all hover:border-gray-400">
                             </div>
                             <div class="flex items-end gap-3">
                                 <button @click="fetchGlobalDeposits(1)" class="flex-1 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 shadow-sm hover:shadow text-sm font-semibold transition-all flex items-center justify-center gap-2">
@@ -415,8 +439,24 @@
                             Refresh
                         </button>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="relative group">
+                        <!-- Floating horizontal scroll indicator -->
+                        <div 
+                            v-if="showDepositsTableIndicator" 
+                            @click="scrollDepositsTable"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 z-[15] flex items-center gap-1.5 bg-primary-600/95 hover:bg-primary-700 text-white px-3.5 py-2.5 rounded-full shadow-xl text-xs font-bold cursor-pointer select-none transition-all duration-300 animate-pulse active:scale-95 border border-primary-500/30"
+                        >
+                            <span>Scroll Table</span>
+                            <svg class="w-4 h-4 animate-bounce-horizontal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                        </div>
+                        <div 
+                            ref="depositsTableContainer"
+                            @scroll="handleDepositsTableScroll"
+                            class="overflow-x-auto"
+                        >
+                            <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -453,6 +493,7 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
                     </div>
                     <!-- Pagination for Bank Deposits -->
                     <div class="px-6 py-3 flex items-center justify-between border-t border-gray-200 bg-gray-50/30" v-if="globalDeposits.last_page > 1">
@@ -598,7 +639,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ViewDetailsModal from '@/Components/Registry/ViewDetailsModal.vue';
 import axios from 'axios';
@@ -612,6 +653,30 @@ ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale, LinearScale,
 const activeTab = ref('overview');
 const dashboardLoading = ref(false);
 const loadingMessage = ref('Updating Data');
+
+const searchData = ref({});
+const globalDeposits = ref({ data: [], total: 0 });
+
+const tabsContainer = ref(null);
+const scrollState = reactive({
+    isAtStart: true,
+    isAtEnd: false
+});
+
+const updateScrollState = () => {
+    const container = tabsContainer.value;
+    if (!container) return;
+    scrollState.isAtStart = container.scrollLeft <= 5;
+    scrollState.isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 5;
+};
+
+const tabMaskStyle = computed(() => {
+    const { isAtStart, isAtEnd } = scrollState;
+    if (isAtStart && isAtEnd) return {};
+    if (isAtStart) return { maskImage: 'linear-gradient(to right, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)' };
+    if (isAtEnd) return { maskImage: 'linear-gradient(to left, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to left, black 85%, transparent 100%)' };
+    return { maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)', webkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)' };
+});
 
 // ----------------------------------------
 // Dashboard Overview Logic
@@ -628,6 +693,72 @@ const kpis = ref({
 
 const showTargetModal = ref(false);
 const newTargetValue = ref(0);
+
+// Table scroll indicator overlay logic
+const searchTableContainer = ref(null);
+const showSearchTableIndicator = ref(false);
+
+const checkSearchTableScroll = () => {
+    nextTick(() => {
+        const el = searchTableContainer.value;
+        if (el) {
+            showSearchTableIndicator.value = el.scrollWidth > el.clientWidth && el.scrollLeft < 10;
+        }
+    });
+};
+
+const handleSearchTableScroll = (e) => {
+    if (e.target.scrollLeft > 15) {
+        showSearchTableIndicator.value = false;
+    }
+};
+
+const scrollSearchTable = () => {
+    const el = searchTableContainer.value;
+    if (el) {
+        el.scrollTo({
+            left: el.scrollLeft + 200,
+            behavior: 'smooth'
+        });
+    }
+};
+
+const depositsTableContainer = ref(null);
+const showDepositsTableIndicator = ref(false);
+
+const checkDepositsTableScroll = () => {
+    nextTick(() => {
+        const el = depositsTableContainer.value;
+        if (el) {
+            showDepositsTableIndicator.value = el.scrollWidth > el.clientWidth && el.scrollLeft < 10;
+        }
+    });
+};
+
+const handleDepositsTableScroll = (e) => {
+    if (e.target.scrollLeft > 15) {
+        showDepositsTableIndicator.value = false;
+    }
+};
+
+const scrollDepositsTable = () => {
+    const el = depositsTableContainer.value;
+    if (el) {
+        el.scrollTo({
+            left: el.scrollLeft + 200,
+            behavior: 'smooth'
+        });
+    }
+};
+
+// Watchers to trigger indicator check when records populate
+watch(() => searchData.value?.data, () => {
+    checkSearchTableScroll();
+}, { deep: true });
+
+watch(() => globalDeposits.value?.data, () => {
+    checkDepositsTableScroll();
+}, { deep: true });
 const savingTarget = ref(false);
 
 const openTargetModal = () => {
@@ -694,7 +825,30 @@ const sectorChartData = ref({
     }]
 });
 const sectorDataLoaded = ref(false);
-const pieOptions = { responsive: true, maintainAspectRatio: false };
+const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        tooltip: {
+            enabled: true,
+            intersect: true,
+            padding: 10,
+            cornerRadius: 6,
+            bodySpacing: 4,
+            titleSpacing: 4,
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            displayColors: true,
+        }
+    },
+    interaction: {
+        mode: 'nearest',
+        intersect: true
+    }
+};
 
 const fowChartData = ref({
     labels: [],
@@ -705,7 +859,30 @@ const fowChartData = ref({
     }]
 });
 const fowLoaded = ref(false);
-const barOptions = { responsive: true, maintainAspectRatio: false };
+const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        tooltip: {
+            enabled: true,
+            intersect: true,
+            padding: 10,
+            cornerRadius: 6,
+            bodySpacing: 4,
+            titleSpacing: 4,
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            displayColors: true,
+        }
+    },
+    interaction: {
+        mode: 'nearest',
+        intersect: true
+    }
+};
 
 // Leaflet heatmap
 const mapContainer = ref(null);
@@ -869,7 +1046,10 @@ const renderHeatmapLayer = (heatData, province, district = null) => {
             layer.bindTooltip(`<strong>${name}</strong><br/>Registrations: <b>${val}</b>`, { sticky: true });
             layer.on({
                 mouseover: (e) => { e.target.setStyle({ weight: 2, color: '#1e40af', fillOpacity: 1 }); },
-                mouseout: (e) => { e.target.setStyle({ weight: district ? 2 : 1, color: district ? '#1e40af' : '#6b7280', fillOpacity: 0.85 }); }
+                mouseout: (e) => { e.target.setStyle({ weight: district ? 2 : 1, color: district ? '#1e40af' : '#6b7280', fillOpacity: 0.85 }); },
+                click: (e) => {
+                    layer.openTooltip();
+                }
             });
         }
     }).addTo(leafletMap);
@@ -934,7 +1114,10 @@ const renderDsHeatmapLayer = (dsData, district) => {
             );
             layer.on({
                 mouseover: (e) => { e.target.setStyle({ weight: 2, color: '#1e40af', fillOpacity: 1 }); },
-                mouseout:  (e) => { e.target.setStyle({ weight: 1, color: '#374151', fillOpacity: 0.82 }); }
+                mouseout:  (e) => { e.target.setStyle({ weight: 1, color: '#374151', fillOpacity: 0.82 }); },
+                click: (e) => {
+                    layer.openTooltip();
+                }
             });
         }
     }).addTo(leafletMap);
@@ -1013,7 +1196,6 @@ const fieldOfWorkOptions = ref([
     'Food and Beverage Processing'
 ]);
 
-const searchData = ref({});
 const searchLoading = ref(false);
 
 const fetchProvinces = async () => {
@@ -1059,6 +1241,8 @@ const resetFilters = () => {
 };
 
 const performSearch = async (page = 1) => {
+    loadingMessage.value = 'Searching Records...';
+    dashboardLoading.value = true;
     searchLoading.value = true;
     try {
         const params = new URLSearchParams();
@@ -1078,6 +1262,7 @@ const performSearch = async (page = 1) => {
         console.error("Search failed", error);
     } finally {
         searchLoading.value = false;
+        dashboardLoading.value = false;
     }
 };
 
@@ -1139,7 +1324,6 @@ const onDetailsDeleted = (deletedId) => {
 };
 
 // Bank Deposits Global View
-const globalDeposits = ref({ data: [], total: 0 });
 const loadingDeposits = ref(false);
 const depositSearch = ref("");
 const depositFilters = reactive({
@@ -1148,6 +1332,8 @@ const depositFilters = reactive({
 });
 
 const fetchGlobalDeposits = async (page = 1) => {
+    loadingMessage.value = 'Searching Deposits...';
+    dashboardLoading.value = true;
     loadingDeposits.value = true;
     try {
         const params = new URLSearchParams();
@@ -1162,6 +1348,7 @@ const fetchGlobalDeposits = async (page = 1) => {
         console.error("Failed to load global deposits", error);
     } finally {
         loadingDeposits.value = false;
+        dashboardLoading.value = false;
     }
 };
 
@@ -1219,23 +1406,56 @@ const viewSlip = (path) => {
     window.open(`/storage/${path}`, '_blank');
 };
 
-watch(activeTab, (newTab) => {
+watch(activeTab, async (newTab) => {
     if (newTab === 'deposits' && globalDeposits.value.data.length === 0) {
         fetchGlobalDeposits();
     }
+    await nextTick();
+    const container = tabsContainer.value;
+    if (!container) return;
+    const activeBtn = container.querySelector('.border-primary-500');
+    if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    setTimeout(updateScrollState, 300);
 });
 
 onMounted(() => {
+    window.addEventListener('resize', checkSearchTableScroll);
+    window.addEventListener('resize', checkDepositsTableScroll);
+    window.addEventListener('resize', updateScrollState);
     fetchOverviewData();
     fetchProvinces();
     performSearch(1);
     fetchGlobalDeposits();
+    setTimeout(checkSearchTableScroll, 1000);
+    setTimeout(checkDepositsTableScroll, 1000);
+    setTimeout(updateScrollState, 500);
 });
 
 onBeforeUnmount(() => {
+    window.removeEventListener('resize', checkSearchTableScroll);
+    window.removeEventListener('resize', checkDepositsTableScroll);
+    window.removeEventListener('resize', updateScrollState);
     if (leafletMap) {
         leafletMap.remove();
         leafletMap = null;
     }
 });
 </script>
+
+<style scoped>
+@keyframes bounce-horizontal {
+    0%, 100% {
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateX(25%);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+.animate-bounce-horizontal {
+    animation: bounce-horizontal 1s infinite;
+}
+</style>
