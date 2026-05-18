@@ -12,7 +12,7 @@
         <!-- Sidebar Navigation -->
         <aside
             :class="[
-                'w-64 bg-primary text-white flex flex-col min-h-screen fixed md:sticky top-0 z-[90] transition-transform duration-300 ease-in-out shadow-xl md:shadow-none pt-16 md:pt-0',
+                'w-64 bg-primary text-white flex flex-col h-screen fixed top-0 z-[90] transition-transform duration-300 ease-in-out shadow-xl md:shadow-none pt-16 md:pt-0',
                 isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
             ]"
         >
@@ -136,7 +136,7 @@
         ></div>
 
         <!-- Main Content Area -->
-        <main class="flex-1 p-4 sm:p-8">
+        <main class="flex-1 p-4 sm:p-8 md:ml-64">
             <slot />
         </main>
     </div>
